@@ -14,6 +14,7 @@ import {
 } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
+import { ClassService } from '@/shared/services/classService';
 import { useAuth } from '@/shared/hooks/useAuth';
 
 const StudentClassesPage = () => {
@@ -66,13 +67,20 @@ const StudentClassesPage = () => {
   };
 
   const handleJoinClass = async () => {
+    if (!joinCode.trim()) {
+      alert('Digite o código da turma');
+      return;
+    }
+
     try {
-      // TODO: Implementar lógica de entrar na turma com código
-      console.log('Joining class with code:', joinCode);
+      await ClassService.joinClassByCode(joinCode.trim().toUpperCase(), user.id);
+      alert('Você entrou na turma com sucesso!');
       setShowJoinModal(false);
       setJoinCode('');
+      loadClasses(); // Reload classes
     } catch (error) {
       console.error('Erro:', error);
+      alert(error.message || 'Erro ao entrar na turma');
     }
   };
 

@@ -616,6 +616,101 @@ export const ClassService = {
   },
 
   /**
+   * Join a class by invite code (for students)
+   * @param {string} inviteCode - The invite code
+   * @param {string} userId - The user ID trying to join
+   * @returns {Promise<Object>} - The class object
+   */
+  async joinClassByCode(inviteCode, userId) {
+    // Find class by invite code
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('invite_code', inviteCode)
+      .eq('is_active', true)
+      .single();
+
+    if (classError || !classData) {
+      throw new Error('Código de turma inválido ou turma não encontrada');
+    }
+
+    // Check if user is already a member
+    const { data: existingMember } = await supabase
+      .from('class_members')
+      .select('id')
+      .eq('class_id', classData.id)
+      .eq('user_id', userId)
+      .single();
+
+    if (existingMember) {
+      throw new Error('Você já é membro desta turma');
+    }
+
+    // Add user as student
+    const { data: newMember, error: memberError } = await supabase
+      .from('class_members')
+      .insert({
+        class_id: classData.id,
+        user_id: userId,
+        role: 'student',
+        joined_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (memberError) {
+      console.error('Error joining class:', memberError);
+      throw new Error('Erro ao entrar na turma');
+    }
+
+    // Notify teacher
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userId)
+        .single();
+
+      await NotificationOrchestrator.send('studentJoinedClass', {
+        userId: classData.created_by,
+        variables: { 
+          studentName: profile?.full_name || 'Novo aluno', 
+          className: classData.name 
+        },
+        channelOverride: 'push',
+        metadata: { classId: classData.id, studentId: userId }
+      });
+    } catch (e) {
+      console.warn('Failed to notify teacher:', e);
+    }
+
+    return classData;
+  },
+
+  /**
+   * Get class by invite code
+   * @param {string} inviteCode - The invite code
+   * @returns {Promise<Object>} - The class object
+   */
+  async getClassByInviteCode(inviteCode) {
+    const { data, error } = await supabase
+      .from('classes')
+      .select(`
+        *,
+        teacher:profiles!classes_created_by_fkey(id, full_name, name, avatar_url)
+      `)
+      .eq('invite_code', inviteCode)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !data) {
+      throw new Error('Código de turma inválido');
+    }
+
+    return data;
+  },
+
+  /**
    * Subscribe to real-time class updates
    * @param {Function} callback - Function to call when classes change
    * @returns {Function} - Function to unsubscribe

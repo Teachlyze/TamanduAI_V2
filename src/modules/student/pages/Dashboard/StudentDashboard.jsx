@@ -20,10 +20,11 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Progress } from '@/shared/components/ui/progress';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { LineChart, Line, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
-// import { ClassService } from '@/shared/services/classService';
-// import { SubmissionService } from '@/shared/services/submissionService';
+import { supabase } from '@/shared/services/supabaseClient';
+import { useAuth } from '@/shared/hooks/useAuth';
 
 const StudentDashboard = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalClasses: 0,
@@ -46,30 +47,189 @@ const StudentDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      
+      if (!user?.id) {
+        console.log('Usuário não autenticado');
+        setLoading(false);
+        return;
+      }
 
-      // TODO: Integrar com services quando tiver dados reais
-      setStats({
-        totalClasses: 6,
-        activeActivities: 8,
-        completedActivities: 15,
-        upcomingDeadlines: 3,
-        completionRate: 75,
-        avgGrade: 8.5
+      // 1. Buscar turmas do aluno
+      const { data: myMemberships } = await supabase
+        .from('class_members')
+        .select(`
+          class_id,
+          class:classes(id, name, subject, color, banner_color)
+        `)
+        .eq('user_id', user.id)
+        .eq('role', 'student');
+
+      const classes = myMemberships?.map(m => m.class).filter(Boolean) || [];
+      const classIds = classes.map(c => c.id);
+
+      if (classIds.length === 0) {
+        // Sem turmas ainda
+        setStats({
+          totalClasses: 0,
+          activeActivities: 0,
+          completedActivities: 0,
+          upcomingDeadlines: 0,
+          completionRate: 0,
+          avgGrade: 0
+        });
+        setMyClasses([]);
+        setPendingActivities([]);
+        setRecentGrades([]);
+        setUpcomingDeadlines([]);
+        setAlerts([{
+          id: 1,
+          type: 'info',
+          message: 'Você ainda não está em nenhuma turma',
+          action: 'Entrar'
+        }]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Buscar atividades das turmas
+      const { data: activityAssignments } = await supabase
+        .from('activity_class_assignments')
+        .select(`
+          activity_id,
+          activity:activities(
+            id,
+            title,
+            due_date,
+            max_score,
+            type,
+            is_published,
+            status
+          )
+        `)
+        .in('class_id', classIds);
+
+      const allActivities = activityAssignments
+        ?.map(a => a.activity)
+        .filter(Boolean) || [];
+      
+      const publishedActivities = allActivities.filter(a => 
+        a.is_published && a.status === 'active'
+      );
+
+      // 3. Buscar submissões do aluno
+      const { data: submissions } = await supabase
+        .from('submissions')
+        .select('id, activity_id, status, grade, submitted_at, graded_at')
+        .eq('student_id', user.id);
+
+      const submissionsMap = new Map(
+        submissions?.map(s => [s.activity_id, s]) || []
+      );
+
+      // 4. Calcular estatísticas
+      const now = new Date();
+      
+      // Atividades com prazo próximo (48h)
+      const upcoming = publishedActivities.filter(act => {
+        if (!act.due_date) return false;
+        const due = new Date(act.due_date);
+        const hoursLeft = (due - now) / (1000 * 60 * 60);
+        return hoursLeft > 0 && hoursLeft <= 48 && !submissionsMap.has(act.id);
       });
 
-      setMyClasses([]);
-      setPendingActivities([]);
-      setRecentGrades([]);
-      setUpcomingDeadlines([]);
+      // Submissões completas (submetidas ou corrigidas)
+      const completed = submissions?.filter(s =>
+        s.status === 'submitted' || s.status === 'graded'
+      ) || [];
+
+      // Submissões com nota
+      const graded = submissions?.filter(s => s.grade !== null) || [];
+
+      // Média das notas
+      const avgGrade = graded.length > 0
+        ? graded.reduce((sum, s) => sum + parseFloat(s.grade), 0) / graded.length
+        : 0;
+
+      // Taxa de conclusão
+      const completionRate = publishedActivities.length > 0
+        ? (completed.length / publishedActivities.length) * 100
+        : 0;
+
+      // Atividades pendentes (sem submissão)
+      const pending = publishedActivities.filter(act =>
+        !submissionsMap.has(act.id)
+      ).map(act => ({
+        ...act,
+        dueDate: act.due_date,
+        className: classes.find(c => c.id)?.name || 'Turma'
+      }));
+
+      // Notas recentes (últimas 5)
+      const recent = graded
+        .sort((a, b) => new Date(b.graded_at || b.submitted_at) - new Date(a.graded_at || a.submitted_at))
+        .slice(0, 5);
+
+      // 5. Criar alertas dinâmicos
+      const alerts = [];
       
-      // Mock de alertas
-      setAlerts([
-        { id: 1, type: 'warning', message: '3 atividades com prazo em 24h', action: 'Ver' },
-        { id: 2, type: 'info', message: '2 novas atividades disponíveis', action: 'Acessar' },
-        { id: 3, type: 'success', message: '1 feedback recebido', action: 'Ler' }
-      ]);
+      if (upcoming.length > 0) {
+        alerts.push({
+          id: 1,
+          type: 'warning',
+          message: `${upcoming.length} atividade${upcoming.length > 1 ? 's' : ''} com prazo em 48h`,
+          action: 'Ver'
+        });
+      }
+      
+      if (pending.length > 0) {
+        alerts.push({
+          id: 2,
+          type: 'info',
+          message: `${pending.length} atividade${pending.length > 1 ? 's' : ''} pendente${pending.length > 1 ? 's' : ''}`,
+          action: 'Acessar'
+        });
+      }
+      
+      const recentFeedback = graded.filter(s => {
+        if (!s.graded_at) return false;
+        const gradedDate = new Date(s.graded_at);
+        const daysSince = (now - gradedDate) / (1000 * 60 * 60 * 24);
+        return daysSince <= 7;
+      });
+      
+      if (recentFeedback.length > 0) {
+        alerts.push({
+          id: 3,
+          type: 'success',
+          message: `${recentFeedback.length} feedback${recentFeedback.length > 1 ? 's' : ''} recebido${recentFeedback.length > 1 ? 's' : ''}`,
+          action: 'Ler'
+        });
+      }
+
+      // Atualizar estado com dados reais
+      setStats({
+        totalClasses: classes.length,
+        activeActivities: pending.length,
+        completedActivities: completed.length,
+        upcomingDeadlines: upcoming.length,
+        completionRate: Math.round(completionRate),
+        avgGrade: parseFloat(avgGrade.toFixed(1))
+      });
+
+      setMyClasses(classes);
+      setPendingActivities(pending.slice(0, 5));
+      setRecentGrades(recent);
+      setUpcomingDeadlines(upcoming);
+      setAlerts(alerts.length > 0 ? alerts : [{
+        id: 1,
+        type: 'success',
+        message: 'Tudo em dia! Continue assim!',
+        action: ''
+      }]);
+
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
+      // Manter valores padrão em caso de erro
     } finally {
       setLoading(false);
     }

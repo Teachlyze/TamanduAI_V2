@@ -90,20 +90,20 @@ const ClassSchedulePage = lazyLoad(() => import('../pages/classes/ClassScheduleP
 // const CorrectionsPage = lazyLoad(() => import('../pages/activities/CorrectionsPage'));
 const UserProfileEditPage = lazyLoad(() => import('../pages/profile/UserProfileEditPage'));
 
-// School pages
-const SchoolDashboard = lazyLoad(() => import('../pages/school/SchoolDashboard'));
-const SchoolTeachersPage = lazyLoad(() => import('../pages/school/SchoolTeachersPage'));
-const SchoolReportsPage = lazyLoad(() => import('../pages/school/SchoolReportsPage'));
-const SchoolCommsPage = lazyLoad(() => import('../pages/school/SchoolCommsPage'));
-const SchoolRankingPage = lazyLoad(() => import('../pages/school/SchoolRankingPage'));
-const SchoolStudentsPage = lazyLoad(() => import('../pages/school/SchoolStudentsPage'));
-const SchoolClassesPage = lazyLoad(() => import('../pages/school/SchoolClassesPage'));
-const SchoolSettingsPage = lazyLoad(() => import('../pages/school/SchoolSettingsPage'));
-const SchoolAnalyticsPage = lazyLoad(() => import('../components/school/SchoolAnalyticsPage'));
-const SchoolAnalyticsMLPage = lazyLoad(() => import('../pages/school/SchoolAnalyticsMLPage'));
-const SchoolClassMembersPage = lazyLoad(() => import('../components/school/SchoolClassMembersPage'));
-const InviteTeacherPage = lazyLoad(() => import('../pages/school/InviteTeacherPage'));
-const RewardSettingsPage = lazyLoad(() => import('../pages/school/RewardSettingsPage'));
+// School pages - DISABLED FOR MVP (only teacher and student)
+// const SchoolDashboard = lazyLoad(() => import('../pages/school/SchoolDashboard'));
+// const SchoolTeachersPage = lazyLoad(() => import('../pages/school/SchoolTeachersPage'));
+// const SchoolReportsPage = lazyLoad(() => import('../pages/school/SchoolReportsPage'));
+// const SchoolCommsPage = lazyLoad(() => import('../pages/school/SchoolCommsPage'));
+// const SchoolRankingPage = lazyLoad(() => import('../pages/school/SchoolRankingPage'));
+// const SchoolStudentsPage = lazyLoad(() => import('../pages/school/SchoolStudentsPage'));
+// const SchoolClassesPage = lazyLoad(() => import('../pages/school/SchoolClassesPage'));
+// const SchoolSettingsPage = lazyLoad(() => import('../pages/school/SchoolSettingsPage'));
+// const SchoolAnalyticsPage = lazyLoad(() => import('../components/school/SchoolAnalyticsPage'));
+// const SchoolAnalyticsMLPage = lazyLoad(() => import('../pages/school/SchoolAnalyticsMLPage'));
+// const SchoolClassMembersPage = lazyLoad(() => import('../components/school/SchoolClassMembersPage'));
+// const InviteTeacherPage = lazyLoad(() => import('../pages/school/InviteTeacherPage'));
+// const RewardSettingsPage = lazyLoad(() => import('../pages/school/RewardSettingsPage'));
 
 // Student module routes
 const StudentRoutes = lazyLoad(() => import('../modules/student/routes'));
@@ -139,7 +139,8 @@ const ClassAttendancePage = lazyLoad(() => import('../pages/teacher/ClassAttenda
 // Layouts
 const StudentLayout = lazyLoad(() => import('../components/student/StudentLayout'));
 const TeacherLayout = lazyLoad(() => import('../components/teacher/TeacherLayout'));
-const SchoolLayout = lazyLoad(() => import('../components/school/SchoolLayout'));
+// School layout disabled for MVP
+// const SchoolLayout = lazyLoad(() => import('../components/school/SchoolLayout'));
 
 // Error pages
 const NotFound = lazyLoad(() => import('../pages/errors/NotFound'));
@@ -154,9 +155,12 @@ const AppRoutes = () => {
       {/* Rotas Públicas */}
       {/* Redirects para caminhos legados/errados */}
       <Route path="/dashboard/student/*" element={<Navigate to="/student" replace />} />
-      <Route path="/dashboard/school/*" element={<Navigate to="/school" replace />} />
       <Route path="/students/*" element={<Navigate to="/student" replace />} />
-      <Route path="/escola/*" element={<Navigate to="/school" replace />} />
+      {/* School routes disabled for MVP */}
+      {/* <Route path="/dashboard/school/*" element={<Navigate to="/school" replace />} /> */}
+      {/* <Route path="/escola/*" element={<Navigate to="/school" replace />} /> */}
+      <Route path="/school/*" element={<Navigate to="/" replace />} />
+      <Route path="/escola/*" element={<Navigate to="/" replace />} />
       <Route
         path="/"
         element={
@@ -778,8 +782,9 @@ const AppRoutes = () => {
 
       {/* ========================================
           ROTAS DE ESCOLA - /school/*
+          DISABLED FOR MVP - Only teacher and student
           ======================================== */}
-      <Route
+      {/* <Route
         path="/school"
         element={
           <RoleProtectedRoute allowedRoles={['school']}>
@@ -799,7 +804,6 @@ const AppRoutes = () => {
             </Suspense>
           }
         />
-        {/* Compat: garantir correspondência explícita da raiz "/school" */}
         <Route
           path=""
           element={
@@ -928,7 +932,7 @@ const AppRoutes = () => {
             </Suspense>
           }
         />
-      </Route>
+      </Route> */}
 
       {/* Outras Rotas Protegidas */}
       <Route

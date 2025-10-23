@@ -136,36 +136,20 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  // Sign in with email and password (guarded by hCaptcha + lockout)
+  // Sign in with email and password (direct Supabase auth)
   const signIn = async (email, password, hcaptchaToken) => {
     try {
       setLoading(true);
       setError(null);
-      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       
-      // 1) Guard: validate hCaptcha + rate limit using Edge Function (skip on localhost)
-      if (!isLocalhost) {
-        try {
-          await supabase.functions.invoke('auth-guard-login', {
-            method: 'POST',
-            body: { email, hcaptchaToken },
-          })
-        } catch (guardErr) {
-          console.error('Auth guard error:', guardErr);
-          // Surface guard error to caller
-          throw new Error(guardErr?.message || 'Security check failed');
-        }
-      }
-
-      // 2) Perform Supabase sign-in
-      // console.log('Attempting sign-in with Supabase...');
+      // Perform Supabase sign-in directly
       const signInOptions = {
         email,
         password,
       };
       
-      // Include captcha token only in production (if Supabase has captcha enabled)
-      if (!isLocalhost && hcaptchaToken) {
+      // Include captcha token if provided (for Supabase's built-in captcha)
+      if (hcaptchaToken) {
         signInOptions.options = {
           captchaToken: hcaptchaToken,
         };
@@ -193,18 +177,6 @@ export const AuthProvider = ({ children }) => {
       }
       
       // console.log('[AuthContext] Sign-in successful, session created');
-      
-      // 3) Clear attempts/lock on success (skip if edge function doesn't exist)
-      if (!isLocalhost) {
-        try {
-          await supabase.functions.invoke('auth-login-success', {
-            method: 'POST',
-            body: { email },
-          })
-        } catch (_) { 
-          // console.log('[AuthContext] auth-login-success edge function not available, skipping');
-        }
-      }
       
       // The onAuthStateChange handler will update the user automatically
       // We just need to get the user from the response data
@@ -234,28 +206,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign up with email and password
+  // Sign up with email and password (direct Supabase auth)
   const signUp = async (userData, hcaptchaToken) => {
     try {
       setLoading(true);
       setError(null);
-      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
       
-      // 1) Guard: validate hCaptcha + rate limit using Edge Function (skip on localhost)
-      if (!isLocalhost) {
-        try {
-          await supabase.functions.invoke('auth-guard-register', {
-            method: 'POST',
-            body: { email: userData.email, hcaptchaToken },
-          })
-        } catch (guardErr) {
-          // console.log('[AuthContext] auth-guard-register edge function not available, skipping');
-        }
-      }
-
-      // 2) Perform Supabase registration
-      // console.log('[AuthContext] Registering user...');
-      const { data, error } = await supabase.auth.signUp({
+      // Perform Supabase registration directly
+      const signUpOptions = {
         email: userData.email,
         password: userData.password,
         options: {
@@ -265,7 +223,14 @@ export const AuthProvider = ({ children }) => {
             role: userData.role || 'student'
           }
         }
-      });
+      };
+      
+      // Include captcha token if provided
+      if (hcaptchaToken) {
+        signUpOptions.options.captchaToken = hcaptchaToken;
+      }
+      
+      const { data, error } = await supabase.auth.signUp(signUpOptions);
       if (error) throw error;
       
       // console.log('[AuthContext] User registered successfully:', data.user?.email);
