@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useContext, createContext, useRef } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/shared/services/supabaseClient';
 
 // Create and export the context
 export const AuthContext = createContext(null);
@@ -19,31 +19,38 @@ export const AuthProvider = ({ children }) => {
     let timeoutId = null;
     
     const bootstrap = async () => {
-      if (process.env.NODE_ENV === 'development') {
-        // console.log('[AuthContext] Starting bootstrap...');
-      }
+      console.log('[AuthContext] Starting bootstrap...');
       const startTime = performance.now();
 
-      // Safety timeout - force loading to false after 10 seconds (increased from 5)
+      // Safety timeout - force loading to false after 15 seconds
       timeoutId = setTimeout(() => {
         if (mounted) {
           console.warn('[AuthContext] Bootstrap timeout - forcing loading to false');
           setLoading(false);
           setUser(null);
         }
-      }, 10000);
+      }, 15000);
 
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('[AuthContext] Calling supabase.auth.getSession()...');
+        
+        // Add timeout to getSession call
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('getSession timeout')), 5000)
+        );
+        
+        const { data: { session }, error: sessionError } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]);
         const sessionTime = performance.now() - startTime;
 
-        if (process.env.NODE_ENV === 'development') {
-          // console.log('[AuthContext] Session check:', {
-          //   hasSession: !!session,
-          //   error: sessionError,
-          //   timeMs: sessionTime.toFixed(2)
-          // });
-        }
+        console.log('[AuthContext] Session check:', {
+          hasSession: !!session,
+          error: sessionError,
+          timeMs: sessionTime.toFixed(2)
+        });
 
         if (!mounted) return;
 
@@ -55,18 +62,14 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (!session) {
-          if (process.env.NODE_ENV === 'development') {
-            // console.log('[AuthContext] No session found');
-          }
+          console.log('[AuthContext] No session found');
           setUser(null);
           setLoading(false);
           return;
         }
 
         // Get user from session instead of making another API call
-        if (process.env.NODE_ENV === 'development') {
-          // console.log('[AuthContext] User from session:', session.user?.email);
-        }
+        console.log('[AuthContext] User from session:', session.user?.email);
         setUser(session.user ?? null);
       } catch (err) {
         console.error('[AuthContext] Bootstrap auth error:', err);
@@ -78,9 +81,7 @@ export const AuthProvider = ({ children }) => {
         if (timeoutId) clearTimeout(timeoutId);
         if (mounted) {
           const totalTime = performance.now() - startTime;
-          if (process.env.NODE_ENV === 'development') {
-            // console.log('[AuthContext] Bootstrap complete, setting loading to false (total time:', totalTime.toFixed(2), 'ms)');
-          }
+          console.log('[AuthContext] Bootstrap complete, setting loading to false (total time:', totalTime.toFixed(2), 'ms)');
           setLoading(false);
         }
       }
