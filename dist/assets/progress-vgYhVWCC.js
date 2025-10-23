@@ -1,0 +1,11 @@
+import{c as I,r as u,j as i,e as $}from"./main-BYt0atFx.js";import{c as _,P as f}from"./index-B8z1bzn5.js";/**
+ * @license lucide-react v0.544.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const E=[["circle",{cx:"12",cy:"12",r:"10",key:"1mglay"}],["path",{d:"M12 16v-4",key:"1dtifu"}],["path",{d:"M12 8h.01",key:"e9boi3"}]],k=I("info",E);var d="Progress",c=100,[M]=_(d),[R,j]=M(d),m=u.forwardRef((e,r)=>{const{__scopeProgress:n,value:o=null,max:a,getValueLabel:b=w,...h}=e;(a||a===0)&&!v(a)&&console.error(V(`${a}`,"Progress"));const t=v(a)?a:c;o!==null&&!p(o,t)&&console.error(A(`${o}`,"Progress"));const s=p(o,t)?o:null,y=l(s)?b(s,t):void 0;return i.jsx(R,{scope:n,value:s,max:t,children:i.jsx(f.div,{"aria-valuemax":t,"aria-valuemin":0,"aria-valuenow":l(s)?s:void 0,"aria-valuetext":y,role:"progressbar","data-state":P(s,t),"data-value":s??void 0,"data-max":t,...h,ref:r})})});m.displayName=d;var x="ProgressIndicator",g=u.forwardRef((e,r)=>{const{__scopeProgress:n,...o}=e,a=j(x,n);return i.jsx(f.div,{"data-state":P(a.value,a.max),"data-value":a.value??void 0,"data-max":a.max,...o,ref:r})});g.displayName=x;function w(e,r){return`${Math.round(e/r*100)}%`}function P(e,r){return e==null?"indeterminate":e===r?"complete":"loading"}function l(e){return typeof e=="number"}function v(e){return l(e)&&!isNaN(e)&&e>0}function p(e,r){return l(e)&&!isNaN(e)&&e<=r&&e>=0}function V(e,r){return`Invalid prop \`max\` of value \`${e}\` supplied to \`${r}\`. Only numbers greater than 0 are valid max values. Defaulting to \`${c}\`.`}function A(e,r){return`Invalid prop \`value\` of value \`${e}\` supplied to \`${r}\`. The \`value\` prop must be:
+  - a positive number
+  - less than the value passed to \`max\` (or ${c} if no \`max\` prop is set)
+  - \`null\` or \`undefined\` if the progress is indeterminate.
+
+Defaulting to \`null\`.`}var N=m,L=g;const C=u.forwardRef(({className:e,value:r,...n},o)=>i.jsx(N,{ref:o,className:$("relative h-2 w-full overflow-hidden rounded-full bg-muted",e),...n,children:i.jsx(L,{className:"h-full w-full flex-1 bg-primary transition-all duration-300",style:{transform:`translateX(-${100-(r||0)}%)`}})}));C.displayName=N.displayName;export{k as I,C as P};

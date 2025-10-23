@@ -105,16 +105,8 @@ const SchoolClassMembersPage = lazyLoad(() => import('../components/school/Schoo
 const InviteTeacherPage = lazyLoad(() => import('../pages/school/InviteTeacherPage'));
 const RewardSettingsPage = lazyLoad(() => import('../pages/school/RewardSettingsPage'));
 
-// Student pages
-const StudentDashboard = lazyLoad(() => import('../pages/student/StudentDashboard'));
-const StudentPerformancePage = lazyLoad(() => import('../pages/student/StudentPerformancePage'));
-const StudentClassesPage = lazyLoad(() => import('../components/student/StudentClassesPage'));
-const StudentClassDetailsPage = lazyLoad(() => import('../components/student/StudentClassDetailsPage'));
-const StudentActivityDetailsPage = lazyLoad(() => import('../components/student/StudentActivityDetailsPage'));
-const StudentCalendarPage = lazyLoad(() => import('../components/student/StudentCalendarPageEnhanced'));
-const StudentRankingPage = lazyLoad(() => import('../components/student/StudentRankingPage'));
-const StudentDiscussionPage = lazyLoad(() => import('../components/student/StudentDiscussionPage'));
-const StudentMissionsPage = lazyLoad(() => import('../components/student/StudentMissionsPage'));
+// Student module routes
+const StudentRoutes = lazyLoad(() => import('../modules/student/routes'));
 
 // Teacher pages
 const TeacherDashboard = lazyLoad(() => import('../pages/teacher/TeacherDashboard'));
@@ -161,9 +153,9 @@ const AppRoutes = () => {
     <Routes>
       {/* Rotas Públicas */}
       {/* Redirects para caminhos legados/errados */}
-      <Route path="/dashboard/student/*" element={<Navigate to="/students" replace />} />
+      <Route path="/dashboard/student/*" element={<Navigate to="/student" replace />} />
       <Route path="/dashboard/school/*" element={<Navigate to="/school" replace />} />
-      <Route path="/student/*" element={<Navigate to="/students" replace />} />
+      <Route path="/students/*" element={<Navigate to="/student" replace />} />
       <Route path="/escola/*" element={<Navigate to="/school" replace />} />
       <Route
         path="/"
@@ -370,149 +362,20 @@ const AppRoutes = () => {
       )}
 
       {/* ========================================
-          ROTAS DE ESTUDANTES - /students/*
+          ROTAS DE ESTUDANTES - /student/*
           ======================================== */}
       <Route
-        path="/students"
+        path="/student/*"
         element={
           <RoleProtectedRoute allowedRoles={['student']}>
             <ErrorBoundary errorTitle="Erro" errorMessage="Não foi possível carregar a página. Tente recarregar.">
               <Suspense fallback={<Loading />}>
-                <StudentLayout />
+                <StudentRoutes />
               </Suspense>
             </ErrorBoundary>
           </RoleProtectedRoute>
         }
-      >
-        <Route
-          index
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentDashboard />
-            </Suspense>
-          }
-        />
-        <Route
-          path="activities"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentActivitiesPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="classes"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentClassesPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="classes/:classId"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentClassDetailsPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="classes/:classId/discussions/:discussionId"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentDiscussionPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="gamification"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentGamificationPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="quizzes"
-          element={
-            <Suspense fallback={<Loading />}>
-              {React.createElement(lazyLoad(() => import('../pages/student/StudentPublicQuizzesPage')))}
-            </Suspense>
-          }
-        />
-        <Route
-          path="quizzes/:quizId"
-          element={
-            <Suspense fallback={<Loading />}>
-              {React.createElement(lazyLoad(() => import('../pages/student/StudentQuizPlayPage')))}
-            </Suspense>
-          }
-        />
-        <Route
-          path="performance"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentPerformancePage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="calendar"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentCalendarPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="ranking"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentRankingPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="missions"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentMissionsPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="history"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentHistoryPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="activities/:id"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentActivityDetailsPage />
-            </Suspense>
-          }
-        />
-        <Route
-          path="notifications"
-          element={
-            <Suspense fallback={<Loading />}>
-              <NotificationCenter />
-            </Suspense>
-          }
-        />
-        <Route
-          path="profile"
-          element={
-            <Suspense fallback={<Loading />}>
-              <StudentDetailPage />
-            </Suspense>
-          }
-        />
-      </Route>
+      />
 
       {/* ========================================
           ROTAS DE PROFESSORES - /dashboard/*
