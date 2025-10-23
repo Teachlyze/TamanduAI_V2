@@ -1,0 +1,50 @@
+# Reduce build context size for Docker
+
+# Vite/Node build output
+/dist
+/node_modules
+
+# Git and tooling
+.git
+.gitignore
+.husky
+.vscode
+.idea
+
+# Logs and cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+.cache
+.tmp
+coverage
+.nyc_output
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+
+# Tests, docs, and misc not needed for image
+/tests
+__tests__
+/playwright-report
+/docs
+
+# Supabase local metadata not needed in frontend image
+/supabase
+
+# Monitoring sources (not part of frontend image)
+/monitoring
+
+# Build artifacts
+/dist-ssr
+/*.tgz
+
+# Ignore lockfiles only if not required (we keep them)
+# Note: keep package-lock.json for reproducible installs

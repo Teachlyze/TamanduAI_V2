@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+    <meta name="description" content="TamanduAI - Plataforma EdTech Inteligente para aprendizado personalizado">
+    <title>TamanduAI - Plataforma EdTech Inteligente</title>
+    <link rel="canonical" href="https://tamanduai.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="TamanduAI - Plataforma EdTech Inteligente" />
+    <meta property="og:description" content="Plataforma educacional com IA que reduz sua sobrecarga administrativa e potencializa o aprendizado." />
+    <meta property="og:url" content="https://tamanduai.com/" />
+    <meta property="og:image" content="https://tamanduai.com/og-cover.jpg" />
+    <meta property="og:site_name" content="TamanduAI" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="TamanduAI - Plataforma EdTech Inteligente" />
+    <meta name="twitter:description" content="Plataforma educacional com IA que reduz sua sobrecarga administrativa e potencializa o aprendizado." />
+    <meta name="twitter:image" content="https://tamanduai.com/og-cover.jpg" />
+    
+    <!-- CSS de acessibilidade -->
+    <link rel="stylesheet" href="/src/styles/accessibility.css">
+    
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "TamanduAI",
+      "url": "https://tamanduai.com/",
+      "logo": "https://tamanduai.com/favicon.svg",
+      "sameAs": [
+        "https://twitter.com/tamanduai",
+        "https://www.linkedin.com/company/tamanduai"
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "TamanduAI",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "url": "https://tamanduai.com/",
+      "description": "Plataforma educacional com IA para professores e alunos.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL"
+      }
+    }
+    </script>
+    
+    <script>
+      // Verifica o tema preferido do sistema
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    </script>
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

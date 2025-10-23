@@ -1,0 +1,64 @@
+services:
+  # Frontend - React/Vite Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+        - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+        - VITE_APP_URL=${APP_URL:-http://localhost:3000}
+    container_name: tamanduai-frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - tamanduai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Prometheus for metrics
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tamanduai-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - tamanduai-network
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+
+  # Upstash Redis REST Prometheus Exporter
+  upstash-exporter:
+    build:
+      context: ./monitoring/upstash-exporter
+    container_name: tamanduai-upstash-exporter
+    environment:
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+    ports:
+      - "9101:9101"
+    networks:
+      - tamanduai-network
+    restart: unless-stopped
+
+networks:
+  tamanduai-network:
+    driver: bridge
+
+volumes:
+  prometheus_data:
+    driver: local
+
