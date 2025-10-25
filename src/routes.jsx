@@ -5,6 +5,8 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 
 // Public Pages
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const PricingPage = React.lazy(() => import('./pages/PricingPage'));
+const DocumentationPage = React.lazy(() => import('./pages/DocumentationPage'));
 const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('./features/auth/pages/RegisterPage'));
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/pages/ForgotPasswordPage'));
@@ -93,6 +95,24 @@ const AppRoutes = () => {
           element={
             <OpenRoute>
               <LandingPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/pricing"
+          element={
+            <OpenRoute>
+              <PricingPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/docs"
+          element={
+            <OpenRoute>
+              <DocumentationPage />
             </OpenRoute>
           }
         />

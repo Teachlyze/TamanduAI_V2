@@ -105,9 +105,9 @@ const Button = React.forwardRef(({
     }
   }, [disabled, loading, handleClick, onKeyDown]);
 
-  // Custom gradient style
+  // Custom gradient style - melhor contraste para legibilidade
   const gradientStyle = variant === 'gradient' ? {
-    background: 'linear-gradient(121.22deg, rgba(0, 255, 136, 0.6) 0%, rgba(0, 217, 255, 0.6) 34.99%, rgba(0, 102, 255, 0.6) 64.96%, rgba(0, 4, 255, 0.6) 100%)'
+    background: 'linear-gradient(121.22deg, #0891b2 0%, #0284c7 34.99%, #1d4ed8 64.96%, #1e40af 100%)'
   } : {};
 
   // Determine button type and accessibility attributes
