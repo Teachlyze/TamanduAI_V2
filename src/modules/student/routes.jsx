@@ -23,7 +23,7 @@ const StudentRoutes = () => {
   return (
     <Routes>
       <Route index element={<StudentDashboard />} />
-      <Route path="dashboard" element={<Navigate to="/student" replace />} />
+      <Route path="dashboard" element={<Navigate to="/students" replace />} />
       
       {/* Classes */}
       <Route path="classes" element={<StudentClassesPage />} />
@@ -52,7 +52,7 @@ const StudentRoutes = () => {
       <Route path="profile" element={<StudentProfilePage />} />
       <Route path="feedback" element={<StudentFeedbackPage />} />
       
-      <Route path="*" element={<Navigate to="/student" replace />} />
+      <Route path="*" element={<Navigate to="/students" replace />} />
     </Routes>
   );
 };

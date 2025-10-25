@@ -1,20 +1,28 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, GraduationCap, AlertCircle, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { 
+  GraduationCap, 
+  Mail, 
+  Lock, 
+  ArrowRight, 
+  Sparkles,
+  Users,
+  BarChart3,
+  Eye,
+  EyeOff,
+  AlertCircle
+} from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
-import { Card } from '@/shared/components/ui/card';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { validateLogin, onLoginSuccess } from '@/shared/services/edgeFunctions/authEdge';
 import { supabase } from '@/shared/services/supabaseClient';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
-  const navigate = useNavigate();
-  const { signIn } = useAuth();
-  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -22,6 +30,29 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  
+  const { signIn, user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+        .then(({ data: profile }) => {
+          if (profile?.role === 'student') {
+            navigate('/students/dashboard');
+          } else if (profile?.role === 'teacher') {
+            navigate('/dashboard');
+          } else {
+            navigate('/dashboard');
+          }
+        });
+    }
+  }, [user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,14 +60,13 @@ const LoginPage = () => {
       ...prev,
       [name]: value
     }));
-    setError(''); // Limpa erro ao digitar
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     
-    // Validações básicas
     if (!formData.email || !formData.password) {
       setError('Por favor, preencha todos os campos');
       return;
@@ -50,12 +80,11 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // 1. Validar login com Edge Function
+      // 1. Validar login (edge function não-bloqueante)
       try {
         await validateLogin(formData.email, formData.password);
       } catch (validationError) {
         console.log('Validation error (non-blocking):', validationError);
-        // Continuar mesmo se a edge function falhar
       }
 
       // 2. Fazer login com Supabase
@@ -73,6 +102,8 @@ const LoginPage = () => {
       }
 
       if (data?.user) {
+        toast.success('Login realizado com sucesso!');
+
         // 3. Callback de sucesso (não-bloqueante)
         try {
           await onLoginSuccess(data.user.id);
@@ -91,8 +122,6 @@ const LoginPage = () => {
           navigate('/students/dashboard');
         } else if (profile?.role === 'teacher') {
           navigate('/dashboard');
-        } else if (profile?.role === 'school') {
-          navigate('/dashboard/school');
         } else {
           navigate('/dashboard');
         }
@@ -105,60 +134,84 @@ const LoginPage = () => {
     }
   };
 
+  const features = [
+    {
+      icon: Sparkles,
+      title: 'IA Avançada',
+      description: 'Chatbot inteligente para suas turmas'
+    },
+    {
+      icon: Users,
+      title: 'Gestão Fácil',
+      description: 'Organize alunos e professores'
+    },
+    {
+      icon: BarChart3,
+      title: 'Analytics',
+      description: 'Acompanhe o progresso em tempo real'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[size:20px_20px]" />
-      
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md relative z-10"
-      >
-        {/* Logo */}
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-            <GraduationCap className="w-7 h-7 text-white" />
-          </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            TamanduAI
-          </span>
-        </Link>
-
-        <Card className="p-8 bg-white dark:bg-slate-900 shadow-2xl border-0">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
-              Bem-vindo de volta!
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              Entre para continuar sua jornada educacional
-            </p>
-          </div>
-
-          {/* Error Alert */}
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+    <div className="min-h-screen flex">
+      {/* Left Side - Form */}
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-background">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          {/* Logo */}
+          <Link to="/" className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+              style={{
+                background: 'linear-gradient(121.22deg, rgba(0, 255, 136, 0.6) 0%, rgba(0, 217, 255, 0.6) 34.99%, rgba(0, 102, 255, 0.6) 64.96%, rgba(0, 4, 255, 0.6) 100%)'
+              }}
             >
+              <GraduationCap className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
+              TamanduAI
+            </span>
+          </Link>
+
+          {/* Welcome Text */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-center mb-8"
+          >
+            <h2 className="text-3xl font-bold text-foreground mb-2">
+              Bem-vindo de volta!
+            </h2>
+            <p className="text-muted-foreground">
+              Entre para continuar gerenciando suas turmas
+            </p>
+          </motion.div>
+
+          {/* Form */}
+          <motion.form
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            onSubmit={handleSubmit}
+            className="space-y-6"
+          >
+            {/* Error Alert */}
+            {error && (
               <Alert variant="destructive" className="mb-6">
                 <AlertCircle className="w-4 h-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
-            </motion.div>
-          )}
+            )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Email */}
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-700 dark:text-slate-300">
-                E-mail
-              </Label>
+              <Label htmlFor="email">E-mail</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="email"
                   name="email"
@@ -166,7 +219,7 @@ const LoginPage = () => {
                   placeholder="seu@email.com"
                   value={formData.email}
                   onChange={handleChange}
-                  className="pl-10 h-12 bg-white dark:bg-slate-900 text-foreground border-border"
+                  className="pl-10 h-12"
                   disabled={loading}
                   autoComplete="email"
                   required
@@ -177,18 +230,16 @@ const LoginPage = () => {
             {/* Password */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-slate-700 dark:text-slate-300">
-                  Senha
-                </Label>
+                <Label htmlFor="password">Senha</Label>
                 <Link
                   to="/forgot-password"
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                 >
                   Esqueceu a senha?
                 </Link>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <Input
                   id="password"
                   name="password"
@@ -196,7 +247,7 @@ const LoginPage = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
-                  className="pl-10 pr-10 h-12 bg-white dark:bg-slate-900 text-foreground border-border"
+                  className="pl-10 pr-10 h-12"
                   disabled={loading}
                   autoComplete="current-password"
                   required
@@ -204,7 +255,7 @@ const LoginPage = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   tabIndex={-1}
                 >
                   {showPassword ? (
@@ -219,58 +270,120 @@ const LoginPage = () => {
             {/* Submit Button */}
             <Button
               type="submit"
+              variant="gradient"
+              size="lg"
+              className="w-full"
               disabled={loading}
-              className="w-full h-12 text-base whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              rightIcon={<ArrowRight className="w-5 h-5" />}
             >
-              {loading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Entrando...</span>
-                </>
-              ) : (
-                <span>Entrar</span>
-              )}
+              {loading ? 'Entrando...' : 'Entrar'}
             </Button>
-          </form>
+          </motion.form>
 
           {/* Divider */}
-          <div className="relative my-8">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-200 dark:border-slate-700" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400">
-                Novo por aqui?
-              </span>
-            </div>
-          </div>
-
-          {/* Register Link */}
-          <Link to="/register">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-12 text-base whitespace-nowrap bg-white dark:bg-slate-900 text-foreground border-border hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
-              Criar uma conta
-            </Button>
-          </Link>
-        </Card>
-
-        {/* Footer Links */}
-        <div className="mt-8 text-center">
-          <Link
-            to="/"
-            className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400"
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="my-8 flex items-center gap-4"
           >
-            ← Voltar para o início
-          </Link>
-        </div>
-      </motion.div>
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-sm text-muted-foreground">ou</span>
+            <div className="flex-1 h-px bg-border" />
+          </motion.div>
 
-      {/* Decorative Blobs */}
-      <div className="fixed top-0 left-0 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl -z-10" />
-      <div className="fixed bottom-0 right-0 w-96 h-96 bg-purple-400/20 dark:bg-purple-600/10 rounded-full blur-3xl -z-10" />
+          {/* Sign Up Link */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="text-center text-muted-foreground"
+          >
+            Não tem uma conta?{' '}
+            <Link
+              to="/register"
+              className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+            >
+              Cadastre-se grátis
+            </Link>
+          </motion.p>
+        </motion.div>
+      </div>
+
+      {/* Right Side - Hero */}
+      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden"
+        style={{
+          background: 'linear-gradient(121.22deg, rgba(0, 255, 136, 0.6) 0%, rgba(0, 217, 255, 0.6) 34.99%, rgba(0, 102, 255, 0.6) 64.96%, rgba(0, 4, 255, 0.6) 100%)'
+        }}
+      >
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '40px 40px'
+          }} />
+        </div>
+
+        <div className="relative z-10 flex flex-col justify-center px-12 text-white">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+          >
+            <h2 className="text-4xl font-bold mb-6">
+              A plataforma educacional<br />que professores adoram
+            </h2>
+            <p className="text-xl text-white/90 mb-12">
+              Reduza 70% do tempo em tarefas administrativas e<br />
+              foque no que realmente importa: ensinar.
+            </p>
+
+            {/* Features */}
+            <div className="space-y-6">
+              {features.map((feature, index) => (
+                <motion.div
+                  key={feature.title}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className="flex items-start gap-4 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <feature.icon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-1">
+                      {feature.title}
+                    </h3>
+                    <p className="text-white/80 text-sm">
+                      {feature.description}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9 }}
+              className="mt-12 grid grid-cols-3 gap-6"
+            >
+              {[
+                { value: '10K+', label: 'Professores' },
+                { value: '50K+', label: 'Alunos' },
+                { value: '99%', label: 'Satisfação' }
+              ].map((stat, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-3xl font-bold mb-1">{stat.value}</div>
+                  <div className="text-sm text-white/70">{stat.label}</div>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 };

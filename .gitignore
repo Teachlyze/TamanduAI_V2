@@ -20,4 +20,4 @@ database/*
 database
 docsx
 .husky
-
+.md

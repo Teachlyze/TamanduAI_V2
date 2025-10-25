@@ -15,8 +15,8 @@ const variantClasses = {
   warning: 'bg-yellow-500 text-white hover:bg-yellow-600',
   info: 'bg-blue-500 text-white hover:bg-blue-600',
   loading: 'bg-primary text-primary-foreground opacity-90',
-  gradient: 'text-white border-0 shadow-lg hover:shadow-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-700 hover:via-purple-700 hover:to-pink-700',
-  gradientOutline: 'bg-transparent border-2 border-transparent text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:opacity-90',
+  gradient: 'text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105',
+  gradientOutline: 'bg-transparent border-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all duration-300',
 };
 
 const sizeClasses = {
@@ -105,9 +105,15 @@ const Button = React.forwardRef(({
     }
   }, [disabled, loading, handleClick, onKeyDown]);
 
+  // Custom gradient style
+  const gradientStyle = variant === 'gradient' ? {
+    background: 'linear-gradient(121.22deg, rgba(0, 255, 136, 0.6) 0%, rgba(0, 217, 255, 0.6) 34.99%, rgba(0, 102, 255, 0.6) 64.96%, rgba(0, 4, 255, 0.6) 100%)'
+  } : {};
+
   // Determine button type and accessibility attributes
   const buttonProps = {
     ref,
+    style: { ...gradientStyle, ...props.style },
     className: cn(
       baseClasses,
       variantClasses[variant],

@@ -72,6 +72,11 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
+// Open Route Component (no auth check, always accessible)
+const OpenRoute = ({ children }) => {
+  return children;
+};
+
 const AppRoutes = () => {
   return (
     <Suspense
@@ -82,13 +87,13 @@ const AppRoutes = () => {
       }
     >
       <Routes>
-        {/* Public Routes */}
+        {/* Open Routes (No Auth Required) */}
         <Route
           path="/"
           element={
-            <PublicRoute>
+            <OpenRoute>
               <LandingPage />
-            </PublicRoute>
+            </OpenRoute>
           }
         />
         

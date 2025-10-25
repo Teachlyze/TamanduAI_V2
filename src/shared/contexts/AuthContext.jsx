@@ -13,13 +13,26 @@ export const AuthProvider = ({ children }) => {
   // Bootstrap: check for existing session
   useEffect(() => {
     let mounted = true;
+    let timeoutId;
     
     const bootstrap = async () => {
       try {
         console.log('[AuthContext] Starting bootstrap...');
         
+        // Set a timeout to prevent infinite loading
+        timeoutId = setTimeout(() => {
+          console.warn('[AuthContext] Bootstrap timeout - forcing completion');
+          if (mounted) {
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+          }
+        }, 5000); // 5 seconds timeout
+        
         // Get current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        clearTimeout(timeoutId);
         
         if (sessionError) {
           console.error('[AuthContext] Session error:', sessionError);
@@ -55,10 +68,12 @@ export const AuthProvider = ({ children }) => {
           
           setProfile(profileData);
           setLoading(false);
+          console.log('[AuthContext] Bootstrap complete');
         }
 
       } catch (err) {
         console.error('[AuthContext] Bootstrap error:', err);
+        clearTimeout(timeoutId);
         if (mounted) {
           setUser(null);
           setProfile(null);
@@ -93,6 +108,7 @@ export const AuthProvider = ({ children }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription?.unsubscribe();
     };
   }, []);
