@@ -42,14 +42,30 @@ const LoginPage = () => {
         .select('role')
         .eq('id', user.id)
         .single()
-        .then(({ data: profile }) => {
-          if (profile?.role === 'student') {
+        .then(({ data: profile, error: profileError }) => {
+          let userRole = null;
+          
+          if (profileError) {
+            console.error('Profile fetch error:', profileError);
+            // ✅ FALLBACK: Usar role do user_metadata
+            userRole = user.user_metadata?.role || user.user_metadata?.user_role;
+            console.log('Usando role do user_metadata:', userRole);
+          } else {
+            userRole = profile?.role;
+          }
+          
+          if (userRole === 'student') {
             navigate('/students/dashboard');
-          } else if (profile?.role === 'teacher') {
+          } else if (userRole === 'teacher') {
             navigate('/dashboard');
           } else {
             navigate('/dashboard');
           }
+        })
+        .catch((err) => {
+          console.error('Auto-redirect error:', err);
+          // Fallback para dashboard padrão
+          navigate('/dashboard');
         });
     }
   }, [user, navigate]);
@@ -112,17 +128,50 @@ const LoginPage = () => {
         }
 
         // 4. Buscar profile e redirecionar
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
+        try {
+          console.log('Buscando profile para user:', data.user.id);
+          console.log('User metadata:', data.user.user_metadata);
+          
+          let userRole = null;
+          
+          // Tentar buscar da tabela profiles
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', data.user.id)
+            .single();
 
-        if (profile?.role === 'student') {
-          navigate('/students/dashboard');
-        } else if (profile?.role === 'teacher') {
-          navigate('/dashboard');
-        } else {
+          console.log('Profile resultado:', { profile, profileError });
+
+          if (profileError) {
+            console.warn('Profile fetch error:', profileError);
+            // ✅ FALLBACK: Usar role do user_metadata se tabela profiles falhar
+            userRole = data.user.user_metadata?.role || data.user.user_metadata?.user_role;
+            console.log('Usando role do user_metadata como fallback:', userRole);
+          } else {
+            userRole = profile?.role;
+            console.log('Role do profile:', userRole);
+          }
+
+          // Redirecionar baseado no role
+          if (userRole === 'student') {
+            console.log('Redirecionando para /students/dashboard');
+            navigate('/students/dashboard');
+          } else if (userRole === 'teacher') {
+            console.log('Redirecionando para /dashboard (teacher)');
+            navigate('/dashboard');
+          } else if (userRole === 'school') {
+            console.log('Redirecionando para /dashboard (school)');
+            navigate('/dashboard');
+          } else {
+            // Fallback final para dashboard padrão
+            console.log('Redirecionando para /dashboard (fallback - role:', userRole, ')');
+            navigate('/dashboard');
+          }
+        } catch (redirectError) {
+          console.error('Redirect error:', redirectError);
+          console.log('Redirecionando para /dashboard (erro no catch)');
+          // Garantir redirecionamento mesmo com erro
           navigate('/dashboard');
         }
       }

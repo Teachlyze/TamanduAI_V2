@@ -8,8 +8,14 @@ import AppRoutes from './routes.jsx';
 import { AuthProvider } from '@/shared/contexts/AuthContext';
 import { ThemeProvider } from '@/shared/contexts/ThemeContext';
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+const root = createRoot(document.getElementById('root'));
+
+// ✅ Usar StrictMode apenas em desenvolvimento
+// StrictMode renderiza componentes 2x, causando múltiplas instâncias do Supabase
+const AppWrapper = import.meta.env.DEV ? React.StrictMode : React.Fragment;
+
+root.render(
+  <AppWrapper>
     <HelmetProvider>
       <BrowserRouter>
         <AuthProvider>
@@ -21,5 +27,5 @@ createRoot(document.getElementById('root')).render(
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>
-  </React.StrictMode>,
+  </AppWrapper>
 )

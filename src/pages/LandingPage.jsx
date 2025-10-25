@@ -65,19 +65,30 @@ export default function LandingPage() {
   ];
 
   const howItWorks = [
-    { step: "1", title: "Cadastre-se Grátis", description: "Crie sua conta em menos de 2 minutos", icon: Rocket },
-    { step: "2", title: "Configure sua Turma", description: "Adicione alunos e defina o conteúdo", icon: Users },
-    { step: "3", title: "Crie Atividades", description: "Use nossa IA para gerar conteúdo", icon: Sparkles },
-    { step: "4", title: "Acompanhe Resultados", description: "Veja analytics em tempo real", icon: TrendingUp },
+    { step: "1", title: "Cadastre-se Grátis", description: "Crie sua conta em menos de 2 minutos e escolha seu perfil (Professor ou Aluno)", icon: Rocket },
+    { step: "2", title: "Configure sua Turma", description: "Crie turmas, adicione alunos via código de convite e organize seu conteúdo", icon: Users },
+    { step: "3", title: "Treine o Chatbot", description: "Faça upload de PDFs, Word, PPT ou URLs para o chatbot responder dúvidas 24/7", icon: Brain },
+    { step: "4", title: "Crie Atividades", description: "Crie atividades interativas com correção automática e antiplágio integrado", icon: Sparkles },
+    { step: "5", title: "Gamifique o Aprendizado", description: "Ative XP, níveis, badges e rankings para engajar seus alunos automaticamente", icon: Trophy },
+    { step: "6", title: "Acompanhe com IA", description: "Veja analytics em tempo real com previsões de ML e relatórios inteligentes", icon: TrendingUp },
   ];
 
   const comparison = [
     { feature: "Correção automática de atividades", before: false, after: true },
-    { feature: "Chatbot 24/7 para dúvidas", before: false, after: true },
-    { feature: "Relatórios personalizados", before: false, after: true },
-    { feature: "Videoconferências integradas", before: false, after: true },
-    { feature: "Comunicação centralizada", before: false, after: true },
-    { feature: "Tempo gasto em burocracia", before: true, after: false },
+    { feature: "Chatbot IA treinado com seus materiais", before: false, after: true },
+    { feature: "Antiplágio automático (Winston AI)", before: false, after: true },
+    { feature: "Analytics com Machine Learning", before: false, after: true },
+    { feature: "Previsão de desempenho dos alunos", before: false, after: true },
+    { feature: "Sistema de gamificação (XP, badges)", before: false, after: true },
+    { feature: "Notificações inteligentes automáticas", before: false, after: true },
+    { feature: "Agenda sincronizada com aulas ao vivo", before: false, after: true },
+    { feature: "Banco de questões colaborativo", before: false, after: true },
+    { feature: "Relatórios consolidados em tempo real", before: false, after: true },
+    { feature: "Gestão de múltiplas turmas", before: false, after: true },
+    { feature: "Comunicação centralizada (feed + chat)", before: false, after: true },
+    { feature: "Tempo gasto em tarefas administrativas", before: true, after: false },
+    { feature: "Correção manual de todas atividades", before: true, after: false },
+    { feature: "Planilhas desorganizadas e dispersas", before: true, after: false },
   ];
 
   const faqs = [
@@ -401,33 +412,33 @@ export default function LandingPage() {
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
                 Como <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">funciona</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Comece em 4 passos simples</p>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Comece em 6 passos simples e transforme sua sala de aula</p>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {howItWorks.map((step, i) => (
                 <motion.div 
                   key={i} 
                   initial={{ opacity: 0, y: 30 }} 
                   whileInView={{ opacity: 1, y: 0 }} 
                   transition={{ duration: 0.6, delay: i * 0.1 }} 
-                  className="relative group"
+                  className="relative group h-full"
                 >
-                  <div className="text-center bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-500/50 hover:scale-105">
-                    <div className="relative inline-block mb-6">
-                      <div className="w-20 h-20 bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                  <div className="text-center bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-500/50 hover:scale-105 h-full flex flex-col">
+                    <div className="relative inline-block mb-6 mx-auto">
+                      <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 via-blue-600 to-blue-800 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
                         <span className="text-3xl font-bold text-white">{step.step}</span>
                       </div>
-                      <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center shadow-lg border-2 border-blue-200 dark:border-blue-800 group-hover:scale-110 transition-transform">
-                        <step.icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                      <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center shadow-lg border-2 border-cyan-200 dark:border-cyan-800 group-hover:scale-110 transition-transform">
+                        <step.icon className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
                       </div>
                     </div>
                     <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{step.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{step.description}</p>
+                    <p className="text-gray-600 dark:text-gray-300 leading-relaxed flex-grow">{step.description}</p>
                   </div>
-                  {i < howItWorks.length - 1 && (
+                  {(i + 1) % 3 !== 0 && i < howItWorks.length - 1 && (
                     <div className="hidden lg:flex absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
-                      <div className="w-8 h-8 bg-gradient-to-r from-cyan-500 via-blue-600 to-blue-700 rounded-full flex items-center justify-center shadow-lg">
+                      <div className="w-8 h-8 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 rounded-full flex items-center justify-center shadow-lg">
                         <ChevronRight className="w-5 h-5 text-white" />
                       </div>
                     </div>
@@ -440,12 +451,12 @@ export default function LandingPage() {
 
         {/* Comparison Table */}
         <section className="py-20 bg-background">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16">
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
                 Antes vs <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">Depois</span>
               </h2>
-              <p className="text-xl text-muted-foreground">Veja a transformação na sua rotina</p>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Veja a transformação completa na sua rotina educacional com todas as funcionalidades</p>
             </motion.div>
 
             <div className="grid md:grid-cols-2 gap-8">
@@ -454,19 +465,20 @@ export default function LandingPage() {
                 initial={{ opacity: 0, x: -30 }} 
                 whileInView={{ opacity: 1, x: 0 }} 
                 transition={{ duration: 0.8 }}
-                className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-2xl p-8 shadow-xl border-2 border-red-200 dark:border-red-800"
+                className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-2xl p-8 shadow-xl border-2 border-red-200 dark:border-red-800 h-full"
               >
                 <div className="flex items-center justify-center mb-6">
                   <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
                     <XCircle className="w-10 h-10 text-white" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-center text-red-700 dark:text-red-400 mb-6">Sem TamanduAI</h3>
-                <ul className="space-y-4">
+                <h3 className="text-2xl font-bold text-center text-red-700 dark:text-red-400 mb-2">Sem TamanduAI</h3>
+                <p className="text-center text-sm text-red-600 dark:text-red-400 mb-6">Método tradicional e trabalhoso</p>
+                <ul className="space-y-3">
                   {comparison.filter(item => item.before).map((item, i) => (
                     <li key={i} className="flex items-start space-x-3">
-                      <XCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">{item.feature}</span>
+                      <XCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">{item.feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -477,7 +489,7 @@ export default function LandingPage() {
                 initial={{ opacity: 0, x: 30 }} 
                 whileInView={{ opacity: 1, x: 0 }} 
                 transition={{ duration: 0.8 }}
-                className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-8 shadow-xl border-2 border-green-200 dark:border-green-800 relative overflow-hidden"
+                className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-8 shadow-xl border-2 border-green-200 dark:border-green-800 relative overflow-hidden h-full"
               >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full -mr-16 -mt-16"></div>
                 <div className="flex items-center justify-center mb-6 relative z-10">
@@ -485,12 +497,13 @@ export default function LandingPage() {
                     <CheckCircle2 className="w-10 h-10 text-white" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-bold text-center text-green-700 dark:text-green-400 mb-6 relative z-10">Com TamanduAI</h3>
-                <ul className="space-y-4 relative z-10">
+                <h3 className="text-2xl font-bold text-center text-green-700 dark:text-green-400 mb-2 relative z-10">Com TamanduAI</h3>
+                <p className="text-center text-sm text-green-600 dark:text-green-400 mb-6 relative z-10">Plataforma completa com IA</p>
+                <ul className="space-y-3 relative z-10">
                   {comparison.filter(item => item.after).map((item, i) => (
                     <li key={i} className="flex items-start space-x-3">
-                      <CheckCircle2 className="w-6 h-6 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">{item.feature}</span>
+                      <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-700 dark:text-gray-300 text-sm font-medium">{item.feature}</span>
                     </li>
                   ))}
                 </ul>

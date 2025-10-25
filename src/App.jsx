@@ -2,7 +2,6 @@ import React, { useEffect, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
-import supabase from '@/utils/supabase';
 
 
 
