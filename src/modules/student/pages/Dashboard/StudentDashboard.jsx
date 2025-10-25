@@ -41,8 +41,13 @@ const StudentDashboard = () => {
   const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (user?.id) {
+      loadDashboardData();
+    } else {
+      // Se não tem user ainda, não está carregando
+      setLoading(false);
+    }
+  }, [user]);
 
   const loadDashboardData = async () => {
     try {
@@ -236,12 +241,12 @@ const StudentDashboard = () => {
   };
 
   const statsCards = [
-    { title: 'Minhas Turmas', value: stats.totalClasses, icon: BookOpen, gradient: 'from-blue-500 to-indigo-500' },
-    { title: 'Atividades Ativas', value: stats.activeActivities, icon: FileText, gradient: 'from-purple-500 to-pink-500' },
-    { title: 'Atividades Concluídas', value: stats.completedActivities, icon: CheckCircle2, gradient: 'from-emerald-500 to-teal-500' },
-    { title: 'Prazos Próximos (48h)', value: stats.upcomingDeadlines, icon: Clock, gradient: 'from-amber-500 to-orange-500' },
-    { title: 'Taxa de Conclusão', value: `${stats.completionRate}%`, icon: BarChart3, gradient: 'from-cyan-500 to-blue-500' },
-    { title: 'Nota Média', value: stats.avgGrade.toFixed(1), icon: Trophy, gradient: 'from-yellow-500 to-amber-500' }
+    { title: 'Minhas Turmas', value: stats.totalClasses, icon: BookOpen, gradient: 'from-cyan-500 to-sky-500' },
+    { title: 'Atividades Ativas', value: stats.activeActivities, icon: FileText, gradient: 'from-sky-500 to-blue-500' },
+    { title: 'Atividades Concluídas', value: stats.completedActivities, icon: CheckCircle2, gradient: 'from-blue-500 to-indigo-500' },
+    { title: 'Prazos Próximos (48h)', value: stats.upcomingDeadlines, icon: Clock, gradient: 'from-orange-500 to-amber-500' },
+    { title: 'Taxa de Conclusão', value: `${stats.completionRate}%`, icon: BarChart3, gradient: 'from-cyan-500 to-blue-600' },
+    { title: 'Nota Média', value: stats.avgGrade.toFixed(1), icon: Trophy, gradient: 'from-yellow-500 to-orange-500' }
   ];
 
   const getPriorityBadge = (dueDate) => {
@@ -269,54 +274,76 @@ const StudentDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 md:p-6">
+      {/* Skip to main content - Acessibilidade WCAG 2.2 */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-cyan-600 focus:text-white focus:rounded-lg focus:shadow-lg"
+      >
+        Pular para o conteúdo principal
+      </a>
+
       {/* Header Animado */}
-      <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-8 text-white">
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+      <header 
+        className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 dark:from-cyan-700 dark:via-sky-700 dark:to-blue-800 p-6 md:p-8 text-white shadow-lg"
+        role="banner"
+      >
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" aria-hidden="true" />
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative z-10"
         >
-          <h1 className="text-4xl font-bold mb-2">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
             Meu Dashboard
           </h1>
-          <p className="text-blue-100">
-            Acompanhe seu progresso, atividades e desempenho
+          <p className="text-cyan-100 dark:text-cyan-200 text-sm md:text-base">
+            Acompanhe seu progresso, atividades e desempenho acadêmico
           </p>
         </motion.div>
 
-        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-      </div>
+        <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" aria-hidden="true" />
+        <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" aria-hidden="true" />
+      </header>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        {statsCards.map((stat, index) => (
-          <motion.div
-            key={stat.title}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Card className="p-6 hover:shadow-lg transition-shadow bg-white dark:bg-slate-900">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl bg-gradient-to-r ${stat.gradient}`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-                <ChevronRight className="w-5 h-5 text-slate-400" />
-              </div>
-              <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
-                {stat.value}
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {stat.title}
-              </p>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
+      {/* Stats Cards - Main Content */}
+      <main id="main-content" role="main" aria-label="Estatísticas do estudante">
+        <section aria-labelledby="stats-heading" className="mb-8">
+          <h2 id="stats-heading" className="sr-only">Estatísticas gerais</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {statsCards.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <motion.article
+                  key={stat.title}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  aria-label={`${stat.title}: ${stat.value}`}
+                >
+                  <Card className="p-4 md:p-6 hover:shadow-xl transition-all duration-200 bg-white dark:bg-slate-900 border-2 border-transparent hover:border-cyan-200 dark:hover:border-cyan-800 focus-within:ring-2 focus-within:ring-cyan-400 focus-within:ring-offset-2">
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                      <div 
+                        className={`p-2 md:p-3 rounded-xl bg-gradient-to-r ${stat.gradient} shadow-md`}
+                        aria-hidden="true"
+                      >
+                        <IconComponent className="w-5 h-5 md:w-6 md:h-6 text-white" />
+                      </div>
+                      <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-400 dark:text-slate-500" aria-hidden="true" />
+                    </div>
+                    <p className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-1">
+                      {stat.value}
+                    </p>
+                    <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 font-medium">
+                      {stat.title}
+                    </p>
+                  </Card>
+                </motion.article>
+              );
+            })}
+          </div>
+        </section>
 
       {/* Minhas Turmas */}
       <Card className="p-6 mb-8 bg-white dark:bg-slate-900">
@@ -512,7 +539,7 @@ const StudentDashboard = () => {
         <Link to="/students/activities">
           <Button
             size="lg"
-            className="w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 text-white h-14"
+            className="w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-sky-600 hover:opacity-90 text-white h-14 shadow-lg"
           >
             <FileText className="w-5 h-5" />
             <span>Ver Todas as Atividades</span>
@@ -522,7 +549,7 @@ const StudentDashboard = () => {
         <Link to="/students/performance">
           <Button
             size="lg"
-            className="w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:opacity-90 text-white h-14"
+            className="w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:opacity-90 text-white h-14 shadow-lg"
           >
             <BarChart3 className="w-5 h-5" />
             <span>Meu Desempenho Completo</span>
@@ -532,13 +559,14 @@ const StudentDashboard = () => {
         <Link to="/students/calendar">
           <Button
             size="lg"
-            className="w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-90 text-white h-14"
+            className="w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white h-14 shadow-lg"
           >
             <Calendar className="w-5 h-5" />
             <span>Calendário de Prazos</span>
           </Button>
         </Link>
       </div>
+      </main>
     </div>
   );
 };

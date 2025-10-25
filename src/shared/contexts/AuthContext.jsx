@@ -88,22 +88,33 @@ export const AuthProvider = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[AuthContext] Auth state change:', event);
       
-      if (session) {
-        setUser(session.user);
-        
-        // Fetch profile
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        setProfile(profileData);
-      } else {
-        setUser(null);
-        setProfile(null);
+      // Só buscar profile em eventos relevantes
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+        if (session && mounted) {
+          setUser(session.user);
+          
+          // Fetch profile apenas se necessário
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (mounted) {
+            setProfile(profileData);
+            setLoading(false);
+          }
+        }
+      } else if (event === 'SIGNED_OUT') {
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+      } else if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
+        // Não fazer nada, bootstrap já cuidou disso
+        console.log('[AuthContext] Ignoring event:', event);
       }
-      setLoading(false);
     });
 
     return () => {

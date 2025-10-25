@@ -14,11 +14,18 @@ const StudentPerformancePage = () => {
   const [gradeData, setGradeData] = useState([]);
 
   useEffect(() => {
-    loadPerformance();
+    if (user?.id) {
+      loadPerformance();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const loadPerformance = async () => {
-    if (!user) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       

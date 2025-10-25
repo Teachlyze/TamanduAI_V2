@@ -12,7 +12,6 @@ import { Label } from '@/shared/components/ui/label';
 import { Card } from '@/shared/components/ui/card';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { validateRegister, onRegisterSuccess } from '@/shared/services/edgeFunctions/authEdge';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -236,19 +235,7 @@ const RegisterPage = () => {
     setLoading(true);
 
     try {
-      // 1. Validar registro com Edge Function
-      try {
-        await validateRegister({
-          email: formData.email,
-          name: formData.name,
-          role: formData.role
-        });
-      } catch (validationError) {
-        console.log('Validation error (non-blocking):', validationError);
-        // Continuar mesmo se a edge function falhar
-      }
-
-      // 2. Fazer registro com Supabase
+      // Fazer registro direto com Supabase (sem Edge Functions)
       const { data, error: signUpError } = await signUp(
         formData.email,
         formData.password,
@@ -268,16 +255,6 @@ const RegisterPage = () => {
       }
 
       if (data?.user) {
-        // 3. Callback de sucesso (não-bloqueante)
-        try {
-          await onRegisterSuccess(data.user.id, {
-            name: formData.name,
-            role: formData.role
-          });
-        } catch (callbackError) {
-          console.log('Register success callback error (non-blocking):', callbackError);
-        }
-
         setSuccess(true);
         setTimeout(() => {
           navigate('/login', { 

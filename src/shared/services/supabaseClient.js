@@ -21,10 +21,5 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     storage: window.localStorage,
     storageKey: 'tamanduai-auth-token',
     flowType: 'pkce'
-  },
-  global: {
-    headers: {
-      'x-application-name': 'TamanduAI'
-    }
   }
 });

@@ -28,11 +28,18 @@ const StudentActivitiesPage = () => {
   });
 
   useEffect(() => {
-    loadActivities();
+    if (user?.id) {
+      loadActivities();
+    } else {
+      setLoading(false);
+    }
   }, [user]);
 
   const loadActivities = async () => {
-    if (!user) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);

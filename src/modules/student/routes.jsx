@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { StudentLayout } from './layouts/StudentLayout';
 
 // Lazy load pages
 const StudentDashboard = React.lazy(() => import('./pages/Dashboard/StudentDashboard'));
@@ -18,10 +19,12 @@ const StudentPublicQuizzesPage = React.lazy(() => import('./pages/Social/Student
 const StudentQuizPlayPage = React.lazy(() => import('./pages/Social/StudentQuizPlayPage'));
 const StudentProfilePage = React.lazy(() => import('./pages/Profile/StudentProfilePage'));
 const StudentFeedbackPage = React.lazy(() => import('./pages/Profile/StudentFeedbackPage'));
+const StudentSettingsPage = React.lazy(() => import('./pages/Settings/StudentSettingsPage'));
 
 const StudentRoutes = () => {
   return (
-    <Routes>
+    <StudentLayout>
+      <Routes>
       <Route index element={<StudentDashboard />} />
       <Route path="dashboard" element={<Navigate to="/students" replace />} />
       
@@ -51,9 +54,11 @@ const StudentRoutes = () => {
       {/* Profile */}
       <Route path="profile" element={<StudentProfilePage />} />
       <Route path="feedback" element={<StudentFeedbackPage />} />
+      <Route path="settings" element={<StudentSettingsPage />} />
       
       <Route path="*" element={<Navigate to="/students" replace />} />
     </Routes>
+    </StudentLayout>
   );
 };
 

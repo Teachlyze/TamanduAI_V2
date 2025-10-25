@@ -18,7 +18,6 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { validateLogin, onLoginSuccess } from '@/shared/services/edgeFunctions/authEdge';
 import { supabase } from '@/shared/services/supabaseClient';
 import toast from 'react-hot-toast';
 
@@ -96,14 +95,7 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // 1. Validar login (edge function não-bloqueante)
-      try {
-        await validateLogin(formData.email, formData.password);
-      } catch (validationError) {
-        console.log('Validation error (non-blocking):', validationError);
-      }
-
-      // 2. Fazer login com Supabase
+      // Fazer login direto com Supabase (sem Edge Functions)
       const { data, error: signInError } = await signIn(formData.email, formData.password);
       
       if (signInError) {
@@ -120,58 +112,17 @@ const LoginPage = () => {
       if (data?.user) {
         toast.success('Login realizado com sucesso!');
 
-        // 3. Callback de sucesso (não-bloqueante)
-        try {
-          await onLoginSuccess(data.user.id);
-        } catch (callbackError) {
-          console.log('Login success callback error (non-blocking):', callbackError);
-        }
-
-        // 4. Buscar profile e redirecionar
-        try {
-          console.log('Buscando profile para user:', data.user.id);
-          console.log('User metadata:', data.user.user_metadata);
-          
-          let userRole = null;
-          
-          // Tentar buscar da tabela profiles
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.user.id)
-            .single();
-
-          console.log('Profile resultado:', { profile, profileError });
-
-          if (profileError) {
-            console.warn('Profile fetch error:', profileError);
-            // ✅ FALLBACK: Usar role do user_metadata se tabela profiles falhar
-            userRole = data.user.user_metadata?.role || data.user.user_metadata?.user_role;
-            console.log('Usando role do user_metadata como fallback:', userRole);
-          } else {
-            userRole = profile?.role;
-            console.log('Role do profile:', userRole);
-          }
-
-          // Redirecionar baseado no role
-          if (userRole === 'student') {
-            console.log('Redirecionando para /students/dashboard');
-            navigate('/students/dashboard');
-          } else if (userRole === 'teacher') {
-            console.log('Redirecionando para /dashboard (teacher)');
-            navigate('/dashboard');
-          } else if (userRole === 'school') {
-            console.log('Redirecionando para /dashboard (school)');
-            navigate('/dashboard');
-          } else {
-            // Fallback final para dashboard padrão
-            console.log('Redirecionando para /dashboard (fallback - role:', userRole, ')');
-            navigate('/dashboard');
-          }
-        } catch (redirectError) {
-          console.error('Redirect error:', redirectError);
-          console.log('Redirecionando para /dashboard (erro no catch)');
-          // Garantir redirecionamento mesmo com erro
+        // Redirecionar baseado no role do metadata (mais rápido)
+        const userRole = data.user.user_metadata?.role;
+        
+        if (userRole === 'student') {
+          navigate('/students');
+        } else if (userRole === 'teacher') {
+          navigate('/dashboard');
+        } else if (userRole === 'school') {
+          navigate('/school');
+        } else {
+          // Fallback para dashboard padrão
           navigate('/dashboard');
         }
       }
