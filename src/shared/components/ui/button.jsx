@@ -165,7 +165,7 @@ const Button = React.forwardRef(({
       )}
 
       {/* Button content */}
-      <span className="text-center whitespace-nowrap truncate min-w-0">
+      <span className="flex items-center justify-center gap-2 flex-1 min-w-0">
         {children}
       </span>
 

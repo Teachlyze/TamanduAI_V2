@@ -164,12 +164,8 @@ const LoginPage = () => {
         >
           {/* Logo */}
           <Link to="/" className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-              style={{
-                background: 'linear-gradient(121.22deg, rgba(0, 255, 136, 0.6) 0%, rgba(0, 217, 255, 0.6) 34.99%, rgba(0, 102, 255, 0.6) 64.96%, rgba(0, 4, 255, 0.6) 100%)'
-              }}
-            >
-              <GraduationCap className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-cyan-600 via-blue-600 to-blue-800">
+              <Sparkles className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
               TamanduAI
@@ -311,11 +307,7 @@ const LoginPage = () => {
       </div>
 
       {/* Right Side - Hero */}
-      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(121.22deg, rgba(0, 255, 136, 0.6) 0%, rgba(0, 217, 255, 0.6) 34.99%, rgba(0, 102, 255, 0.6) 64.96%, rgba(0, 4, 255, 0.6) 100%)'
-        }}
-      >
+      <div className="hidden lg:flex lg:flex-1 relative overflow-hidden bg-gradient-to-br from-cyan-700 via-blue-700 to-blue-900">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{
