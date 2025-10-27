@@ -30,6 +30,7 @@ import { ClassService } from '@/shared/services/classService';
 
 const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalClasses: 0,
     totalStudents: 0,
@@ -47,10 +48,13 @@ const TeacherDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
+
+      console.log('[TeacherDashboard] Carregando dados...');
 
       // Buscar turmas
-      const classesResult = await ClassService.getClasses();
-      const classes = classesResult?.data || [];
+      const classes = await ClassService.getClasses();
+      console.log('[TeacherDashboard] Classes carregadas:', classes?.length || 0);
       
       // Buscar atividades recentes (se o método existir)
       let activities = [];
@@ -63,13 +67,6 @@ const TeacherDashboard = () => {
       
       // Buscar submissões pendentes (método não implementado ainda)
       let submissions = [];
-      // TODO: Implementar SubmissionService.getPendingSubmissions
-      // try {
-      //   const submissionsResult = await SubmissionService.getPendingSubmissions(5);
-      //   submissions = submissionsResult?.data || [];
-      // } catch (err) {
-      //   console.log('getPendingSubmissions não disponível:', err.message);
-      // }
 
       // Calcular estatísticas
       const totalStudents = classes.reduce((sum, cls) => sum + (cls.student_count || 0), 0);
@@ -86,9 +83,11 @@ const TeacherDashboard = () => {
       setRecentClasses(classes.slice(0, 5));
       setRecentActivities(activities);
       setPendingSubmissions(submissions);
+      
+      console.log('[TeacherDashboard] Dados carregados com sucesso');
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error);
-      // Manter valores em 0 se houver erro
+      setError('Erro ao carregar dados do dashboard. Tente novamente.');
     } finally {
       setLoading(false);
     }

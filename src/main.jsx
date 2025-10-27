@@ -10,9 +10,9 @@ import { ThemeProvider } from '@/shared/contexts/ThemeContext';
 
 const root = createRoot(document.getElementById('root'));
 
-// ✅ Usar StrictMode apenas em desenvolvimento
-// StrictMode renderiza componentes 2x, causando múltiplas instâncias do Supabase
-const AppWrapper = import.meta.env.DEV ? React.StrictMode : React.Fragment;
+// StrictMode removido para evitar renderizações duplicadas
+// que causavam problemas com múltiplas instâncias do Supabase
+const AppWrapper = React.Fragment;
 
 root.render(
   <AppWrapper>

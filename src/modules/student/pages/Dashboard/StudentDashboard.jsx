@@ -52,25 +52,56 @@ const StudentDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('[StudentDashboard] Carregando dados...');
       
       if (!user?.id) {
-        console.log('Usuário não autenticado');
+        console.log('[StudentDashboard] Usuário não autenticado');
         setLoading(false);
         return;
       }
 
-      // 1. Buscar turmas do aluno
-      const { data: myMemberships } = await supabase
-        .from('class_members')
-        .select(`
-          class_id,
-          class:classes(id, name, subject, color, banner_color)
-        `)
-        .eq('user_id', user.id)
-        .eq('role', 'student');
+      // 1. Buscar turmas do aluno - OTIMIZADO: Duas queries simples ao invés de JOIN
+      let classes = [];
+      let classIds = [];
+      
+      try {
+        // Primeira query: Buscar apenas os IDs (rápido, sem JOIN)
+        const membershipPromise = supabase
+          .from('class_members')
+          .select('class_id')
+          .eq('user_id', user.id)
+          .eq('role', 'student');
 
-      const classes = myMemberships?.map(m => m.class).filter(Boolean) || [];
-      const classIds = classes.map(c => c.id);
+        const timeout1 = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 3000)
+        );
+
+        const { data: memberships } = await Promise.race([membershipPromise, timeout1]);
+        classIds = memberships?.map(m => m.class_id) || [];
+        
+        if (classIds.length === 0) {
+          console.log('[StudentDashboard] Nenhuma turma encontrada');
+        } else {
+          console.log('[StudentDashboard] IDs de turmas encontrados:', classIds.length);
+          
+          // Segunda query: Buscar detalhes das turmas (rápido, query direta)
+          const classesPromise = supabase
+            .from('classes')
+            .select('id, name, subject, color, banner_color')
+            .in('id', classIds);
+
+          const timeout2 = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('timeout')), 3000)
+          );
+
+          const { data: classesData } = await Promise.race([classesPromise, timeout2]);
+          classes = classesData || [];
+          console.log('[StudentDashboard] Turmas carregadas:', classes.length);
+        }
+      } catch (err) {
+        console.error('[StudentDashboard] Erro ao buscar turmas:', err.message);
+        // Continua com arrays vazios
+      }
 
       if (classIds.length === 0) {
         // Sem turmas ainda
@@ -96,36 +127,68 @@ const StudentDashboard = () => {
         return;
       }
 
-      // 2. Buscar atividades das turmas
-      const { data: activityAssignments } = await supabase
-        .from('activity_class_assignments')
-        .select(`
-          activity_id,
-          activity:activities(
-            id,
-            title,
-            due_date,
-            max_score,
-            type,
-            is_published,
-            status
-          )
-        `)
-        .in('class_id', classIds);
-
-      const allActivities = activityAssignments
-        ?.map(a => a.activity)
-        .filter(Boolean) || [];
+      // 2. Buscar atividades das turmas com timeout
+      let allActivities = [];
+      let publishedActivities = [];
       
-      const publishedActivities = allActivities.filter(a => 
-        a.is_published && a.status === 'active'
-      );
+      try {
+        const activitiesPromise = supabase
+          .from('activity_class_assignments')
+          .select(`
+            activity_id,
+            activity:activities(
+              id,
+              title,
+              due_date,
+              max_score,
+              type,
+              is_published,
+              status
+            )
+          `)
+          .in('class_id', classIds);
 
-      // 3. Buscar submissões do aluno
-      const { data: submissions } = await supabase
-        .from('submissions')
-        .select('id, activity_id, status, grade, submitted_at, graded_at')
-        .eq('student_id', user.id);
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        );
+
+        const { data: activityAssignments } = await Promise.race([
+          activitiesPromise,
+          timeout
+        ]);
+
+        allActivities = activityAssignments
+          ?.map(a => a.activity)
+          .filter(Boolean) || [];
+        
+        publishedActivities = allActivities.filter(a => 
+          a.is_published && a.status === 'active'
+        );
+        
+        console.log('[StudentDashboard] Atividades carregadas:', publishedActivities.length);
+      } catch (err) {
+        console.error('[StudentDashboard] Timeout ou erro ao buscar atividades:', err.message);
+      }
+
+      // 3. Buscar submissões do aluno com timeout
+      let submissions = [];
+      
+      try {
+        const submissionsPromise = supabase
+          .from('submissions')
+          .select('id, activity_id, status, grade, submitted_at, graded_at')
+          .eq('student_id', user.id);
+
+        const timeout = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('timeout')), 5000)
+        );
+
+        const { data } = await Promise.race([submissionsPromise, timeout]);
+        submissions = data || [];
+        console.log('[StudentDashboard] Submissões carregadas:', submissions.length);
+      } catch (err) {
+        console.error('[StudentDashboard] Timeout ou erro ao buscar submissões:', err.message);
+      }
 
       const submissionsMap = new Map(
         submissions?.map(s => [s.activity_id, s]) || []
@@ -232,11 +295,13 @@ const StudentDashboard = () => {
         action: ''
       }]);
 
+      console.log('[StudentDashboard] Dados carregados com sucesso');
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+      console.error('[StudentDashboard] Erro ao carregar dashboard:', error);
       // Manter valores padrão em caso de erro
     } finally {
       setLoading(false);
+      console.log('[StudentDashboard] Loading finalizado');
     }
   };
 

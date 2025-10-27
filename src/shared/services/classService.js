@@ -16,41 +16,54 @@ export const ClassService = {
    * @returns {Promise<Array>} - Array of classes
    */
   async getClasses({ teacherId, studentId, activeOnly = true } = {}) {
-    let query = supabase
-      .from('classes')
-      .select(`
-        *,
-        members:class_members(*, user:profiles(*)),
-        meetings:meetings(*)
-      `)
-      .order('name', { ascending: true });
+    try {
+      let query = supabase
+        .from('classes')
+        .select(`
+          *,
+          members:class_members(*, user:profiles(*)),
+          meetings:meetings(*)
+        `)
+        .order('name', { ascending: true });
 
-    // Apply filters if provided
-    if (teacherId) {
-      // v2.0: classes.created_by replaces teacher_id
-      query = query.eq('created_by', teacherId);
-    }
+      // Apply filters if provided
+      if (teacherId) {
+        // v2.0: classes.created_by replaces teacher_id
+        query = query.eq('created_by', teacherId);
+      }
 
-    if (activeOnly) {
-      query = query.eq('is_active', true);
-    }
+      if (activeOnly) {
+        query = query.eq('is_active', true);
+      }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching classes:', error);
-      throw error;
-    }
-
-    // If filtering by student, filter by class_members relationship in-memory
-    if (studentId) {
-      return data.filter(
-        (classItem) => 
-          classItem.members?.some(member => member.user_id === studentId && member.role === 'student')
+      // Adicionar timeout de 5 segundos
+      const queryPromise = query;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout')), 5000)
       );
-    }
 
-    return data;
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (error) {
+        console.error('Error fetching classes:', error);
+        // Retornar array vazio ao invés de lançar erro
+        return [];
+      }
+
+      // If filtering by student, filter by class_members relationship in-memory
+      if (studentId) {
+        return (data || []).filter(
+          (classItem) => 
+            classItem.members?.some(member => member.user_id === studentId && member.role === 'student')
+        );
+      }
+
+      return data || [];
+    } catch (err) {
+      console.error('Error or timeout fetching classes:', err.message);
+      // Retornar array vazio em caso de timeout
+      return [];
+    }
   },
 
   /**
@@ -59,24 +72,35 @@ export const ClassService = {
    * @returns {Promise<Object>} - The class with all related data
    */
   async getClassById(classId) {
-    const { data, error } = await supabase
-      .from('classes')
-      .select(`
-        *,
-        members:class_members(*, user:profiles(*)),
-        meetings:meetings(*, 
-          participants:meeting_participants(*, user:profiles(*))
-        )
-      `)
-      .eq('id', classId)
-      .single();
+    try {
+      const queryPromise = supabase
+        .from('classes')
+        .select(`
+          *,
+          members:class_members(*, user:profiles(*)),
+          meetings:meetings(*, 
+            participants:meeting_participants(*, user:profiles(*))
+          )
+        `)
+        .eq('id', classId)
+        .single();
 
-    if (error) {
-      console.error(`Error fetching class ${classId}:`, error);
-      throw error;
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Query timeout')), 5000)
+      );
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+
+      if (error) {
+        console.error(`Error fetching class ${classId}:`, error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error(`Error or timeout fetching class ${classId}:`, err.message);
+      return null;
     }
-
-    return data;
   },
 
   /**
@@ -106,35 +130,49 @@ export const ClassService = {
       grading_system
     } = classDataInput;
 
-    // First, ensure the teacher has a profile
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', teacher_id)
-      .maybeSingle();
-
-    // If no profile exists, create one with minimal required fields
-    if (!profile && !profileError) {
-      console.log('Profile not found for teacher, creating one...');
-      
-      const { error: createProfileError } = await supabase
+    // First, ensure the teacher has a profile (com timeout)
+    try {
+      const profilePromise = supabase
         .from('profiles')
-        .insert([
-          {
-            id: teacher_id,
-            role: 'teacher',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          }
-        ]);
+        .select('id')
+        .eq('id', teacher_id)
+        .maybeSingle();
 
-      if (createProfileError) {
-        console.error('Error creating teacher profile:', createProfileError);
-        // Não lançar erro se profile já existe (erro de unique constraint)
-        if (createProfileError.code !== '23505') {
-          throw new Error(`Erro ao criar perfil do professor: ${createProfileError.message}`);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Profile check timeout')), 3000)
+      );
+
+      const { data: profile, error: profileError } = await Promise.race([
+        profilePromise,
+        timeoutPromise
+      ]);
+
+      // If no profile exists, create one with minimal required fields
+      if (!profile && !profileError) {
+        console.log('Profile not found for teacher, creating one...');
+        
+        const { error: createProfileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: teacher_id,
+              role: 'teacher',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ]);
+
+        if (createProfileError) {
+          console.error('Error creating teacher profile:', createProfileError);
+          // Não lançar erro se profile já existe (erro de unique constraint)
+          if (createProfileError.code !== '23505') {
+            throw new Error(`Erro ao criar perfil do professor: ${createProfileError.message}`);
+          }
         }
       }
+    } catch (err) {
+      console.warn('Profile check timed out, continuing without profile verification:', err.message);
+      // Continue com a criação da classe mesmo sem verificar profile
     }
 
     // Create the class (v2.0: use created_by instead of teacher_id)

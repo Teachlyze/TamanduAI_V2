@@ -16,64 +16,90 @@ export const AuthProvider = ({ children }) => {
     let timeoutId;
     
     const bootstrap = async () => {
+      console.log('[AuthContext] Starting bootstrap...');
+      const startTime = Date.now();
+      
       try {
-        console.log('[AuthContext] Starting bootstrap...');
-        
-        // Set a timeout to prevent infinite loading
+        // Set a shorter timeout
         timeoutId = setTimeout(() => {
-          console.warn('[AuthContext] Bootstrap timeout - forcing completion');
           if (mounted) {
-            setUser(null);
-            setProfile(null);
+            console.warn('[AuthContext] Bootstrap timeout - setting loading to false');
             setLoading(false);
           }
-        }, 5000); // 5 seconds timeout
+        }, 3000); // 3 seconds timeout
         
-        // Get current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Get current session with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((resolve) => 
+          setTimeout(() => resolve({ data: { session: null }, error: null }), 2500)
+        );
+        
+        const { data: { session }, error: sessionError } = await Promise.race([
+          sessionPromise,
+          timeoutPromise
+        ]);
         
         clearTimeout(timeoutId);
+        const elapsed = Date.now() - startTime;
+        console.log(`[AuthContext] Session check completed in ${elapsed}ms`);
+        
+        if (!mounted) return;
         
         if (sessionError) {
           console.error('[AuthContext] Session error:', sessionError);
-          if (mounted) {
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-          }
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
           return;
         }
 
         if (!session) {
           console.log('[AuthContext] No session found');
-          if (mounted) {
-            setUser(null);
-            setProfile(null);
-            setLoading(false);
-          }
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
           return;
         }
 
         console.log('[AuthContext] Session found:', session.user.email);
+        setUser(session.user);
         
-        if (mounted) {
-          setUser(session.user);
-          
-          // Fetch profile
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          setProfile(profileData);
-          setLoading(false);
-          console.log('[AuthContext] Bootstrap complete');
-        }
+        // ✅ Usar user_metadata IMEDIATAMENTE
+        const immediateProfile = {
+          id: session.user.id,
+          email: session.user.email,
+          role: session.user.user_metadata?.role || 'student',
+          full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email,
+          avatar_url: session.user.user_metadata?.avatar_url,
+          cpf: session.user.user_metadata?.cpf,
+          created_at: session.user.created_at
+        };
+        
+        console.log('[AuthContext] Using user_metadata profile:', immediateProfile.role);
+        setProfile(immediateProfile);
+        setLoading(false);
+        
+        // Buscar profile da tabela em background (não bloqueia)
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profileData, error: profileError }) => {
+            if (mounted && profileData && !profileError) {
+              console.log('[AuthContext] Profile atualizado do DB:', profileData.role);
+              setProfile(profileData);
+            }
+          })
+          .catch(err => {
+            console.log('[AuthContext] Profile fetch em background falhou (ignorado):', err.message);
+          });
+        
+        console.log('[AuthContext] Bootstrap complete');
 
       } catch (err) {
         console.error('[AuthContext] Bootstrap error:', err);
-        clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
         if (mounted) {
           setUser(null);
           setProfile(null);
@@ -86,33 +112,88 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[AuthContext] Auth state change:', event);
+      console.log('[AuthContext] Auth state change:', event, '- Has session:', !!session);
       
-      // Só buscar profile em eventos relevantes
-      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-        if (session && mounted) {
+      if (!mounted) {
+        console.log('[AuthContext] Component unmounted, ignoring event');
+        return;
+      }
+      
+      // SIGNED_IN: usuário acabou de fazer login
+      if (event === 'SIGNED_IN') {
+        console.log('[AuthContext] Processing SIGNED_IN event');
+        setUser(session.user);
+        
+        // ✅ Usar user_metadata IMEDIATAMENTE (não bloqueia)
+        const immediateProfile = {
+          id: session.user.id,
+          email: session.user.email,
+          role: session.user.user_metadata?.role || 'student',
+          full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email,
+          avatar_url: session.user.user_metadata?.avatar_url,
+          cpf: session.user.user_metadata?.cpf,
+          created_at: session.user.created_at
+        };
+        
+        console.log('[AuthContext] Using user_metadata profile:', immediateProfile.role);
+        setProfile(immediateProfile);
+        setLoading(false);
+        
+        // Buscar profile da tabela em background (não bloqueia redirecionamento)
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profileData, error: profileError }) => {
+            if (mounted && profileData && !profileError) {
+              console.log('[AuthContext] Profile atualizado do DB:', profileData.role);
+              setProfile(profileData);
+            }
+          })
+          .catch(err => {
+            console.log('[AuthContext] Profile fetch em background falhou (ignorado):', err.message);
+          });
+        
+        console.log('[AuthContext] SIGNED_IN complete');
+      }
+      // USER_UPDATED: atualizar dados do usuário
+      else if (event === 'USER_UPDATED') {
+        if (session) {
           setUser(session.user);
-          
-          // Fetch profile apenas se necessário
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          if (mounted) {
-            setProfile(profileData);
-            setLoading(false);
+          // Atualizar profile com timeout
+          try {
+            const profilePromise = supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+            
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('timeout')), 2000)
+            );
+            
+            const { data: profileData } = await Promise.race([
+              profilePromise,
+              timeoutPromise
+            ]);
+            
+            if (mounted && profileData) {
+              setProfile(profileData);
+            }
+          } catch (err) {
+            console.warn('[AuthContext] USER_UPDATED profile fetch failed:', err.message);
           }
         }
-      } else if (event === 'SIGNED_OUT') {
-        if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setLoading(false);
-        }
-      } else if (event === 'INITIAL_SESSION' || event === 'TOKEN_REFRESHED') {
-        // Não fazer nada, bootstrap já cuidou disso
+      }
+      // SIGNED_OUT: limpar estado
+      else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      }
+      // Ignorar outros eventos
+      else {
         console.log('[AuthContext] Ignoring event:', event);
       }
     });

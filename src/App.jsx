@@ -3,7 +3,10 @@ import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 
-
+// Importar diagnóstico em dev mode
+if (import.meta.env.DEV) {
+  import('@/utils/diagnoseSupabase');
+}
 
 const AppContent = ({ children }) => {
   const { pathname } = useLocation();

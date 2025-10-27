@@ -30,44 +30,38 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { signIn, user, loading: authLoading } = useAuth();
+  const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-        .then(({ data: profile, error: profileError }) => {
-          let userRole = null;
-          
-          if (profileError) {
-            console.error('Profile fetch error:', profileError);
-            // ✅ FALLBACK: Usar role do user_metadata
-            userRole = user.user_metadata?.role || user.user_metadata?.user_role;
-            console.log('Usando role do user_metadata:', userRole);
-          } else {
-            userRole = profile?.role;
-          }
-          
-          if (userRole === 'student') {
-            navigate('/students/dashboard');
-          } else if (userRole === 'teacher') {
-            navigate('/dashboard');
-          } else {
-            navigate('/dashboard');
-          }
-        })
-        .catch((err) => {
-          console.error('Auto-redirect error:', err);
-          // Fallback para dashboard padrão
-          navigate('/dashboard');
-        });
+    console.log('[LoginPage] Auth state:', { 
+      hasUser: !!user, 
+      hasProfile: !!profile, 
+      authLoading,
+      profileRole: profile?.role 
+    });
+    
+    if (user && profile && !authLoading) {
+      console.log('[LoginPage] ✅ All conditions met, redirecting to:', profile.role);
+      
+      const userRole = profile.role;
+      
+      if (userRole === 'student') {
+        console.log('[LoginPage] Navigating to /students/dashboard');
+        navigate('/students/dashboard');
+      } else if (userRole === 'teacher') {
+        console.log('[LoginPage] Navigating to /dashboard');
+        navigate('/dashboard');
+      } else if (userRole === 'school') {
+        console.log('[LoginPage] Navigating to /school');
+        navigate('/school');
+      } else {
+        console.log('[LoginPage] Fallback: Navigating to /dashboard');
+        navigate('/dashboard');
+      }
     }
-  }, [user, navigate]);
+  }, [user, profile, authLoading, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -111,20 +105,7 @@ const LoginPage = () => {
 
       if (data?.user) {
         toast.success('Login realizado com sucesso!');
-
-        // Redirecionar baseado no role do metadata (mais rápido)
-        const userRole = data.user.user_metadata?.role;
-        
-        if (userRole === 'student') {
-          navigate('/students');
-        } else if (userRole === 'teacher') {
-          navigate('/dashboard');
-        } else if (userRole === 'school') {
-          navigate('/school');
-        } else {
-          // Fallback para dashboard padrão
-          navigate('/dashboard');
-        }
+        // O redirecionamento será feito pelo useEffect quando profile estiver pronto
       }
     } catch (err) {
       console.error('Login error:', err);
