@@ -395,17 +395,17 @@ const StudentPerformancePage = () => {
       </div>
 
       {/* Recomendações com IA */}
-      <Card className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border border-purple-200 dark:border-purple-800">
+      <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border border-blue-200 dark:border-blue-800">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
+            <Sparkles className="w-5 h-5 text-blue-600" />
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">Recomendações Personalizadas com IA</h3>
           </div>
           <Button
             onClick={loadAIRecommendations}
             disabled={loadingRecommendations}
             size="sm"
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
           >
             {loadingRecommendations ? (
               <>
@@ -429,11 +429,11 @@ const StudentPerformancePage = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.1 }}
-                className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-purple-200 dark:border-purple-800"
+                className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-blue-200 dark:border-blue-800"
               >
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/40 flex-shrink-0">
-                    <BookOpen className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex-shrink-0">
+                    <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-1">{rec.title}</h4>
@@ -450,7 +450,7 @@ const StudentPerformancePage = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <Sparkles className="w-16 h-16 mx-auto mb-4 text-purple-400 opacity-50" />
+            <Sparkles className="w-16 h-16 mx-auto mb-4 text-blue-400 opacity-50" />
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
               Clique no botão acima para gerar recomendações personalizadas baseadas no seu desempenho.
             </p>
