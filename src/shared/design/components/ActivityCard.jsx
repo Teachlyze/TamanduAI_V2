@@ -117,7 +117,7 @@ const ActivityCard = ({
             e.stopPropagation();
             onAction?.();
           }}
-          className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white inline-flex items-center justify-center gap-2"
+          className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white inline-flex items-center justify-center gap-2"
         >
           {actionLabel}
           <ChevronRight className="w-4 h-4" />

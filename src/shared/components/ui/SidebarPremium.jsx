@@ -33,9 +33,11 @@ import { StudentProfileCard } from '@/shared/components/student/StudentProfileCa
 
 const studentNavigation = [
   { name: 'Dashboard', href: '/students', icon: Home },
+  { name: 'Turmas', href: '/students/classes', icon: Users },
   { name: 'Atividades', href: '/students/activities', icon: BookOpen },
   { name: 'Meu Desempenho', href: '/students/performance', icon: BarChart3 },
   { name: 'Agenda', href: '/students/calendar', icon: Calendar },
+  { name: 'Histórico', href: '/students/history', icon: FileText },
 ];
 
 const schoolNavigation = [

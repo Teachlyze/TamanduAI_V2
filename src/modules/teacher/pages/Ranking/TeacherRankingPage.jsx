@@ -105,7 +105,7 @@ const TeacherRankingPage = () => {
           {row.avatar ? (
             <img src={row.avatar} alt={row.name} className="w-10 h-10 rounded-full" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
               {row.name?.[0] || 'A'}
             </div>
           )}
@@ -163,7 +163,7 @@ const TeacherRankingPage = () => {
           title="XP Total"
           value={stats.totalXP}
           icon={Award}
-          gradient="from-purple-500 to-pink-500"
+          gradient="from-blue-500 to-cyan-500"
           delay={0.1}
         />
       </div>
@@ -194,7 +194,7 @@ const TeacherRankingPage = () => {
                 {podium[1] && (
                   <div className="flex flex-col items-center">
                     <div className="relative mb-2">
-                      <div className="w-20 h-20 rounded-full border-4 border-slate-400 bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                      <div className="w-20 h-20 rounded-full border-4 border-slate-400 bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-2xl font-bold">
                         {podium[1].name?.[0]}
                       </div>
                       <div className="absolute -top-2 -right-2 text-4xl">🥈</div>
@@ -206,7 +206,7 @@ const TeacherRankingPage = () => {
                 {podium[0] && (
                   <div className="flex flex-col items-center">
                     <div className="relative mb-2">
-                      <div className="w-24 h-24 rounded-full border-4 border-amber-500 bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-3xl font-bold">
+                      <div className="w-24 h-24 rounded-full border-4 border-amber-500 bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold">
                         {podium[0].name?.[0]}
                       </div>
                       <div className="absolute -top-2 -right-2 text-5xl">🥇</div>
@@ -218,7 +218,7 @@ const TeacherRankingPage = () => {
                 {podium[2] && (
                   <div className="flex flex-col items-center">
                     <div className="relative mb-2">
-                      <div className="w-20 h-20 rounded-full border-4 border-orange-600 bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-2xl font-bold">
+                      <div className="w-20 h-20 rounded-full border-4 border-orange-600 bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-2xl font-bold">
                         {podium[2].name?.[0]}
                       </div>
                       <div className="absolute -top-2 -right-2 text-4xl">🥉</div>

@@ -76,7 +76,7 @@ const SubmissionCard = ({
                 className="w-10 h-10 rounded-full object-cover"
               />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
                 {student?.name?.[0] || 'A'}
               </div>
             )}
@@ -151,7 +151,7 @@ const SubmissionCard = ({
             <Button
               size="sm"
               onClick={() => onGrade(submission)}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Corrigir

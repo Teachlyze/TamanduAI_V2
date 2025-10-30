@@ -149,7 +149,7 @@ const GradeForm = ({
           <Button
             type="submit"
             disabled={loading}
-            className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
           >
             {loading ? (
               <>

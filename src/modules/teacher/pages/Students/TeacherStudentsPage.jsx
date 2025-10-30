@@ -178,7 +178,7 @@ const TeacherStudentsPage = () => {
           {row.avatar ? (
             <img src={row.avatar} alt={row.name} className="w-10 h-10 rounded-full" />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
               {row.name?.[0] || 'A'}
             </div>
           )}

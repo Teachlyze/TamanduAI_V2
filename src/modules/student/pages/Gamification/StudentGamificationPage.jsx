@@ -42,7 +42,7 @@ const StudentGamificationPage = () => {
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <StatsCard title="Nível Atual" value={gamification?.level || 1} icon={Trophy} gradient="from-amber-500 to-yellow-500" delay={0} />
-        <StatsCard title="XP Total" value={gamification?.xp_total || 0} icon={Star} gradient="from-purple-500 to-pink-500" delay={0.1} />
+        <StatsCard title="XP Total" value={gamification?.xp_total || 0} icon={Star} gradient="from-blue-500 to-cyan-500" delay={0.1} />
         <StatsCard title="Badges" value={gamification?.badges_count || 0} icon={Award} gradient="from-blue-500 to-cyan-500" delay={0.2} />
       </div>
 

@@ -81,7 +81,7 @@ const ClassCard = ({
               e.stopPropagation();
               onAction?.();
             }}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white inline-flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white inline-flex items-center justify-center gap-2"
           >
             {actionLabel}
             <ChevronRight className="w-4 h-4" />

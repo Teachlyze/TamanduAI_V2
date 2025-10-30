@@ -160,7 +160,7 @@ export const XPProvider = ({ children }) => {
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
-              className="flex items-center gap-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-6 rounded-2xl shadow-2xl border-4 border-white/30"
+              className="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-8 py-6 rounded-2xl shadow-2xl border-4 border-white/30"
             >
               <motion.div
                 animate={{ 

@@ -188,7 +188,7 @@ const EditClassPage = () => {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600"
+              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600"
             >
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Salvando...' : 'Salvar'}

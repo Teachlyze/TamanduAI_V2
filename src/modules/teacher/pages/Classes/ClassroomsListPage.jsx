@@ -173,7 +173,7 @@ const ClassroomsListPage = () => {
           value={stats.totalStudents}
           icon={Users}
           gradient={gradients.stats.students}
-          bgColor="bg-purple-50 dark:bg-purple-950/30"
+          bgColor="bg-blue-50 dark:bg-blue-950/30"
           delay={0}
         />
         <StatsCard
@@ -290,7 +290,7 @@ const ClassroomsListPage = () => {
         >
           <Button
             onClick={handleCreateClass}
-            className="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+            className="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
           >
             <Plus className="w-8 h-8" />
           </Button>

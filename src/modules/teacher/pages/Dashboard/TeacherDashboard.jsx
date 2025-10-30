@@ -11,7 +11,12 @@ import {
   ChevronRight,
   Calendar,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  TrendingUp,
+  Bell,
+  Video,
+  MapPin,
+  Target
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
@@ -26,63 +31,235 @@ import {
   formatNumber
 } from '@/shared/design';
 import { ClassService } from '@/shared/services/classService';
-// SubmissionService não tem método getPendingSubmissions ainda
+import { supabase } from '@/shared/services/supabaseClient';
+import { useAuth } from '@/shared/hooks/useAuth';
+import { format, formatDistanceToNow, addDays, isToday, isSameDay } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const TeacherDashboard = () => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState({
     totalClasses: 0,
     totalStudents: 0,
     totalActivities: 0,
-    pendingGrading: 0
+    pendingGrading: 0,
+    avgGrade: 0,
+    todayCorrections: 0
   });
   const [recentClasses, setRecentClasses] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingSubmissions, setPendingSubmissions] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [todayEvents, setTodayEvents] = useState([]);
+  const [alertStudents, setAlertStudents] = useState([]);
+  const [scheduledActivities, setScheduledActivities] = useState([]);
 
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
 
       console.log('[TeacherDashboard] Carregando dados...');
 
-      // Buscar turmas
-      const classes = await ClassService.getClasses();
-      console.log('[TeacherDashboard] Classes carregadas:', classes?.length || 0);
-      
-      // Buscar atividades recentes (se o método existir)
-      let activities = [];
-      try {
-        const activitiesResult = await ClassService.getRecentActivities?.(5);
-        activities = activitiesResult?.data || [];
-      } catch (err) {
-        console.log('getRecentActivities não disponível:', err.message);
-      }
-      
-      // Buscar submissões pendentes (método não implementado ainda)
-      let submissions = [];
+      // 1. Buscar turmas do professor
+      const { data: classes, error: classesError } = await supabase
+        .from('classes')
+        .select(`
+          *,
+          class_members(count)
+        `)
+        .eq('created_by', user.id)
+        .eq('is_active', true);
 
-      // Calcular estatísticas
-      const totalStudents = classes.reduce((sum, cls) => sum + (cls.student_count || 0), 0);
-      const totalActivities = activities.length;
-      const pendingGrading = submissions.length;
+      if (classesError) throw classesError;
+
+      const classesWithCount = classes?.map(cls => ({
+        ...cls,
+        student_count: cls.class_members?.[0]?.count || 0
+      })) || [];
+
+      // 2. Buscar atividades do professor
+      const { data: activities, error: activitiesError } = await supabase
+        .from('activities')
+        .select(`
+          *,
+          activity_class_assignments(class:classes(name))
+        `)
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (activitiesError) throw activitiesError;
+
+      const activitiesWithClass = activities?.map(act => ({
+        ...act,
+        class_name: act.activity_class_assignments?.[0]?.class?.name || 'Sem turma'
+      })) || [];
+
+      // 3. Buscar submissões pendentes
+      const activityIds = activities?.map(a => a.id) || [];
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('submissions')
+        .select(`
+          *,
+          activity:activities(title),
+          student:profiles!student_id(full_name)
+        `)
+        .in('activity_id', activityIds)
+        .eq('status', 'submitted')
+        .order('submitted_at', { ascending: true })
+        .limit(10);
+
+      if (submissionsError) throw submissionsError;
+
+      const submissionsFormatted = submissions?.map(sub => ({
+        ...sub,
+        student_name: sub.student?.full_name || 'Aluno',
+        activity_title: sub.activity?.title || 'Atividade'
+      })) || [];
+
+      // 4. Calcular média geral
+      const { data: allGrades, error: gradesError } = await supabase
+        .from('submissions')
+        .select('grade')
+        .in('activity_id', activityIds)
+        .not('grade', 'is', null);
+
+      if (gradesError) throw gradesError;
+
+      const avgGrade = allGrades?.length > 0
+        ? allGrades.reduce((sum, s) => sum + s.grade, 0) / allGrades.length
+        : 0;
+
+      // 5. Correções do dia
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const { data: todayGraded, error: todayError } = await supabase
+        .from('submissions')
+        .select('id')
+        .in('activity_id', activityIds)
+        .gte('graded_at', today.toISOString())
+        .lt('graded_at', tomorrow.toISOString());
+
+      if (todayError) throw todayError;
+
+      // 6. Buscar eventos próximos
+      const sevenDaysFromNow = addDays(new Date(), 7);
+      const { data: events, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('created_by', user.id)
+        .gte('start_time', new Date().toISOString())
+        .lte('start_time', sevenDaysFromNow.toISOString())
+        .order('start_time', { ascending: true })
+        .limit(5);
+
+      if (!eventsError && events) {
+        setUpcomingEvents(events);
+        setTodayEvents(events.filter(e => isToday(new Date(e.start_time))));
+      }
+
+      // 7. Buscar reuniões
+      const { data: meetings, error: meetingsError } = await supabase
+        .from('meetings')
+        .select('*')
+        .eq('created_by', user.id)
+        .gte('start_time', new Date().toISOString())
+        .lte('start_time', sevenDaysFromNow.toISOString())
+        .order('start_time', { ascending: true })
+        .limit(5);
+
+      if (!meetingsError && meetings) {
+        const meetingsAsEvents = meetings.map(m => ({
+          ...m,
+          title: m.title,
+          start_time: m.start_time,
+          event_type: 'meeting'
+        }));
+        setUpcomingEvents(prev => [...prev, ...meetingsAsEvents].sort((a, b) => 
+          new Date(a.start_time) - new Date(b.start_time)
+        ).slice(0, 5));
+      }
+
+      // 8. Identificar alunos em alerta
+      const { data: studentGrades, error: studentGradesError } = await supabase
+        .from('submissions')
+        .select(`
+          student_id,
+          grade,
+          student:profiles!student_id(full_name)
+        `)
+        .in('activity_id', activityIds)
+        .not('grade', 'is', null);
+
+      if (!studentGradesError && studentGrades) {
+        const studentAvgs = {};
+        studentGrades.forEach(sub => {
+          if (!studentAvgs[sub.student_id]) {
+            studentAvgs[sub.student_id] = {
+              grades: [],
+              name: sub.student?.full_name || 'Aluno'
+            };
+          }
+          studentAvgs[sub.student_id].grades.push(sub.grade);
+        });
+
+        const alerts = Object.entries(studentAvgs)
+          .map(([id, data]) => ({
+            id,
+            name: data.name,
+            avgGrade: data.grades.reduce((s, g) => s + g, 0) / data.grades.length,
+            totalActivities: data.grades.length
+          }))
+          .filter(s => s.avgGrade < 6)
+          .sort((a, b) => a.avgGrade - b.avgGrade)
+          .slice(0, 10);
+
+        setAlertStudents(alerts);
+      }
+
+      // 9. Atividades agendadas para hoje
+      const { data: scheduled, error: scheduledError } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('created_by', user.id)
+        .eq('status', 'draft')
+        .gte('created_at', today.toISOString())
+        .lt('created_at', tomorrow.toISOString());
+
+      if (!scheduledError) {
+        setScheduledActivities(scheduled || []);
+      }
+
+      // Calcular estatísticas totais
+      const totalStudents = classesWithCount.reduce((sum, cls) => sum + (cls.student_count || 0), 0);
 
       setStats({
-        totalClasses: classes.length,
+        totalClasses: classesWithCount.length,
         totalStudents,
-        totalActivities,
-        pendingGrading
+        totalActivities: activities?.length || 0,
+        pendingGrading: submissions?.length || 0,
+        avgGrade: Number(avgGrade.toFixed(1)),
+        todayCorrections: todayGraded?.length || 0
       });
 
-      setRecentClasses(classes.slice(0, 5));
-      setRecentActivities(activities);
-      setPendingSubmissions(submissions);
+      setRecentClasses(classesWithCount.slice(0, 5));
+      setRecentActivities(activitiesWithClass.slice(0, 5));
+      setPendingSubmissions(submissionsFormatted);
       
       console.log('[TeacherDashboard] Dados carregados com sucesso');
     } catch (error) {
@@ -98,29 +275,32 @@ const TeacherDashboard = () => {
       title: 'Total de Turmas',
       value: stats.totalClasses,
       icon: BookOpen,
-      gradient: 'from-blue-500 to-indigo-500',
-      bgColor: 'bg-blue-50 dark:bg-blue-950/30'
+      gradient: 'from-blue-600 to-cyan-600',
+      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+      change: `${stats.totalStudents} alunos`
     },
     {
       title: 'Total de Alunos',
       value: stats.totalStudents,
       icon: Users,
-      gradient: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50 dark:bg-purple-950/30'
+      gradient: 'from-cyan-500 to-blue-600',
+      bgColor: 'bg-cyan-50 dark:bg-cyan-950/30'
     },
     {
-      title: 'Total de Atividades',
-      value: stats.totalActivities,
-      icon: FileText,
+      title: 'Média Geral',
+      value: stats.avgGrade,
+      icon: TrendingUp,
       gradient: 'from-emerald-500 to-teal-500',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30'
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+      change: stats.avgGrade >= 7 ? 'Excelente' : 'Pode melhorar'
     },
     {
-      title: 'Correções Pendentes',
+      title: 'Aguardando Correção',
       value: stats.pendingGrading,
       icon: Clock,
       gradient: 'from-amber-500 to-orange-500',
-      bgColor: 'bg-amber-50 dark:bg-amber-950/30'
+      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+      change: `${stats.todayCorrections} hoje`
     }
   ];
 
@@ -135,7 +315,7 @@ const TeacherDashboard = () => {
       label: 'Nova Atividade',
       icon: Plus,
       href: '/dashboard/activities/new',
-      gradient: 'from-purple-600 to-pink-600'
+      gradient: 'from-blue-600 to-cyan-600'
     },
     {
       label: 'Ver Analytics',
@@ -172,9 +352,122 @@ const TeacherDashboard = () => {
             icon={stat.icon}
             gradient={stat.gradient}
             bgColor={stat.bgColor}
+            change={stat.change}
             delay={index * 0.1}
           />
         ))}
+      </div>
+
+      {/* Agenda e Eventos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Próximos Eventos */}
+        <Card className="p-6 bg-white dark:bg-slate-900">
+          <div className="flex items-center gap-2 mb-6">
+            <Calendar className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              Próximos Eventos (7 dias)
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event, index) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                >
+                  <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex flex-col items-center justify-center text-white">
+                    <div className="text-2xl font-bold">
+                      {format(new Date(event.start_time), 'd')}
+                    </div>
+                    <div className="text-xs uppercase">
+                      {format(new Date(event.start_time), 'MMM', { locale: ptBR })}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                      {event.title}
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {format(new Date(event.start_time), "HH:mm")}
+                    </p>
+                    <Badge className={`mt-1 ${
+                      event.event_type === 'meeting' ? 'bg-purple-100 text-purple-700' :
+                      event.event_type === 'exam' ? 'bg-red-100 text-red-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {event.event_type || 'evento'}
+                    </Badge>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <EmptyState
+                icon={Calendar}
+                title="Nenhum evento próximo"
+                description="Seus próximos eventos aparecerão aqui."
+              />
+            )}
+          </div>
+        </Card>
+
+        {/* Eventos de Hoje + Atividades Agendadas */}
+        <Card className="p-6 bg-white dark:bg-slate-900">
+          <div className="flex items-center gap-2 mb-6">
+            <Target className="w-5 h-5 text-blue-600" />
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+              Agenda de Hoje
+            </h2>
+          </div>
+          <div className="space-y-4">
+            {todayEvents.length > 0 ? (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Eventos</h3>
+                {todayEvents.map((event, index) => (
+                  <div
+                    key={event.id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+                  >
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900 dark:text-white">{event.title}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        {format(new Date(event.start_time), "HH:mm")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-600 dark:text-slate-400">Nenhum evento hoje</p>
+            )}
+
+            {scheduledActivities.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                  Atividades para Postar
+                </h3>
+                {scheduledActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mb-2"
+                  >
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900 dark:text-white text-sm">
+                        {activity.title}
+                      </p>
+                    </div>
+                    <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-600">
+                      Publicar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -262,7 +555,7 @@ const TeacherDashboard = () => {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 transition-all bg-white dark:bg-slate-800"
+                  className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all bg-white dark:bg-slate-800"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -298,6 +591,61 @@ const TeacherDashboard = () => {
           </div>
         </Card>
       </div>
+
+      {/* Alunos em Alerta */}
+      {alertStudents.length > 0 && (
+        <Card className="p-6 mb-8 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-2 border-yellow-200 dark:border-yellow-800">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/40">
+              <AlertTriangle className="w-6 h-6 text-yellow-600" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Alunos que Precisam de Atenção
+              </h2>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {alertStudents.length} aluno{alertStudents.length > 1 ? 's' : ''} com desempenho abaixo de 6.0
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {alertStudents.map((student, index) => (
+              <motion.div
+                key={student.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.05 }}
+                className="flex items-center gap-4 p-4 rounded-lg bg-white dark:bg-slate-900 border-2 border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-all"
+              >
+                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg">
+                  {student.name?.[0] || 'A'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                    {student.name}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs">
+                      Média: {student.avgGrade.toFixed(1)}
+                    </Badge>
+                    <span className="text-xs text-slate-500">
+                      {student.totalActivities} atividade{student.totalActivities > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="whitespace-nowrap border-yellow-600 text-yellow-700 hover:bg-yellow-50"
+                >
+                  Ver Detalhes
+                </Button>
+              </motion.div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* Submissões Pendentes */}
       <Card className="p-6 mb-8 bg-white dark:bg-slate-900">

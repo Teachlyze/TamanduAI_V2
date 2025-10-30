@@ -807,6 +807,103 @@ Forneça em JSON:
   }
 };
 
+/**
+ * Obter sugestões de estudo para um aluno
+ */
+export const getStudySuggestions = async (studentId) => {
+  try {
+    // Buscar performance recente do aluno
+    const { data: submissions } = await supabase
+      .from('submissions')
+      .select('grade, activity:activities(title, type)')
+      .eq('student_id', studentId)
+      .not('grade', 'is', null)
+      .order('submitted_at', { ascending: false })
+      .limit(10);
+
+    if (!submissions || submissions.length === 0) {
+      return [];
+    }
+
+    const avgGrade = submissions.reduce((sum, s) => sum + s.grade, 0) / submissions.length;
+    const suggestions = [];
+
+    if (avgGrade < 6) {
+      suggestions.push({ text: 'Revise os conceitos fundamentais da disciplina', icon: 'BookOpen' });
+      suggestions.push({ text: 'Procure ajuda do professor ou monitoria', icon: 'Users' });
+    } else if (avgGrade < 7.5) {
+      suggestions.push({ text: 'Pratique mais exercícios para fixar o conteúdo', icon: 'Target' });
+      suggestions.push({ text: 'Faça resumos dos tópicos principais', icon: 'FileText' });
+    } else {
+      suggestions.push({ text: 'Continue seu excelente trabalho!', icon: 'Trophy' });
+      suggestions.push({ text: 'Ajude colegas que têm dificuldades', icon: 'Users' });
+    }
+
+    return suggestions;
+  } catch (error) {
+    console.error('Erro ao obter sugestões:', error);
+    return [
+      { text: 'Continue praticando regularmente', icon: 'Target' },
+      { text: 'Revise conceitos fundamentais', icon: 'BookOpen' }
+    ];
+  }
+};
+
+/**
+ * Identificar áreas que precisam de atenção
+ */
+export const getAttentionAreas = async (studentId) => {
+  try {
+    // Buscar submissions por disciplina
+    const { data: submissions } = await supabase
+      .from('submissions')
+      .select(`
+        grade,
+        activity:activities(
+          title,
+          activity_class_assignments(
+            class:classes(name, subject)
+          )
+        )
+      `)
+      .eq('student_id', studentId)
+      .not('grade', 'is', null);
+
+    if (!submissions || submissions.length === 0) {
+      return [];
+    }
+
+    // Agrupar por disciplina
+    const bySubject = {};
+    submissions.forEach(s => {
+      const subject = s.activity?.activity_class_assignments?.[0]?.class?.subject || 'Geral';
+      if (!bySubject[subject]) {
+        bySubject[subject] = [];
+      }
+      bySubject[subject].push(s.grade);
+    });
+
+    // Identificar disciplinas com média baixa
+    const attentionAreas = [];
+    Object.entries(bySubject).forEach(([subject, grades]) => {
+      const avg = grades.reduce((sum, g) => sum + g, 0) / grades.length;
+      if (avg < 7) {
+        attentionAreas.push({
+          subject,
+          title: subject,
+          description: `Média atual: ${avg.toFixed(1)}. Foque mais nesta disciplina.`,
+          avgGrade: avg
+        });
+      }
+    });
+
+    return attentionAreas;
+  } catch (error) {
+    console.error('Erro ao identificar áreas de atenção:', error);
+    return [];
+  }
+};
+
 export default {
   predictPerformance,
   identifyAtRiskStudents,
@@ -819,7 +916,9 @@ export default {
   compareTeachers,
   compareClasses,
   generateAIInsights,
-  getStudentGradeBuckets
+  getStudentGradeBuckets,
+  getStudySuggestions,
+  getAttentionAreas
 };
 
 /**

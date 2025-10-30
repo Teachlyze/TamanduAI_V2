@@ -110,7 +110,7 @@ const ClassMembersPage = () => {
               className="w-10 h-10 rounded-full object-cover"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
               {row.user?.name?.[0] || 'A'}
             </div>
           )}
@@ -191,7 +191,7 @@ const ClassMembersPage = () => {
           value={stats.totalStudents}
           icon={Users}
           gradient={gradients.stats.students}
-          bgColor="bg-purple-50 dark:bg-purple-950/30"
+          bgColor="bg-blue-50 dark:bg-blue-950/30"
           delay={0}
         />
         <StatsCard
@@ -228,7 +228,7 @@ const ClassMembersPage = () => {
             onChange={setSearchQuery}
           />
         </div>
-        <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+        <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
           <UserPlus className="w-4 h-4 mr-2" />
           Adicionar Aluno
         </Button>

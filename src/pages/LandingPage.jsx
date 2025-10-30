@@ -19,14 +19,14 @@ export default function LandingPage() {
   const navigate = useNavigate();
 
   const features = [
-    { icon: Brain, title: 'Chatbot com RAG v2.0', description: 'Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7', gradient: "from-violet-500 to-purple-500", badge: 'Até 200 msgs/dia (Pro)' },
-    { icon: Shield, title: 'Antiplágio Winston AI', description: 'Detecção automática de plágio com IA de última geração integrada', gradient: "from-red-500 to-pink-500", badge: '100 verificações/hora' },
-    { icon: BarChart3, title: 'Analytics com ML', description: '4 modelos de Machine Learning: previsão de desempenho, clustering, sentimento e recomendações', gradient: "from-indigo-500 to-purple-500", badge: 'Inteligência Artificial' },
+    { icon: Brain, title: 'Chatbot com RAG v2.0', description: 'Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7', gradient: "from-blue-500 to-blue-600", badge: 'Até 200 msgs/dia (Pro)' },
+    { icon: Shield, title: 'Antiplágio Winston AI', description: 'Detecção automática de plágio com IA de última geração integrada', gradient: "from-red-500 to-red-600", badge: '100 verificações/hora' },
+    { icon: BarChart3, title: 'Analytics com ML', description: '4 modelos de Machine Learning: previsão de desempenho, clustering, sentimento e recomendações', gradient: "from-indigo-500 to-blue-600", badge: 'Inteligência Artificial' },
     { icon: Bell, title: 'Notificações Inteligentes', description: 'Lembretes automáticos de prazos, reuniões e aulas ao vivo via Push + Email', gradient: "from-emerald-500 to-teal-500", badge: 'Push + Email' },
     { icon: Calendar, title: 'Agenda Integrada', description: 'Agende reuniões, aulas ao vivo - integre com Google Meet e Zoom (links externos)', gradient: "from-blue-500 to-cyan-500", badge: 'Links externos' },
     { icon: Trophy, title: 'Gamificação Completa', description: 'Sistema de XP, níveis, badges e rankings que aumenta participação em 40%', gradient: "from-yellow-500 to-orange-500", badge: '+40% engajamento' },
-    { icon: Users, title: 'Gestão Inteligente', description: 'Organize turmas, professores e alunos com facilidade', gradient: "from-purple-500 to-indigo-500", badge: 'Turmas ilimitadas' },
-    { icon: Sparkles, title: 'Atividades Dinâmicas', description: 'Crie atividades interativas com correção automática', gradient: "from-pink-500 to-rose-500", badge: 'Correção automática' }
+    { icon: Users, title: 'Gestão Inteligente', description: 'Organize turmas, professores e alunos com facilidade', gradient: "from-blue-500 to-indigo-500", badge: 'Turmas ilimitadas' },
+    { icon: Sparkles, title: 'Atividades Dinâmicas', description: 'Crie atividades interativas com correção automática', gradient: "from-cyan-500 to-blue-500", badge: 'Correção automática' }
   ];
 
   const benefits = [
@@ -53,8 +53,8 @@ export default function LandingPage() {
     { icon: Brain, title: "Chatbot com RAG v2.0", description: "Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7", color: "violet" },
     { icon: Shield, title: "Antiplágio Winston AI", description: "Detecção automática com IA (100 checks/hora) + backup Copyleaks", color: "red" },
     { icon: BarChart3, title: "Previsão de Desempenho", description: "ML prevê próxima nota e tendência do aluno com regressão linear", color: "indigo" },
-    { icon: Brain, title: "Clustering de Alunos", description: "Agrupa alunos por desempenho automaticamente (K-Means)", color: "purple" },
-    { icon: Target, title: "Análise de Sentimento", description: "Detecta feedbacks negativos automaticamente", color: "pink" },
+    { icon: Brain, title: "Clustering de Alunos", description: "Agrupa alunos por desempenho automaticamente (K-Means)", color: "blue" },
+    { icon: Target, title: "Análise de Sentimento", description: "Detecta feedbacks negativos automaticamente", color: "cyan" },
     { icon: Lightbulb, title: "Recomendações IA", description: "Sugere materiais baseado em dificuldades do aluno", color: "yellow" },
     { icon: Bell, title: "Lembretes Automáticos", description: "Notificações 1h e 5min antes de prazos via cron", color: "emerald" },
     { icon: Trophy, title: "Gamificação Completa", description: "XP, níveis, badges e rankings (16 níveis)", color: "orange" },
@@ -104,8 +104,8 @@ export default function LandingPage() {
 
   const useCases = [
     { icon: BookOpen, title: "Professores", description: "Reduza trabalho manual e foque no ensino", gradient: "from-blue-500 to-cyan-500" },
-    { icon: Users, title: "Escolas", description: "Centralize gestão de toda instituição", gradient: "from-purple-500 to-pink-500" },
-    { icon: Brain, title: "Tutores", description: "Acompanhe alunos individualmente", gradient: "from-indigo-500 to-purple-500" },
+    { icon: Users, title: "Escolas", description: "Centralize gestão de toda instituição", gradient: "from-blue-500 to-cyan-500" },
+    { icon: Brain, title: "Tutores", description: "Acompanhe alunos individualmente", gradient: "from-indigo-500 to-blue-500" },
   ];
 
   return (
@@ -382,12 +382,12 @@ export default function LandingPage() {
                   blue: 'from-blue-400 to-blue-600',
                   indigo: 'from-indigo-400 to-indigo-600',
                   emerald: 'from-emerald-400 to-emerald-600',
-                  pink: 'from-pink-400 to-pink-600',
-                  orange: 'from-orange-400 to-orange-600',
                   cyan: 'from-cyan-400 to-cyan-600',
+                  orange: 'from-orange-400 to-orange-600',
                   red: 'from-red-400 to-red-600',
+                  yellow: 'from-yellow-400 to-yellow-600',
                   purple: 'from-purple-400 to-purple-600',
-                  yellow: 'from-yellow-400 to-yellow-600'
+                  pink: 'from-pink-400 to-pink-600'
                 };
                 return (
                   <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: i * 0.05 }} className="group">

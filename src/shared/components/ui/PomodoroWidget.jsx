@@ -127,8 +127,8 @@ import { useAuth } from '@/shared/hooks/useAuth';
 
   if (variant === 'compact') {
   return (
-      <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg border border-purple-200 dark:border-purple-800 text-white hover:opacity-90">
-        <Clock className="w-5 h-5 text-purple-600" />
+      <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-200 dark:border-blue-800 text-white hover:opacity-90">
+        <Clock className="w-5 h-5 text-blue-600" />
         <div className="flex-1">
           <div className="text-2xl font-bold font-mono">
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
@@ -147,7 +147,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center">
               <Clock className="w-6 h-6 text-slate-900 dark:text-white" />
             </div>
             <div>
@@ -193,15 +193,15 @@ import { useAuth } from '@/shared/hooks/useAuth';
             />
             <defs>
               <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#a855f7" />
-                <stop offset="100%" stopColor="#ec4899" />
+                <stop offset="0%" stopColor="#2563eb" />
+                <stop offset="100%" stopColor="#06b6d4" />
               </linearGradient>
             </defs>
           </svg>
 
           {/* Time Text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className="text-6xl font-bold font-mono bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent text-white hover:opacity-90">
+            <div className="text-6xl font-bold font-mono bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent text-white hover:opacity-90">
               {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
             </div>
             <div className="text-sm text-muted-foreground mt-2">{Math.round(progress)}% completo</div>
@@ -246,20 +246,20 @@ import { useAuth } from '@/shared/hooks/useAuth';
         {/* Stats */}
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border">
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{sessionsCompleted}</div>
+            <div className="text-2xl font-bold text-blue-600">{sessionsCompleted}</div>
             <div className="text-xs text-muted-foreground">Sessões Hoje</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-pink-600">{sessionsCompleted * 25}</div>
+            <div className="text-2xl font-bold text-cyan-600">{sessionsCompleted * 25}</div>
             <div className="text-xs text-muted-foreground">Minutos de Foco</div>
           </div>
         </div>
 
         {/* Info */}
         {user?.user_metadata?.role === 'student' && (
-          <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-3 rounded-lg text-center text-white hover:opacity-90">
+          <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-3 rounded-lg text-center text-white hover:opacity-90">
             <p className="text-sm text-muted-foreground">
-              ✨ Complete sessões e ganhe <strong className="text-purple-600">10 XP</strong> por sessão de 25min!
+              ✨ Complete sessões e ganhe <strong className="text-blue-600">10 XP</strong> por sessão de 25min!
             </p>
           </div>
         )}

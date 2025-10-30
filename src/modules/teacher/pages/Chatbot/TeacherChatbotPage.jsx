@@ -98,7 +98,7 @@ const TeacherChatbotPage = () => {
         title="Assistente IA para Turmas"
         subtitle="Configure chatbots inteligentes para auxiliar seus alunos"
         role="teacher"
-        gradient="from-purple-500 via-pink-500 to-rose-500"
+        gradient="from-blue-500 via-cyan-500 to-blue-600"
       />
 
       {/* Stats */}
@@ -107,14 +107,14 @@ const TeacherChatbotPage = () => {
           title="Chatbots Ativos"
           value={stats.activeBots}
           icon={Bot}
-          gradient="from-purple-500 to-pink-500"
+          gradient="from-blue-500 to-cyan-500"
           delay={0}
         />
         <StatsCard
           title="Conversas (30 dias)"
           value={stats.totalConversations}
           icon={MessageSquare}
-          gradient="from-pink-500 to-rose-500"
+          gradient="from-cyan-500 to-blue-500"
           delay={0.1}
         />
         <StatsCard
@@ -184,13 +184,13 @@ const TeacherChatbotPage = () => {
                   {cls.chatbot.status !== 'not_configured' && (
                     <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
                       <div className="text-center">
-                        <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
                           {cls.chatbot.activitiesTrained}
                         </div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">Atividades</div>
                       </div>
                       <div className="text-center">
-                        <div className="text-xl font-bold text-pink-600 dark:text-pink-400">
+                        <div className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
                           {cls.chatbot.conversations}
                         </div>
                         <div className="text-xs text-slate-600 dark:text-slate-400">Conversas</div>
@@ -209,7 +209,7 @@ const TeacherChatbotPage = () => {
                     {cls.chatbot.status === 'not_configured' ? (
                       <Button
                         onClick={() => navigate(`/teacher/chatbot/${cls.id}/config`)}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         Configurar

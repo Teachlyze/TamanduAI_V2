@@ -84,7 +84,7 @@ const ClassSchedulePage = () => {
       activity: 'bg-blue-500',
       exam: 'bg-red-500',
       class: 'bg-green-500',
-      special: 'bg-purple-500'
+      special: 'bg-blue-700'
     };
     return colors[type] || 'bg-slate-500';
   };
@@ -223,7 +223,7 @@ const ClassSchedulePage = () => {
                 <span className="text-slate-600 dark:text-slate-400">Provas</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <div className="w-3 h-3 rounded-full bg-purple-500" />
+                <div className="w-3 h-3 rounded-full bg-blue-700" />
                 <span className="text-slate-600 dark:text-slate-400">Especiais</span>
               </div>
             </div>
@@ -234,7 +234,7 @@ const ClassSchedulePage = () => {
         <div className="space-y-6">
           {/* Add Event */}
           <Card className="p-6 bg-white dark:bg-slate-900">
-            <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
+            <Button className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Adicionar Evento
             </Button>

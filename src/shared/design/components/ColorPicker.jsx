@@ -23,8 +23,8 @@ const ColorPicker = ({
 
   const defaultPresets = presets || [
     { name: 'Azul', color: '#3B82F6', gradient: 'from-blue-500 to-blue-600' },
-    { name: 'Roxo', color: '#8B5CF6', gradient: 'from-purple-500 to-purple-600' },
-    { name: 'Rosa', color: '#EC4899', gradient: 'from-pink-500 to-pink-600' },
+    { name: 'Ciano', color: '#06B6D4', gradient: 'from-cyan-500 to-cyan-600' },
+    { name: 'Azul Escuro', color: '#1E40AF', gradient: 'from-blue-700 to-blue-800' },
     { name: 'Verde', color: '#10B981', gradient: 'from-green-500 to-green-600' },
     { name: 'Amarelo', color: '#F59E0B', gradient: 'from-amber-500 to-amber-600' },
     { name: 'Vermelho', color: '#EF4444', gradient: 'from-red-500 to-red-600' },

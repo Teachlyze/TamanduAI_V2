@@ -34,14 +34,14 @@ export const FILE_ICONS = {
   'text/plain': { icon: 'FileText', color: 'text-gray-700 dark:text-gray-400' },
 
   // Imagens
-  'image/': { icon: 'FileImage', color: 'text-purple-500' },
+  'image/': { icon: 'FileImage', color: 'text-blue-500' },
 
   // Compactados
   'application/zip': { icon: 'FileArchive', color: 'text-yellow-500' },
   'application/x-zip-compressed': { icon: 'FileArchive', color: 'text-yellow-500' },
 
   // Mídia
-  'video/': { icon: 'FileVideo', color: 'text-pink-500' },
+  'video/': { icon: 'FileVideo', color: 'text-cyan-500' },
   'audio/': { icon: 'FileAudio', color: 'text-indigo-500' },
 
   // Padrão

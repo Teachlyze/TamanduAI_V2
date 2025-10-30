@@ -32,7 +32,7 @@ export const MOCK_DATA = {
         value: () => parseInt(import.meta.env.VITE_DEFAULT_TOTAL_ACTIVITIES || '0'),
         change: () => `+${import.meta.env.VITE_MOCK_ACTIVITIES_CHANGE_PERCENTAGE || '5'}`,
         changeType: 'positive',
-        gradient: 'from-purple-500 to-pink-500'
+        gradient: 'from-blue-500 to-cyan-500'
       },
       {
         icon: 'TrendingUp',
@@ -64,7 +64,7 @@ export const MOCK_DATA = {
         title: 'Certificado emitido',
         description: 'Maria Santos completou o curso',
         time: '1 dia atrás',
-        color: 'purple'
+        color: 'blue'
       },
     ],
 

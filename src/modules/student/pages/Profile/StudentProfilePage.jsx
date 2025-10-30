@@ -58,7 +58,7 @@ const StudentProfilePage = () => {
               placeholder="(00) 00000-0000"
             />
           </div>
-          <Button onClick={handleSave} className="w-full bg-gradient-to-r from-blue-600 to-purple-600">
+          <Button onClick={handleSave} className="w-full bg-gradient-to-r from-blue-600 to-cyan-600">
             Salvar Alterações
           </Button>
         </div>

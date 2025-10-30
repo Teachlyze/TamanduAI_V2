@@ -118,11 +118,11 @@ const ChatbotConfigPage = () => {
       <div className="flex items-center justify-center min-h-screen">
         <Card className="p-8 max-w-md w-full bg-white dark:bg-slate-900">
           <div className="text-center">
-            <Bot className="w-16 h-16 mx-auto mb-4 text-purple-600 dark:text-purple-400 animate-pulse" />
+            <Bot className="w-16 h-16 mx-auto mb-4 text-blue-600 dark:text-blue-400 animate-pulse" />
             <h2 className="text-2xl font-bold mb-2">🔄 Treinando Assistente IA...</h2>
             <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-4 mb-4">
               <div
-                className="bg-gradient-to-r from-purple-600 to-pink-600 h-4 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 h-4 rounded-full transition-all duration-300"
                 style={{ width: `${trainingProgress}%` }}
               />
             </div>
@@ -175,7 +175,7 @@ const ChatbotConfigPage = () => {
           <div key={step} className="flex items-center">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
               currentStep >= step
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
+                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white'
                 : 'bg-slate-200 dark:bg-slate-700 text-slate-600'
             }`}>
               {step}
@@ -210,7 +210,7 @@ const ChatbotConfigPage = () => {
                       onClick={() => setConfig(prev => ({ ...prev, avatar: emoji }))}
                       className={`text-4xl p-3 rounded-lg border-2 transition-all ${
                         config.avatar === emoji
-                          ? 'border-purple-600 bg-purple-50 dark:bg-purple-950/30 scale-110'
+                          ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30 scale-110'
                           : 'border-slate-200 dark:border-slate-700 hover:scale-105'
                       }`}
                     >
@@ -285,8 +285,8 @@ const ChatbotConfigPage = () => {
                   key={activity.id}
                   className={`block p-4 rounded-lg border-2 cursor-pointer transition-all ${
                     config.selectedActivities.includes(activity.id)
-                      ? 'border-purple-600 bg-purple-50 dark:bg-purple-950/30'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-purple-300'
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -395,7 +395,7 @@ const ChatbotConfigPage = () => {
             {currentStep < 3 ? (
               <Button
                 onClick={() => setCurrentStep(prev => prev + 1)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600"
               >
                 Próximo
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -403,7 +403,7 @@ const ChatbotConfigPage = () => {
             ) : (
               <Button
                 onClick={handleActivate}
-                className="bg-gradient-to-r from-purple-600 to-pink-600"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600"
               >
                 <Rocket className="w-4 h-4 mr-2" />
                 Ativar Chatbot

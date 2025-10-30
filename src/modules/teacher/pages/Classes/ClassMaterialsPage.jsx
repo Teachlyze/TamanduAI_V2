@@ -123,7 +123,7 @@ const ClassMaterialsPage = () => {
   const getCategoryColor = (category) => {
     const colors = {
       pdf: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
-      video: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
+      video: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
       presentation: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300',
       link: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
       other: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -181,7 +181,7 @@ const ClassMaterialsPage = () => {
           title="Armazenamento"
           value={`${formatFileSize(stats.storageUsed)} / 500MB`}
           icon={Upload}
-          gradient="from-purple-500 to-pink-500"
+          gradient="from-blue-500 to-cyan-500"
           format="text"
           delay={0.2}
         />

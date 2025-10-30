@@ -30,7 +30,7 @@ const StudentRankingPage = () => {
           {ranking.map((item, idx) => (
             <div key={item.user_id} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="text-2xl font-bold w-8">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}º`}</div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
                 {item.user?.name?.[0] || 'A'}
               </div>
               <div className="flex-1">

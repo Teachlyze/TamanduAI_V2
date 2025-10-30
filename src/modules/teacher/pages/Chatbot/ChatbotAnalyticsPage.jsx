@@ -111,14 +111,14 @@ const ChatbotAnalyticsPage = () => {
           title="Total de Conversas"
           value={analytics.totalConversations}
           icon={MessageSquare}
-          gradient="from-purple-500 to-pink-500"
+          gradient="from-blue-500 to-cyan-500"
           delay={0}
         />
         <StatsCard
           title="Alunos Ativos"
           value={analytics.activeStudents}
           icon={Users}
-          gradient="from-pink-500 to-rose-500"
+          gradient="from-cyan-500 to-blue-500"
           delay={0.1}
         />
         <StatsCard
@@ -238,7 +238,7 @@ const ChatbotAnalyticsPage = () => {
           {analytics.recentConversations.map(conv => (
             <div key={conv.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
                   {conv.student[0]}
                 </div>
                 <div>

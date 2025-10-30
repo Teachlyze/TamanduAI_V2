@@ -173,7 +173,7 @@ const StudentDetailPage = () => {
           {student?.avatar_url ? (
             <img src={student.avatar_url} alt={student.name} className="w-24 h-24 rounded-full" />
           ) : (
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-4xl font-bold">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-4xl font-bold">
               {student?.name?.[0] || 'A'}
             </div>
           )}

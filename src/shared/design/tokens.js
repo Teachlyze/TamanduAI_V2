@@ -6,15 +6,19 @@
 // ============================================
 // GRADIENTES
 // ============================================
+/**
+ * 🎨 DESIGN TOKENS - TamanduAI
+ * Sistema centralizado de design que serve toda a aplicação
+ */
 export const gradients = {
   // Gradientes por Role
-  teacher: 'from-blue-600 via-purple-600 to-pink-600',
+  teacher: 'from-blue-600 via-blue-600 to-cyan-600',
   school: 'from-slate-700 via-slate-800 to-slate-900',
-  student: 'from-blue-600 via-purple-600 to-pink-600',
+  student: 'from-blue-600 via-blue-600 to-cyan-600',
   
   // Gradientes de Features
-  primary: 'from-blue-600 to-purple-600',
-  secondary: 'from-purple-600 to-pink-600',
+  primary: 'from-blue-600 to-blue-700',
+  secondary: 'from-blue-600 to-cyan-600',
   success: 'from-emerald-600 to-teal-600',
   warning: 'from-amber-600 to-orange-600',
   danger: 'from-red-600 to-rose-600',
@@ -22,8 +26,8 @@ export const gradients = {
   
   // Gradientes de Stats Cards
   stats: {
-    classes: 'from-blue-500 to-indigo-500',
-    students: 'from-purple-500 to-pink-500',
+    classes: 'from-blue-500 to-indigo-600',
+    students: 'from-blue-500 to-cyan-500',
     activities: 'from-emerald-500 to-teal-500',
     pending: 'from-amber-500 to-orange-500',
     completed: 'from-green-500 to-emerald-500',
@@ -39,7 +43,7 @@ export const colors = {
   bg: {
     light: 'bg-white',
     dark: 'bg-slate-900',
-    muted: 'bg-slate-50 dark:bg-slate-950'
+    muted: 'bg-gradient-to-br from-brand-50 via-sky-50 to-brand-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950'
   },
   
   // Text
@@ -115,30 +119,30 @@ export const animations = {
 export const components = {
   // Card Styles
   card: {
-    base: 'bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700',
+    base: 'bg-card text-card-foreground rounded-xl border border-border',
     hover: 'hover:shadow-lg transition-all',
-    interactive: 'cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700 transition-all'
+    interactive: 'cursor-pointer hover:shadow-lg hover:border-brand-400 dark:hover:border-brand-600 transition-all'
   },
-  
+
   // Button Styles
   button: {
     base: 'whitespace-nowrap inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all',
     gradient: 'bg-gradient-to-r text-white hover:opacity-90',
     outline: 'border-2 hover:bg-slate-50 dark:hover:bg-slate-800'
   },
-  
+
   // Input Styles
   input: {
-    base: 'w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 transition-all',
+    base: 'w-full rounded-lg border border-border bg-card text-foreground focus:ring-2 focus:ring-brand-500 transition-all',
     error: 'border-red-500 focus:ring-red-500'
   },
-  
+
   // Badge Styles
   badge: {
     base: 'inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium',
     variants: {
-      default: 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white',
-      primary: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+      default: 'bg-primary text-primary-foreground',
+      primary: 'bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300',
       success: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
       warning: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300',
       danger: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Calendar, Users, MessageSquare } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, FileText, Calendar, Users, MessageSquare, Download, Bot, BookOpen, Clock } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
@@ -9,6 +10,7 @@ import { DashboardHeader } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ClassService } from '@/shared/services/classService';
+import ChatbotWidget from '@/shared/components/ui/ChatbotWidget';
 
 const StudentClassDetailsPage = () => {
   const { classId } = useParams();
@@ -19,6 +21,8 @@ const StudentClassDetailsPage = () => {
   const [activities, setActivities] = useState([]);
   const [discussions, setDiscussions] = useState([]);
   const [materials, setMaterials] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [activeTab, setActiveTab] = useState('feed');
 
   useEffect(() => {
     loadData();
@@ -74,14 +78,42 @@ const StudentClassDetailsPage = () => {
 
       setDiscussions(discs || []);
 
-      // Get materials
+      // Get materials from class_materials join table
       const { data: mats } = await supabase
-        .from('materials')
-        .select('*')
+        .from('class_materials')
+        .select(`
+          id,
+          title,
+          description,
+          file_url,
+          file_type,
+          created_at,
+          created_by,
+          uploader:profiles!class_materials_created_by_fkey ( id, name )
+        `)
         .eq('class_id', classId)
         .order('created_at', { ascending: false });
 
       setMaterials(mats || []);
+
+      // Get members (students + teachers) from class_members and profiles
+      const { data: memberData } = await supabase
+        .from('class_members')
+        .select(`
+          id,
+          role,
+          created_at,
+          profile:profiles!class_members_user_id_fkey (
+            id,
+            name,
+            avatar_url,
+            email
+          )
+        `)
+        .eq('class_id', classId)
+        .order('role', { ascending: true });
+
+      setMembers(memberData || []);
 
     } catch (error) {
       console.error('Erro:', error);
@@ -89,6 +121,23 @@ const StudentClassDetailsPage = () => {
       setLoading(false);
     }
   };
+
+  const materialsMapped = useMemo(() => {
+    return materials.map((material) => ({
+      ...material,
+      createdAtFormatted: material.created_at
+        ? new Date(material.created_at).toLocaleDateString('pt-BR')
+        : null,
+      uploaderName: material.uploader?.name || 'Professor'
+    }));
+  }, [materials]);
+
+  const membersGrouped = useMemo(() => {
+    if (!members.length) return { teachers: [], students: [] };
+    const teachers = members.filter((member) => member.role === 'teacher');
+    const students = members.filter((member) => member.role === 'student');
+    return { teachers, students };
+  }, [members]);
 
   if (loading) {
     return (
@@ -99,56 +148,138 @@ const StudentClassDetailsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/student/classes')}
-        className="mb-4"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar
-      </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      {/* Header Grande com Banner */}
+      <div className="relative h-64 bg-gradient-to-r from-blue-600 to-cyan-500 overflow-hidden">
+        {/* Pattern de fundo */}
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+        
+        {/* Conteúdo do Header */}
+        <div className="relative z-10 container mx-auto px-6 h-full flex flex-col justify-between py-6">
+          {/* Botão Voltar */}
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/student/classes')}
+            className="self-start text-white hover:bg-white/20 border-white/20"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar para Turmas
+          </Button>
 
-      <DashboardHeader
-        title={classData?.name || 'Turma'}
-        subtitle={classData?.subject || 'Sem matéria'}
-        role="student"
-      />
+          {/* Informações da Turma */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-white"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
+                <BookOpen className="w-8 h-8" />
+              </div>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                  {classData?.name || 'Carregando...'}
+                </h1>
+                <p className="text-lg text-white/90">
+                  {classData?.subject || 'Disciplina'}
+                </p>
+              </div>
+            </div>
+            {classData?.description && (
+              <p className="text-white/80 max-w-2xl mt-3">
+                {classData.description}
+              </p>
+            )}
+          </motion.div>
+        </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="feed" className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="feed">Mural</TabsTrigger>
-          <TabsTrigger value="activities">Atividades</TabsTrigger>
-          <TabsTrigger value="materials">Materiais</TabsTrigger>
-        </TabsList>
+        {/* Decorações */}
+        <div className="absolute top-10 right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-10 left-10 w-40 h-40 bg-cyan-300/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Conteúdo com Tabs */}
+      <div className="container mx-auto px-6 -mt-8 relative z-20">
+
+        {/* Tabs com novo design */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Card className="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
+            <TabsList className="w-full grid grid-cols-5 p-2 bg-transparent">
+              <TabsTrigger 
+                value="feed" 
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Mural
+              </TabsTrigger>
+              <TabsTrigger 
+                value="activities" 
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Atividades
+              </TabsTrigger>
+              <TabsTrigger 
+                value="materials" 
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Materiais
+              </TabsTrigger>
+              <TabsTrigger 
+                value="members" 
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Membros
+              </TabsTrigger>
+              <TabsTrigger 
+                value="chatbot" 
+                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
+              >
+                <Bot className="w-4 h-4 mr-2" />
+                Assistente
+              </TabsTrigger>
+            </TabsList>
+          </Card>
 
         {/* Feed Tab */}
         <TabsContent value="feed">
           <div className="space-y-4">
             {discussions.length > 0 ? (
               discussions.map(disc => (
-                <Card key={disc.id} className="p-6 bg-white dark:bg-slate-900">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
-                      {disc.author?.name?.[0] || 'A'}
-                    </div>
+                <motion.div
+                  key={disc.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                        {disc.author?.name?.[0]?.toUpperCase() || 'A'}
+                      </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold">{disc.author?.name}</span>
-                        <Badge>{disc.type}</Badge>
-                        <span className="text-xs text-slate-600">
+                        <span className="font-semibold text-slate-900 dark:text-white">{disc.author?.name || 'Autor'}</span>
+                        {disc.type && (
+                          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                            {disc.type}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
                           {new Date(disc.created_at).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
-                      <h3 className="font-bold mb-2">{disc.title}</h3>
-                      <p className="text-slate-600 dark:text-slate-400">{disc.content}</p>
+                      <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white">{disc.title}</h3>
+                      <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap">{disc.content}</p>
                     </div>
-                  </div>
-                </Card>
+                    </div>
+                  </Card>
+                </motion.div>
               ))
             ) : (
-              <Card className="p-8 text-center">
+              <Card className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <MessageSquare className="w-12 h-12 mx-auto mb-4 text-slate-400" />
                 <p className="text-slate-600">Nenhuma publicação no mural ainda</p>
               </Card>
@@ -163,14 +294,16 @@ const StudentClassDetailsPage = () => {
               <Card
                 key={activity.id}
                 onClick={() => navigate(`/student/activities/${activity.id}`)}
-                className="p-6 cursor-pointer hover:shadow-lg transition-all bg-white dark:bg-slate-900"
+                className="p-6 cursor-pointer hover:shadow-xl transition-all border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
               >
                 <div className="flex items-start justify-between mb-4">
-                  <FileText className="w-8 h-8 text-blue-600" />
+                  <FileText className="w-8 h-8 text-sky-600" />
                   <Badge className={
-                    activity.status === 'active' ? 'bg-green-100 text-green-700' :
-                    activity.status === 'closed' ? 'bg-red-100 text-red-700' :
-                    'bg-slate-100 text-slate-700'
+                    activity.status === 'active'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      : activity.status === 'closed'
+                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
+                      : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
                   }>
                     {activity.status === 'active' ? 'Ativa' :
                      activity.status === 'closed' ? 'Encerrada' : 'Rascunho'}
@@ -190,31 +323,135 @@ const StudentClassDetailsPage = () => {
                 </div>
               </Card>
             ))}
+            {activities.length === 0 && (
+              <Card className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                <p className="text-slate-600">Nenhuma atividade vinculada ainda</p>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
         {/* Materials Tab */}
         <TabsContent value="materials">
           <div className="space-y-4">
-            {materials.map(material => (
-              <Card key={material.id} className="p-6 bg-white dark:bg-slate-900">
+            {materialsMapped.map(material => (
+              <Card key={material.id} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                      📎
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md">
+                      <Download className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{material.title}</h3>
-                      <p className="text-sm text-slate-600">{material.description}</p>
+                      <h3 className="font-semibold text-slate-900 dark:text-white">{material.title}</h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">{material.description}</p>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {material.createdAtFormatted && `Publicado em ${material.createdAtFormatted}`} · Por {material.uploaderName}
+                      </div>
                     </div>
                   </div>
-                  <Button variant="outline" size="sm">Download</Button>
+                  {material.file_url ? (
+                    <Button asChild variant="outline" size="sm" className="border-slate-300 dark:border-slate-700">
+                      <a href={material.file_url} target="_blank" rel="noopener noreferrer">
+                        Baixar
+                      </a>
+                    </Button>
+                  ) : (
+                    <Badge className="bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200">Arquivo indisponível</Badge>
+                  )}
                 </div>
               </Card>
             ))}
+            {materialsMapped.length === 0 && (
+              <Card className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <Download className="w-12 h-12 mx-auto mb-4 text-slate-400" />
+                <p className="text-slate-600">Nenhum material publicado nesta turma ainda.</p>
+              </Card>
+            )}
           </div>
         </TabsContent>
-      </Tabs>
+
+        {/* Members Tab */}
+        <TabsContent value="members">
+          <div className="space-y-6">
+            <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Professores ({membersGrouped.teachers.length})
+              </h3>
+              {membersGrouped.teachers.length > 0 ? (
+                <div className="space-y-3">
+                  {membersGrouped.teachers.map((member) => (
+                    <div key={member.id} className="flex items-center gap-4 p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 hover:shadow-md transition-shadow">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
+                        {member.profile?.name?.[0]?.toUpperCase() || 'P'}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-slate-900 dark:text-white">{member.profile?.name || 'Professor(a)'}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">{member.profile?.email}</p>
+                      </div>
+                      <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 flex-shrink-0">Professor</Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum professor listado.</p>
+              )}
+            </Card>
+
+            <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-600" />
+                Colegas de turma ({membersGrouped.students.length})
+              </h3>
+              {membersGrouped.students.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {membersGrouped.students.map((member) => (
+                    <div key={member.id} className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 hover:shadow-md transition-shadow">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold shadow-md flex-shrink-0">
+                        {member.profile?.name?.[0]?.toUpperCase() || 'A'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-900 dark:text-white truncate">{member.profile?.name || 'Colega'}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{member.profile?.email}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Desde {new Date(member.created_at).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum colega listado no momento.</p>
+              )}
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Chatbot Tab */}
+        <TabsContent value="chatbot">
+          <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+            <div className="space-y-4">
+              <div className="flex items-start gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg">
+                  <Bot className="w-8 h-8" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Assistente Inteligente da Turma</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    💬 Tire dúvidas sobre esta turma, atividades, prazos e materiais. O assistente tem acesso ao contexto completo da turma.
+                  </p>
+                </div>
+              </div>
+              <div className="relative min-h-[500px]">
+                <ChatbotWidget context={{ classId }} />
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };

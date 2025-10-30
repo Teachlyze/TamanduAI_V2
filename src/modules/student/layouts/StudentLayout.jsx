@@ -28,10 +28,10 @@ export const StudentLayout = ({ children }) => {
           </Button>
           
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-cyan-600 to-blue-700 flex items-center justify-center">
               <span className="text-white text-xs font-bold">T</span>
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+            <span className="text-lg font-bold bg-gradient-to-r from-cyan-600 to-blue-700 bg-clip-text text-transparent">
               TamanduAI
             </span>
           </div>
