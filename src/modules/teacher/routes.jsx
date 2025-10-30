@@ -1,8 +1,10 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { TeacherLayout } from './layouts/TeacherLayout';
 
 // Lazy load pages
 const TeacherDashboard = React.lazy(() => import('./pages/Dashboard/TeacherDashboard'));
+const TeacherProfilePage = React.lazy(() => import('./pages/Profile/TeacherProfilePage'));
 const ClassroomsListPage = React.lazy(() => import('./pages/Classes/ClassroomsListPage'));
 const ClassMembersPage = React.lazy(() => import('./pages/Classes/ClassMembersPage'));
 const ClassActivitiesPage = React.lazy(() => import('./pages/Classes/ClassActivitiesPage'));
@@ -25,9 +27,11 @@ const ChatbotAnalyticsPage = React.lazy(() => import('./pages/Chatbot/ChatbotAna
 
 const TeacherRoutes = () => {
   return (
-    <Routes>
+    <TeacherLayout>
+      <Routes>
       <Route index element={<TeacherDashboard />} />
       <Route path="dashboard" element={<Navigate to="/dashboard" replace />} />
+      <Route path="profile" element={<TeacherProfilePage />} />
       
       {/* Classes */}
       <Route path="classes" element={<ClassroomsListPage />} />
@@ -62,6 +66,7 @@ const TeacherRoutes = () => {
       
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
+    </TeacherLayout>
   );
 };
 

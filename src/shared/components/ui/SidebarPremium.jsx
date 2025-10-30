@@ -29,6 +29,7 @@ import { StudentProfileCard } from '@/shared/components/student/StudentProfileCa
   { name: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Chatbot', href: '/dashboard/chatbot', icon: MessageCircle },
+  { name: 'Perfil', href: '/dashboard/profile', icon: Settings },
 ];
 
 const studentNavigation = [
