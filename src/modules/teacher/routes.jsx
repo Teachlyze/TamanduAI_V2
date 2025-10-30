@@ -6,7 +6,7 @@ import { TeacherLayout } from './layouts/TeacherLayout';
 const TeacherDashboard = React.lazy(() => import('./pages/Dashboard/TeacherDashboard'));
 const TeacherProfilePage = React.lazy(() => import('./pages/Profile/TeacherProfilePage'));
 const TeacherCalendarPage = React.lazy(() => import('./pages/Calendar/TeacherCalendarPage'));
-const ClassroomsListPage = React.lazy(() => import('./pages/Classes/ClassroomsListPage'));
+const TeacherClassesPage = React.lazy(() => import('./pages/Classes/TeacherClassesPage'));
 const ClassMembersPage = React.lazy(() => import('./pages/Classes/ClassMembersPage'));
 const ClassActivitiesPage = React.lazy(() => import('./pages/Classes/ClassActivitiesPage'));
 const EditClassPage = React.lazy(() => import('./pages/Classes/EditClassPage'));
@@ -36,7 +36,7 @@ const TeacherRoutes = () => {
       <Route path="calendar" element={<TeacherCalendarPage />} />
       
       {/* Classes */}
-      <Route path="classes" element={<ClassroomsListPage />} />
+      <Route path="classes" element={<TeacherClassesPage />} />
       <Route path="classes/:classId" element={<ClassDetailsPage />} />
       <Route path="classes/:classId/members" element={<ClassMembersPage />} />
       <Route path="classes/:classId/activities" element={<ClassActivitiesPage />} />

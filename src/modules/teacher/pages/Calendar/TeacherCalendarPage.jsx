@@ -49,8 +49,7 @@ const TeacherCalendarPage = () => {
         .from('calendar_events')
         .select(`
           *,
-          event_classes(class:classes(id, name)),
-          event_participants(user:profiles(id, full_name))
+          class:classes(id, name)
         `)
         .eq('created_by', user.id)
         .gte('start_time', monthStart.toISOString())
@@ -81,7 +80,7 @@ const TeacherCalendarPage = () => {
 
     if (filters.classes.length > 0) {
       filtered = filtered.filter(e => 
-        e.event_classes?.some(ec => filters.classes.includes(ec.class.id))
+        e.class_id && filters.classes.includes(e.class_id)
       );
     }
 

@@ -16,15 +16,7 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
     try {
       setLoading(true);
 
-      // Deletar relacionamentos primeiro
-      const { error: classesError } = await supabase
-        .from('event_classes')
-        .delete()
-        .eq('event_id', event.id);
-
-      if (classesError) throw classesError;
-
-      // Deletar evento
+      // Deletar evento (cascade irá deletar relacionamentos)
       const { error: eventError } = await supabase
         .from('calendar_events')
         .delete()
@@ -162,34 +154,30 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
             </div>
           </div>
 
-          {/* Turmas */}
-          {event.event_classes && event.event_classes.length > 0 && (
+          {/* Turma */}
+          {event.class && (
             <div>
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
-                Turmas
+                Turma
               </h3>
-              <div className="flex flex-wrap gap-2">
-                {event.event_classes.map((ec) => (
-                  <Badge key={ec.class.id} variant="outline">
-                    {ec.class.name}
-                  </Badge>
-                ))}
-              </div>
+              <Badge variant="outline">
+                {event.class.name}
+              </Badge>
             </div>
           )}
 
           {/* Participantes */}
-          {event.event_participants && event.event_participants.length > 0 && (
+          {event.participants && Array.isArray(event.participants) && event.participants.length > 0 && (
             <div>
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
                 Participantes
               </h3>
               <div className="space-y-2">
-                {event.event_participants.map((participant) => (
-                  <div key={participant.user.id} className="text-sm text-slate-700 dark:text-slate-300">
-                    {participant.user.full_name}
+                {event.participants.map((participant, idx) => (
+                  <div key={idx} className="text-sm text-slate-700 dark:text-slate-300">
+                    {participant.name || participant.email || 'Participante'}
                   </div>
                 ))}
               </div>

@@ -72,11 +72,10 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
       const startDateTime = new Date(`${formData.start_date}T${formData.start_time}`);
       const endDateTime = new Date(`${formData.start_date}T${formData.end_time}`);
 
-      // Inserir evento
-      const { data: event, error: eventError } = await supabase
-        .from('calendar_events')
-        .insert([
-          {
+      // Se múltiplas turmas, criar evento para cada uma
+      // Se nenhuma turma, criar evento sem class_id (pessoal)
+      const eventsToCreate = formData.selected_classes.length > 0
+        ? formData.selected_classes.map(classId => ({
             title: formData.title,
             description: formData.description,
             event_type: formData.event_type,
@@ -86,27 +85,30 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
             meeting_link: formData.modality === 'online' ? formData.meeting_link : null,
             location: formData.modality === 'presential' ? formData.location : null,
             created_by: teacherId,
+            teacher_id: teacherId,
+            class_id: classId,
             color: formData.color
-          }
-        ])
-        .select()
-        .single();
+          }))
+        : [{
+            title: formData.title,
+            description: formData.description,
+            event_type: formData.event_type,
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
+            modality: formData.modality,
+            meeting_link: formData.modality === 'online' ? formData.meeting_link : null,
+            location: formData.modality === 'presential' ? formData.location : null,
+            created_by: teacherId,
+            teacher_id: teacherId,
+            color: formData.color
+          }];
+
+      // Inserir eventos
+      const { error: eventError } = await supabase
+        .from('calendar_events')
+        .insert(eventsToCreate);
 
       if (eventError) throw eventError;
-
-      // Associar turmas
-      if (formData.selected_classes.length > 0) {
-        const eventClasses = formData.selected_classes.map(classId => ({
-          event_id: event.id,
-          class_id: classId
-        }));
-
-        const { error: classesError } = await supabase
-          .from('event_classes')
-          .insert(eventClasses);
-
-        if (classesError) throw classesError;
-      }
 
       toast({
         title: 'Evento criado!',
