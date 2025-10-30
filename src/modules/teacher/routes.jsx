@@ -5,6 +5,7 @@ import { TeacherLayout } from './layouts/TeacherLayout';
 // Lazy load pages
 const TeacherDashboard = React.lazy(() => import('./pages/Dashboard/TeacherDashboard'));
 const TeacherProfilePage = React.lazy(() => import('./pages/Profile/TeacherProfilePage'));
+const TeacherCalendarPage = React.lazy(() => import('./pages/Calendar/TeacherCalendarPage'));
 const ClassroomsListPage = React.lazy(() => import('./pages/Classes/ClassroomsListPage'));
 const ClassMembersPage = React.lazy(() => import('./pages/Classes/ClassMembersPage'));
 const ClassActivitiesPage = React.lazy(() => import('./pages/Classes/ClassActivitiesPage'));
@@ -32,6 +33,7 @@ const TeacherRoutes = () => {
       <Route index element={<TeacherDashboard />} />
       <Route path="dashboard" element={<Navigate to="/dashboard" replace />} />
       <Route path="profile" element={<TeacherProfilePage />} />
+      <Route path="calendar" element={<TeacherCalendarPage />} />
       
       {/* Classes */}
       <Route path="classes" element={<ClassroomsListPage />} />
