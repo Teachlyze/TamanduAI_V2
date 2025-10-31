@@ -55,7 +55,7 @@ const StudentDetailPage = () => {
         .from('submissions')
         .select(`
           *,
-          activity:activities(id, title, max_grade),
+          activity:activities(id, title, max_score),
           class_assignment:activity_class_assignments(class:classes(name))
         `)
         .eq('user_id', studentId)
@@ -121,7 +121,7 @@ const StudentDetailPage = () => {
         if (row.grade === null) return '-';
         return (
           <span className="font-semibold">
-            {row.grade.toFixed(2)} / {row.activity?.max_grade || 10}
+            {row.grade.toFixed(2)} / {row.activity?.max_score || 10}
           </span>
         );
       }

@@ -36,7 +36,7 @@ const GradingPage = () => {
         .select(`
           *,
           student:profiles!submissions_user_id_fkey(id, name, email, avatar_url),
-          activity:activities(id, title, max_grade, due_date)
+          activity:activities(id, title, max_score, due_date)
         `)
         .eq('id', submissionId)
         .single();
@@ -221,7 +221,7 @@ const GradingPage = () => {
         {/* Grading Form */}
         <div className="space-y-6">
           <GradeForm
-            maxGrade={activity?.max_grade || 10}
+            maxGrade={activity?.max_score || 10}
             initialGrade={submission?.grade}
             initialFeedback={submission?.feedback || ''}
             onSave={handleSaveGrade}

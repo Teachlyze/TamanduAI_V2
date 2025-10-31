@@ -34,7 +34,7 @@ const ActivitiesTab = ({ classId }) => {
               description,
               type,
               due_date,
-              max_grade,
+              max_score,
               status
             )
           `)

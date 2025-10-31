@@ -54,7 +54,7 @@ const StudentClassesPage = () => {
             created_by,
             teacher:created_by (
               id,
-              name
+              full_name
             )
           )
         `)

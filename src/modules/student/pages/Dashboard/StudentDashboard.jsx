@@ -70,8 +70,7 @@ const StudentDashboard = () => {
           start_time, 
           end_time, 
           type, 
-          class_id, 
-          link,
+          class_id,
           class:classes(id, name, subject)
         `)
         .gte('start_time', start.toISOString())
@@ -159,7 +158,7 @@ const StudentDashboard = () => {
           start: event.start_time,
           end: event.end_time,
           type: event.type || 'evento',
-          link: event.link || null,
+          link: null,
           classId: event.class_id || null,
           className: event.class?.name,
           classSubject: event.class?.subject
