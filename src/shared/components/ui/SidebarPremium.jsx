@@ -163,7 +163,7 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
           "flex items-center justify-between h-14 px-4 border-b",
           userRole === 'student' 
             ? 'bg-gradient-to-r from-cyan-500/10 to-sky-500/10 dark:from-cyan-600/20 dark:to-sky-600/20 border-cyan-200/20 dark:border-cyan-700/30'
-            : 'bg-gradient-to-r from-emerald-500/5 to-orange-500/5 border-border'
+            : 'bg-gradient-to-r from-blue-500/10 to-cyan-500/10 dark:from-blue-600/20 dark:to-cyan-600/20 border-blue-200/20 dark:border-blue-700/30'
         )}>
           <Link 
             to={userRole === 'student' ? '/students' : userRole === 'school' ? '/school' : '/dashboard'} 
@@ -175,7 +175,7 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
               "w-7 h-7 rounded-lg flex items-center justify-center shadow-sm",
               userRole === 'student' 
                 ? 'bg-gradient-to-br from-cyan-500 to-sky-600 dark:from-cyan-600 dark:to-sky-700'
-                : 'bg-gradient-to-br from-emerald-500 to-teal-600'
+                : 'bg-gradient-to-br from-blue-600 to-cyan-500 dark:from-blue-700 dark:to-cyan-600'
             )}>
               <BookOpen className="w-4 h-4 text-white" aria-hidden="true" />
             </div>
@@ -183,7 +183,7 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
               "text-base font-bold bg-clip-text text-transparent hover:opacity-80 transition-opacity",
               userRole === 'student'
                 ? 'bg-gradient-to-r from-cyan-600 to-sky-600 dark:from-cyan-400 dark:to-sky-400'
-                : 'bg-gradient-to-r from-emerald-600 to-teal-600'
+                : 'bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400'
             )}>
               TamanduAI
             </span>
@@ -229,10 +229,10 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
                     active && userRole === 'student'
                       ? 'bg-gradient-to-r from-cyan-500 to-sky-600 dark:from-cyan-600 dark:to-sky-700 text-white shadow-md focus:ring-cyan-400'
                       : active
-                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md focus:ring-emerald-400'
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-700 dark:to-cyan-600 text-white shadow-md focus:ring-blue-400'
                       : userRole === 'student'
                       ? 'text-slate-700 dark:text-slate-300 hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-400 focus:ring-cyan-400'
-                      : 'text-muted-foreground hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-950 dark:hover:text-emerald-400 focus:ring-emerald-400'
+                      : 'text-muted-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30 dark:hover:text-blue-400 focus:ring-blue-400'
                   )}
                   aria-current={active ? 'page' : undefined}
                 >
@@ -243,7 +243,7 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
                         ? 'text-white' 
                         : userRole === 'student'
                         ? 'text-slate-500 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400'
-                        : 'text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400'
+                        : 'text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400'
                     )}
                     aria-hidden="true"
                   />
@@ -269,9 +269,9 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
           </div>
         ) : (
           /* Seção padrão para Teacher e School */
-          <div className="border-t border-border p-4 bg-gradient-to-r from-emerald-500/5 to-teal-500/5">
+          <div className="border-t border-border p-4 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 dark:from-blue-600/10 dark:to-cyan-600/10">
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-md">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-md">
                 <span className="text-white font-semibold text-sm">
                   {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </span>

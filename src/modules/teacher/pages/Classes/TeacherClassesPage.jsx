@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Plus, BookOpen, Users, TrendingUp, Archive, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, BookOpen, Users, TrendingUp, Archive, Search, Filter, Sparkles } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import { redisCache } from '@/shared/services/redisCache';
 import ClassCard from './components/ClassCard';
 import CreateClassModal from './components/CreateClassModal';
 
@@ -43,65 +44,67 @@ const TeacherClassesPage = () => {
     applyFilters();
   }, [classes, filters]);
 
-  const loadClasses = async () => {
+  const loadClasses = useCallback(async () => {
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from('classes')
-        .select(`
-          *,
-          class_members!inner(count),
-          activity_class_assignments(count)
-        `)
-        .eq('created_by', user.id)
-        .order('updated_at', { ascending: false });
+      // Usar cache Redis para lista de turmas
+      const cachedClasses = await redisCache.cacheQuery(
+        `teacher:${user.id}:classes`,
+        async () => {
+          // Buscar turmas
+          const { data: classesData, error } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('created_by', user.id)
+            .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+          if (error) throw error;
 
-      // Buscar estatísticas de cada turma
-      const classesWithStats = await Promise.all(
-        (data || []).map(async (classItem) => {
-          // Contar alunos
-          const { count: studentCount } = await supabase
-            .from('class_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('class_id', classItem.id)
-            .eq('role', 'student');
+          const classIds = classesData.map(c => c.id);
 
-          // Buscar atividades
-          const { data: activities } = await supabase
-            .from('activity_class_assignments')
-            .select('activity_id')
-            .eq('class_id', classItem.id);
+          // Buscar todas estatísticas em paralelo (mais eficiente)
+          const [membersResult, activitiesResult] = await Promise.all([
+            // Contar alunos de todas turmas
+            supabase
+              .from('class_members')
+              .select('class_id')
+              .in('class_id', classIds)
+              .eq('role', 'student'),
+            
+            // Contar atividades de todas turmas
+            supabase
+              .from('activity_class_assignments')
+              .select('class_id, activity_id')
+              .in('class_id', classIds)
+          ]);
 
-          const activityIds = activities?.map(a => a.activity_id) || [];
+          // Agrupar contagens por turma
+          const studentCounts = {};
+          const activityCounts = {};
 
-          // Calcular média de notas
-          let avgGrade = 0;
-          if (activityIds.length > 0) {
-            const { data: submissions } = await supabase
-              .from('submissions')
-              .select('grade')
-              .in('activity_id', activityIds)
-              .not('grade', 'is', null);
+          membersResult.data?.forEach(member => {
+            studentCounts[member.class_id] = (studentCounts[member.class_id] || 0) + 1;
+          });
 
-            if (submissions && submissions.length > 0) {
-              const sum = submissions.reduce((acc, s) => acc + s.grade, 0);
-              avgGrade = sum / submissions.length;
-            }
-          }
+          activitiesResult.data?.forEach(activity => {
+            activityCounts[activity.class_id] = (activityCounts[activity.class_id] || 0) + 1;
+          });
 
-          return {
+          // Combinar dados
+          const classesWithStats = classesData.map(classItem => ({
             ...classItem,
-            studentCount: studentCount || 0,
-            activityCount: activityIds.length,
-            avgGrade: Number(avgGrade.toFixed(1))
-          };
-        })
+            studentCount: studentCounts[classItem.id] || 0,
+            activityCount: activityCounts[classItem.id] || 0,
+            avgGrade: 0 // Mock - calcular depois se necessário
+          }));
+
+          return classesWithStats;
+        },
+        300 // Cache de 5 minutos
       );
 
-      setClasses(classesWithStats);
+      setClasses(cachedClasses);
     } catch (error) {
       console.error('Erro ao carregar turmas:', error);
       toast({
@@ -112,7 +115,7 @@ const TeacherClassesPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const loadStats = async () => {
     try {

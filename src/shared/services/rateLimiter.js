@@ -78,6 +78,50 @@ export const RATE_LIMITS = {
     window: 60 * 60, // 1 hora
     message: 'Limite de 100 submissões/hora atingido',
   },
+
+  // OpenAI API - Free
+  OPENAI_FREE: {
+    max: 3, // RPM
+    window: 60, // 1 minuto
+    message: 'Limite de 3 requisições/minuto atingido (Plano Free)',
+    tokens: {
+      max: 40000, // TPM
+      window: 60,
+    }
+  },
+
+  // OpenAI API - Basic
+  OPENAI_BASIC: {
+    max: 10, // RPM
+    window: 60,
+    message: 'Limite de 10 requisições/minuto atingido (Plano Basic)',
+    tokens: {
+      max: 150000, // TPM
+      window: 60,
+    }
+  },
+
+  // OpenAI API - Premium
+  OPENAI_PREMIUM: {
+    max: 50, // RPM
+    window: 60,
+    message: 'Limite de 50 requisições/minuto atingido (Plano Premium)',
+    tokens: {
+      max: 500000, // TPM
+      window: 60,
+    }
+  },
+
+  // OpenAI API - School
+  OPENAI_SCHOOL: {
+    max: 100, // RPM
+    window: 60,
+    message: 'Limite de 100 requisições/minuto atingido (Plano School)',
+    tokens: {
+      max: 1000000, // TPM
+      window: 60,
+    }
+  },
 };
 
 /**
@@ -196,6 +240,81 @@ export async function checkInvitationLimit(userId) {
 export async function checkSubmissionLimit(userId) {
   const key = `submission:${userId}`;
   return await checkRateLimit(key, RATE_LIMITS.SUBMIT_ACTIVITY);
+}
+
+/**
+ * Middleware de rate limiting para OpenAI API
+ * @param {string} userId - ID do usuário
+ * @param {string} userPlan - Plano do usuário ('free', 'basic', 'premium', 'school')
+ * @param {number} estimatedTokens - Tokens estimados da requisição
+ * @returns {Promise<Object>} - { allowed: boolean, remaining: number, resetAt: Date, tokensRemaining: number }
+ */
+export async function checkOpenAILimit(userId, userPlan = 'free', estimatedTokens = 500) {
+  const planLimits = {
+    free: RATE_LIMITS.OPENAI_FREE,
+    basic: RATE_LIMITS.OPENAI_BASIC,
+    premium: RATE_LIMITS.OPENAI_PREMIUM,
+    school: RATE_LIMITS.OPENAI_SCHOOL,
+  };
+
+  const limit = planLimits[userPlan.toLowerCase()] || RATE_LIMITS.OPENAI_FREE;
+  const requestKey = `openai:requests:${userId}`;
+  const tokensKey = `openai:tokens:${userId}`;
+
+  try {
+    // Verificar RPM (Requisições por minuto)
+    const requestCheck = await checkRateLimit(requestKey, limit);
+    
+    if (!requestCheck.allowed) {
+      return requestCheck;
+    }
+
+    // Verificar TPM (Tokens por minuto)
+    const now = Date.now();
+    const windowStart = now - limit.tokens.window * 1000;
+    
+    // Contar tokens usados
+    const tokensUsed = await redis.zcard(tokensKey) || 0;
+    const tokensRemaining = limit.tokens.max - tokensUsed - estimatedTokens;
+
+    if (tokensRemaining < 0) {
+      return {
+        allowed: false,
+        remaining: requestCheck.remaining,
+        tokensRemaining: 0,
+        resetAt: new Date(now + limit.tokens.window * 1000),
+        message: `Limite de tokens atingido (${limit.tokens.max} tokens/minuto)`,
+      };
+    }
+
+    // Registrar uso de tokens
+    await redis.zadd(tokensKey, {
+      score: now,
+      member: `${now}-${estimatedTokens}`,
+    });
+    await redis.expire(tokensKey, limit.tokens.window);
+
+    // Limpar tokens antigos
+    await redis.zremrangebyscore(tokensKey, 0, windowStart);
+
+    return {
+      allowed: true,
+      remaining: requestCheck.remaining,
+      tokensRemaining: Math.max(0, tokensRemaining),
+      resetAt: requestCheck.resetAt,
+      message: null,
+    };
+  } catch (error) {
+    console.error('[RateLimiter] Error checking OpenAI limit:', error);
+    // Fail-open em caso de erro
+    return {
+      allowed: true,
+      remaining: limit.max,
+      tokensRemaining: limit.tokens.max,
+      resetAt: new Date(Date.now() + limit.window * 1000),
+      error: true,
+    };
+  }
 }
 
 /**
@@ -327,6 +446,7 @@ export default {
   checkCreateClassLimit,
   checkInvitationLimit,
   checkSubmissionLimit,
+  checkOpenAILimit,
   resetRateLimit,
   getRateLimitStats,
   cleanupExpiredLimits,

@@ -5,6 +5,7 @@ import { Button } from '@/shared/components/ui/button';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import { redisCache } from '@/shared/services/redisCache';
 
 const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId }) => {
   const [loading, setLoading] = useState(false);
@@ -110,12 +111,18 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
 
       if (eventError) throw eventError;
 
+      // Invalidar cache do calendário para o mês do evento
+      const eventMonth = format(startDateTime, 'yyyy-MM');
+      const cacheKey = redisCache.generateKey('calendar', teacherId, eventMonth);
+      await redisCache.invalidatePattern(`calendar:${teacherId}:*`);
+
       toast({
         title: 'Evento criado!',
         description: 'Seu evento foi criado com sucesso.'
       });
 
-      onSuccess();
+      // Chamar onSuccess para atualizar estado local (SEM reload)
+      if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
       console.error('Erro ao criar evento:', error);
