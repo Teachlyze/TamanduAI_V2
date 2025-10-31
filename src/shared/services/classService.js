@@ -78,9 +78,7 @@ export const ClassService = {
         .select(`
           *,
           members:class_members(*, user:profiles(*)),
-          meetings:meetings(*, 
-            participants:meeting_participants(*, user:profiles(*))
-          )
+          meetings:meetings(*)
         `)
         .eq('id', classId)
         .single();

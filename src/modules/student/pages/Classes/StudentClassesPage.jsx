@@ -98,15 +98,16 @@ const StudentClassesPage = () => {
   };
 
   const handleJoinClass = async () => {
-    const code = joinCode.trim().toUpperCase();
+    // Remover TODOS os espaços e normalizar
+    const code = joinCode.replace(/\s/g, '').trim().toUpperCase();
     
     if (!code) {
       setError('Digite o código da turma');
       return;
     }
 
-    if (code.length > 8) {
-      setError('Código inválido (máximo 8 caracteres)');
+    if (code.length > 12) {
+      setError('Código inválido (máximo 12 caracteres)');
       return;
     }
 
@@ -114,17 +115,20 @@ const StudentClassesPage = () => {
       setJoiningClass(true);
       setError('');
 
-      // Buscar turma pelo código
+      // Buscar turma pelo código (case-insensitive)
       const { data: classData, error: searchError } = await supabase
         .from('classes')
         .select('id, name')
         .ilike('invite_code', code)
-        .single();
+        .maybeSingle();
 
       if (searchError || !classData) {
-        setError('Código inválido!');
+        console.error('Erro ao buscar turma:', searchError);
+        setError('Código inválido! Verifique se digitou corretamente.');
         return;
       }
+
+      console.log('✅ Turma encontrada:', classData);
 
       // Verificar se já é membro
       const { data: existingMembership } = await supabase
@@ -140,25 +144,34 @@ const StudentClassesPage = () => {
       }
 
       // Adicionar como membro
-      const { error: insertError } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('class_members')
         .insert({
           class_id: classData.id,
           user_id: user.id,
           role: 'student',
           joined_at: new Date().toISOString()
-        });
+        })
+        .select();
 
       if (insertError) throw insertError;
+
+      if (!inserted || inserted.length === 0) {
+        throw new Error('Falha ao adicionar você à turma');
+      }
+
+      console.log('✅ Você entrou na turma:', inserted[0]);
 
       // Sucesso!
       setShowJoinModal(false);
       setJoinCode('');
       setError('');
-      loadClasses();
+      
+      // Recarregar turmas
+      await loadClasses();
       
       // Mostrar notificação de sucesso
-      alert(`Você entrou na turma "${classData.name}" com sucesso!`);
+      alert(`🎉 Você entrou na turma "${classData.name}" com sucesso!\n\nA turma já aparece na sua lista.`);
     } catch (error) {
       console.error('Erro ao entrar na turma:', error);
       setError('Erro ao entrar na turma. Tente novamente.');
@@ -221,7 +234,7 @@ const StudentClassesPage = () => {
               transition={{ delay: index * 0.05 }}
             >
               <Card
-                onClick={() => navigate(`/student/classes/${cls.id}`)}
+                onClick={() => navigate(`/students/classes/${cls.id}`)}
                 className="overflow-hidden cursor-pointer hover:shadow-xl transition-all duration-200 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
               >
                 {/* Banner Superior */}

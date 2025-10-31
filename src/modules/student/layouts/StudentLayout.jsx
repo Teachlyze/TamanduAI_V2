@@ -1,10 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { SidebarPremium } from '@/shared/components/ui/SidebarPremium';
 import { Button } from '@/shared/components/ui/button';
+import ChatbotWidget from '@/shared/components/ui/ChatbotWidget';
 
 export const StudentLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Extrair classId da URL se estiver em /students/classes/:classId
+  const chatbotContext = useMemo(() => {
+    const match = location.pathname.match(/\/students\/classes\/([a-f0-9-]+)/);
+    if (match) {
+      return { classId: match[1] };
+    }
+    return {};
+  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,6 +54,9 @@ export const StudentLayout = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Chatbot Widget Global */}
+      <ChatbotWidget context={chatbotContext} />
     </div>
   );
 };

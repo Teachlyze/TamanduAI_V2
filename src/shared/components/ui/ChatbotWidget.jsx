@@ -108,7 +108,7 @@ const ChatbotWidget = ({ context = {} }) => {
 
   return (
     <div
-      className={`fixed bottom-6 right-6 bg-background border border-border rounded-2xl shadow-2xl z-50 flex flex-col transition-all ${
+      className={`fixed bottom-6 right-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl z-50 flex flex-col transition-all ${
         isMinimized ? 'w-80 h-16' : 'w-96 h-[32rem]'
       }`}
     >
@@ -131,14 +131,14 @@ const ChatbotWidget = ({ context = {} }) => {
       {!isMinimized && (
         <>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50 dark:bg-slate-950">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div
                   className={`max-w-[80%] px-4 py-2 rounded-2xl ${
                     msg.role === 'user'
                       ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white'
-                      : 'bg-muted text-foreground'
+                      : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700'
                   }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
@@ -147,11 +147,11 @@ const ChatbotWidget = ({ context = {} }) => {
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-muted px-4 py-2 rounded-2xl">
+                <div className="bg-white dark:bg-slate-800 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-700">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 bg-slate-400 dark:bg-slate-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
                 </div>
               </div>
@@ -160,7 +160,7 @@ const ChatbotWidget = ({ context = {} }) => {
           </div>
 
           {/* Input */}
-          <div className="p-4 border-t border-border">
+          <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -168,13 +168,15 @@ const ChatbotWidget = ({ context = {} }) => {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder="Digite sua mensagem..."
-                className="flex-1 px-4 py-2 rounded-lg border border-border bg-background text-sm"
+                className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 disabled={loading}
+                autoComplete="off"
               />
               <button
                 onClick={sendMessage}
                 disabled={loading || !input.trim()}
-                className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="p-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                aria-label="Enviar mensagem"
               >
                 <Send className="w-4 h-4" />
               </button>

@@ -113,7 +113,7 @@ const StudentDashboard = () => {
       // 4. Buscar prazos de atividades das turmas do aluno
       let activitiesData = [];
       if (classIds.length > 0) {
-        const { data: activityAssignments = [] } = await supabase
+        const { data: activityAssignments, error: activitiesError } = await supabase
           .from('activity_class_assignments')
           .select(`
             activity_id,
@@ -129,7 +129,11 @@ const StudentDashboard = () => {
           `)
           .in('class_id', classIds);
 
-        activitiesData = activityAssignments
+        if (activitiesError) {
+          console.error('[Events] Erro ao buscar atividades:', activitiesError);
+        }
+
+        activitiesData = (activityAssignments || [])
           .filter(a => 
             a.activity?.due_date && 
             a.activity.is_published && 
@@ -218,24 +222,28 @@ const StudentDashboard = () => {
       let classIds = [];
       
       try {
+        console.log('[StudentDashboard] 🔍 Buscando turmas para user:', user.id);
+        
         // Primeira query: Buscar apenas os IDs (rápido, sem JOIN)
-        const membershipPromise = supabase
+        const { data: memberships, error: membershipError } = await supabase
           .from('class_members')
           .select('class_id')
           .eq('user_id', user.id)
           .eq('role', 'student');
 
-        const timeout1 = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('timeout')), 3000)
-        );
+        if (membershipError) {
+          console.error('[StudentDashboard] ❌ Erro ao buscar memberships:', membershipError);
+          throw membershipError;
+        }
 
-        const { data: memberships } = await Promise.race([membershipPromise, timeout1]);
         classIds = memberships?.map(m => m.class_id) || [];
+        console.log('[StudentDashboard] 📊 Memberships encontrados:', memberships);
+        console.log('[StudentDashboard] 📋 IDs extraídos:', classIds);
         
         if (classIds.length === 0) {
-          console.log('[StudentDashboard] Nenhuma turma encontrada');
+          console.log('[StudentDashboard] ⚠️ Nenhuma turma encontrada para este usuário');
         } else {
-          console.log('[StudentDashboard] IDs de turmas encontrados:', classIds.length);
+          console.log('[StudentDashboard] ✅ IDs de turmas encontrados:', classIds.length);
           
           // Segunda query: Buscar detalhes das turmas (rápido, query direta)
           const classesPromise = supabase
@@ -247,12 +255,18 @@ const StudentDashboard = () => {
             setTimeout(() => reject(new Error('timeout')), 3000)
           );
 
-          const { data: classesData } = await Promise.race([classesPromise, timeout2]);
+          const { data: classesData, error: classesError } = await Promise.race([classesPromise, timeout2]);
+          
+          if (classesError) {
+            console.error('[StudentDashboard] ❌ Erro ao buscar classes:', classesError);
+            throw classesError;
+          }
+          
           classes = classesData || [];
-          console.log('[StudentDashboard] Turmas carregadas:', classes.length);
+          console.log('[StudentDashboard] ✅ Turmas carregadas:', classes);
         }
       } catch (err) {
-        console.error('[StudentDashboard] Erro ao buscar turmas:', err.message);
+        console.error('[StudentDashboard] ❌ Erro ao buscar turmas:', err);
         // Continua com arrays vazios
       }
 
@@ -287,7 +301,7 @@ const StudentDashboard = () => {
       let activitiesWithClass = [];
       
       try {
-        const { data: activityAssignments } = await supabase
+        const { data: activityAssignments, error: activitiesError } = await supabase
           .from('activity_class_assignments')
           .select(`
             activity_id,
@@ -309,6 +323,11 @@ const StudentDashboard = () => {
             )
           `)
           .in('class_id', classIds);
+
+        if (activitiesError) {
+          console.error('[StudentDashboard] ❌ Erro ao buscar atividades:', activitiesError);
+          throw activitiesError;
+        }
 
         activitiesWithClass = (activityAssignments || []).map((assignment) => {
           const activity = assignment.activity || {};

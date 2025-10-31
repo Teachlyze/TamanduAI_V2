@@ -289,16 +289,16 @@ const StudentActivitiesPage = () => {
           </span>
         </div>
 
-        {submission?.grade !== null && (
+        {submission?.grade !== null && submission?.grade !== undefined && (
           <div className="mb-3 p-2 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
             <div className="text-sm font-semibold text-green-700 dark:text-green-300">
-              Nota: {submission.grade}/{activity.max_score}
+              Nota: {submission?.grade}/{activity.max_score}
             </div>
           </div>
         )}
 
         <Button
-          onClick={() => navigate(`/student/activities/${activity.id}`)}
+          onClick={() => navigate(`/students/activities/${activity.id}`)}
           variant={buttonConfig.variant}
           disabled={buttonConfig.disabled}
           className="w-full"

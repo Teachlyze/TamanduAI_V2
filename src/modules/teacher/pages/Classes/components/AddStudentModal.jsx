@@ -39,10 +39,10 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
         .single();
 
       if (error || !data) {
-        setSearchResult({ found: false });
+        setSearchResult({ found: false, searched: true });
         toast({
           title: 'Aluno não encontrado',
-          description: 'Email não cadastrado no sistema',
+          description: 'Email não cadastrado no sistema como aluno',
           variant: 'destructive'
         });
         return;
@@ -79,23 +79,35 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
       }
 
       // Adicionar à turma
-      const { error } = await supabase
+      const { data: inserted, error } = await supabase
         .from('class_members')
         .insert({
           class_id: classId,
           user_id: searchResult.user.id,
           role: 'student',
           joined_at: new Date().toISOString()
-        });
+        })
+        .select();
 
       if (error) throw error;
 
+      // Verificar se realmente foi inserido
+      if (!inserted || inserted.length === 0) {
+        throw new Error('Falha ao adicionar aluno - nenhum registro criado');
+      }
+
+      console.log('✅ Aluno adicionado com sucesso:', inserted[0]);
+
       // Invalidar cache
-      await redisCache.invalidateClass(classId);
+      try {
+        await redisCache.invalidateClass(classId);
+      } catch (cacheError) {
+        console.warn('Aviso: Erro ao invalidar cache, mas aluno foi adicionado:', cacheError);
+      }
 
       toast({
-        title: 'Aluno adicionado!',
-        description: `${searchResult.user.full_name} foi adicionado à turma`
+        title: '✅ Aluno adicionado com sucesso!',
+        description: `${searchResult.user.full_name} agora faz parte da turma. Peça para ele fazer logout e login novamente.`
       });
 
       setEmail('');
@@ -239,8 +251,7 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
           <div className="flex gap-2">
             {[
               { id: 'email', label: 'Buscar por Email', icon: Search },
-              { id: 'invite_link', label: 'Link de Convite', icon: LinkIcon },
-              { id: 'bulk', label: 'Importar Lista', icon: UserPlus }
+              { id: 'invite_link', label: 'Link de Convite', icon: LinkIcon }
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -276,7 +287,7 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
                   />
                   <Button onClick={handleSearchEmail} disabled={loading}>
                     <Search className="w-4 h-4 mr-2" />
-                    Buscar
+                    {loading ? 'Buscando...' : 'Buscar'}
                   </Button>
                 </div>
               </div>
@@ -294,8 +305,19 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
                       </div>
                     </div>
                     <Button onClick={handleAddStudent} disabled={loading}>
-                      Adicionar à Turma
+                      {loading ? 'Adicionando...' : 'Adicionar à Turma'}
                     </Button>
+                  </div>
+                </Card>
+              )}
+
+              {searchResult?.searched && !searchResult?.found && (
+                <Card className="p-4 bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800">
+                  <div className="text-center">
+                    <div className="text-red-600 font-semibold mb-1">❌ Email não encontrado</div>
+                    <div className="text-sm text-slate-600">
+                      Verifique se o email está correto ou se o aluno já está cadastrado no sistema.
+                    </div>
                   </div>
                 </Card>
               )}

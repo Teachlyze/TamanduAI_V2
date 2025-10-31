@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, FileText, Calendar, Users, MessageSquare, Download, Bot, BookOpen, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, Calendar, Users, MessageSquare, Download, BookOpen, Clock } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
@@ -10,7 +10,6 @@ import { DashboardHeader } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ClassService } from '@/shared/services/classService';
-import ChatbotWidget from '@/shared/components/ui/ChatbotWidget';
 
 const StudentClassDetailsPage = () => {
   const { classId } = useParams();
@@ -68,7 +67,7 @@ const StudentClassDetailsPage = () => {
           created_by,
           author:profiles!discussions_created_by_fkey (
             id,
-            name,
+            full_name,
             avatar_url
           )
         `)
@@ -89,7 +88,7 @@ const StudentClassDetailsPage = () => {
           file_type,
           created_at,
           created_by,
-          uploader:profiles!class_materials_created_by_fkey ( id, name )
+          uploader:profiles!class_materials_created_by_fkey ( id, full_name )
         `)
         .eq('class_id', classId)
         .order('created_at', { ascending: false });
@@ -105,7 +104,7 @@ const StudentClassDetailsPage = () => {
           created_at,
           profile:profiles!class_members_user_id_fkey (
             id,
-            name,
+            full_name,
             avatar_url,
             email
           )
@@ -128,7 +127,7 @@ const StudentClassDetailsPage = () => {
       createdAtFormatted: material.created_at
         ? new Date(material.created_at).toLocaleDateString('pt-BR')
         : null,
-      uploaderName: material.uploader?.name || 'Professor'
+      uploaderName: material.uploader?.full_name || 'Professor'
     }));
   }, [materials]);
 
@@ -159,7 +158,7 @@ const StudentClassDetailsPage = () => {
           {/* Botão Voltar */}
           <Button
             variant="ghost"
-            onClick={() => navigate('/student/classes')}
+            onClick={() => navigate('/students/classes')}
             className="self-start text-white hover:bg-white/20 border-white/20"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -204,7 +203,7 @@ const StudentClassDetailsPage = () => {
         {/* Tabs com novo design */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <Card className="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
-            <TabsList className="w-full grid grid-cols-5 p-2 bg-transparent">
+            <TabsList className="w-full grid grid-cols-4 p-2 bg-transparent">
               <TabsTrigger 
                 value="feed" 
                 className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
@@ -233,13 +232,6 @@ const StudentClassDetailsPage = () => {
                 <Users className="w-4 h-4 mr-2" />
                 Membros
               </TabsTrigger>
-              <TabsTrigger 
-                value="chatbot" 
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
-              >
-                <Bot className="w-4 h-4 mr-2" />
-                Assistente
-              </TabsTrigger>
             </TabsList>
           </Card>
 
@@ -256,11 +248,11 @@ const StudentClassDetailsPage = () => {
                   <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                        {disc.author?.name?.[0]?.toUpperCase() || 'A'}
+                        {disc.author?.full_name?.[0]?.toUpperCase() || 'A'}
                       </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-slate-900 dark:text-white">{disc.author?.name || 'Autor'}</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">{disc.author?.full_name || 'Autor'}</span>
                         {disc.type && (
                           <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                             {disc.type}
@@ -293,7 +285,7 @@ const StudentClassDetailsPage = () => {
             {activities.map(activity => (
               <Card
                 key={activity.id}
-                onClick={() => navigate(`/student/activities/${activity.id}`)}
+                onClick={() => navigate(`/students/activities/${activity.id}`)}
                 className="p-6 cursor-pointer hover:shadow-xl transition-all border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -384,10 +376,10 @@ const StudentClassDetailsPage = () => {
                   {membersGrouped.teachers.map((member) => (
                     <div key={member.id} className="flex items-center gap-4 p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 hover:shadow-md transition-shadow">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-md flex-shrink-0">
-                        {member.profile?.name?.[0]?.toUpperCase() || 'P'}
+                        {member.profile?.full_name?.[0]?.toUpperCase() || 'P'}
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-slate-900 dark:text-white">{member.profile?.name || 'Professor(a)'}</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{member.profile?.full_name || 'Professor(a)'}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">{member.profile?.email}</p>
                       </div>
                       <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 flex-shrink-0">Professor</Badge>
@@ -409,10 +401,10 @@ const StudentClassDetailsPage = () => {
                   {membersGrouped.students.map((member) => (
                     <div key={member.id} className="flex items-center gap-3 p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 hover:shadow-md transition-shadow">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold shadow-md flex-shrink-0">
-                        {member.profile?.name?.[0]?.toUpperCase() || 'A'}
+                        {member.profile?.full_name?.[0]?.toUpperCase() || 'A'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-slate-900 dark:text-white truncate">{member.profile?.name || 'Colega'}</p>
+                        <p className="font-medium text-slate-900 dark:text-white truncate">{member.profile?.full_name || 'Colega'}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{member.profile?.email}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -427,28 +419,6 @@ const StudentClassDetailsPage = () => {
               )}
             </Card>
           </div>
-        </TabsContent>
-
-        {/* Chatbot Tab */}
-        <TabsContent value="chatbot">
-          <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <div className="space-y-4">
-              <div className="flex items-start gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg">
-                  <Bot className="w-8 h-8" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Assistente Inteligente da Turma</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    💬 Tire dúvidas sobre esta turma, atividades, prazos e materiais. O assistente tem acesso ao contexto completo da turma.
-                  </p>
-                </div>
-              </div>
-              <div className="relative min-h-[500px]">
-                <ChatbotWidget context={{ classId }} />
-              </div>
-            </div>
-          </Card>
         </TabsContent>
         </Tabs>
       </div>

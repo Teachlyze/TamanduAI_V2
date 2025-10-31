@@ -6,8 +6,11 @@ import { Button } from '@/shared/components/ui/button';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { redisCache } from '@/shared/services/redisCache';
+import { useNavigate } from 'react-router-dom';
+import { toast } from '@/shared/components/ui/use-toast';
 
-const OverviewTab = ({ classId, classData }) => {
+const OverviewTab = ({ classId, classData, onTabChange }) => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalStudents: 0,
@@ -15,6 +18,31 @@ const OverviewTab = ({ classId, classData }) => {
     onTimeRate: 0,
     openActivities: 0
   });
+
+  const handleQuickAction = (actionLabel) => {
+    switch (actionLabel) {
+      case 'Criar Atividade':
+        navigate(`/dashboard/activities/create?classId=${classId}`);
+        break;
+      case 'Adicionar Aluno':
+        onTabChange?.('students');
+        break;
+      case 'Novo Material':
+        onTabChange?.('library');
+        break;
+      case 'Agendar Aula':
+        toast({ title: 'Em desenvolvimento', description: 'Função de agendar aulas será implementada em breve' });
+        break;
+      case 'Postar Comunicado':
+        onTabChange?.('announcements');
+        break;
+      case 'Corrigir Trabalhos':
+        onTabChange?.('activities');
+        break;
+      default:
+        break;
+    }
+  };
 
   useEffect(() => {
     loadStats();
@@ -174,14 +202,14 @@ const OverviewTab = ({ classId, classData }) => {
             <Calendar className="w-5 h-5 text-blue-600" />
             Agenda de Aulas
           </h3>
-          <Button variant="outline" size="sm">Ver Completa</Button>
+          <Button variant="outline" size="sm" onClick={() => toast({ title: 'Em desenvolvimento', description: 'Calendário completo será implementado em breve' })}>Ver Completa</Button>
         </div>
         <div className="text-center py-8">
           <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
           <p className="text-slate-600 dark:text-slate-400 mb-4">
             Nenhuma aula agendada nos próximos dias
           </p>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={() => handleQuickAction('Agendar Aula')}>
             <Plus className="w-4 h-4 mr-2" />
             Agendar Aula
           </Button>
@@ -195,7 +223,7 @@ const OverviewTab = ({ classId, classData }) => {
             <FileText className="w-5 h-5 text-blue-600" />
             Últimas Atividades Postadas
           </h3>
-          <Button variant="link" size="sm">Ver todas</Button>
+          <Button variant="link" size="sm" onClick={() => onTabChange?.('activities')}>Ver todas</Button>
         </div>
         <div className="text-center py-6">
           <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
@@ -210,7 +238,7 @@ const OverviewTab = ({ classId, classData }) => {
             <AlertCircle className="w-5 h-5 text-yellow-600" />
             Alunos que Precisam de Atenção
           </h3>
-          <Button variant="link" size="sm">Ver todos</Button>
+          <Button variant="link" size="sm" onClick={() => onTabChange?.('students')}>Ver todos</Button>
         </div>
         <div className="text-center py-8">
           <CheckCircle className="w-12 h-12 text-green-300 dark:text-green-700 mx-auto mb-3" />
@@ -240,6 +268,7 @@ const OverviewTab = ({ classId, classData }) => {
               <Card 
                 key={action.label}
                 className="p-4 hover:shadow-lg transition-shadow cursor-pointer group"
+                onClick={() => handleQuickAction(action.label)}
               >
                 <div className="flex flex-col items-center text-center gap-2">
                   <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 group-hover:scale-110 transition-transform">

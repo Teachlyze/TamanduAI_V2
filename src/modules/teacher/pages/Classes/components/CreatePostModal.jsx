@@ -38,8 +38,26 @@ const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
     try {
       setLoading(true);
 
-      // TODO: Criar tabela class_posts se não existir
-      // Por enquanto, vamos apenas simular o salvamento
+      // Buscar usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) throw new Error('Usuário não autenticado');
+
+      // Salvar em class_materials
+      const { error } = await supabase
+        .from('class_materials')
+        .insert({
+          class_id: classId,
+          title: formData.title,
+          description: formData.content,
+          file_url: formData.link || null,
+          file_type: postType === 'video' ? 'video/url' : postType === 'link' ? 'link' : 'text',
+          category: 'post',
+          created_by: user.id,
+          is_public: false
+        });
+
+      if (error) throw error;
       
       // Invalidar cache ao criar novo post
       await redisCache.invalidateClass(classId);
@@ -49,6 +67,10 @@ const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
         description: 'Seu post foi publicado no mural'
       });
 
+      // Resetar form
+      setFormData({ title: '', content: '', link: '', file: null });
+      setPostType('text');
+      
       onSuccess?.();
       onClose();
       

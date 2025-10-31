@@ -56,7 +56,7 @@ const ActivitySubmissionsPage = () => {
         .from('submissions')
         .select(`
           *,
-          student:profiles!submissions_user_id_fkey(id, name, email, avatar_url)
+          student:profiles(id, full_name, email, avatar_url)
         `)
         .eq('activity_id', activityId)
         .order('submitted_at', { ascending: false });
@@ -116,12 +116,12 @@ const ActivitySubmissionsPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       {/* Back Button */}
       <Button
-        variant="ghost"
-        onClick={() => navigate('/teacher/activities')}
+        variant="outline"
+        onClick={() => navigate(-1)}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar para Atividades
+        Voltar
       </Button>
 
       {/* Header */}
