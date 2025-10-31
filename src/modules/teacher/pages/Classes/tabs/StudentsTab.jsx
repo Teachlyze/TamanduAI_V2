@@ -1,17 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import { UserPlus, Users, Download, Upload } from 'lucide-react';
-import { Button } from '@/shared/components/ui/button';
+import { motion } from 'framer-motion';
+import { 
+  Users, UserPlus, Search, Filter, Download, Mail, MoreVertical,
+  Eye, UserX, TrendingUp, TrendingDown, AlertCircle, CheckCircle,
+  Copy, ExternalLink, Calendar, FileText
+} from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
+import { Button } from '@/shared/components/ui/button';
+import { Input } from '@/shared/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/shared/components/ui/avatar';
 import { Badge } from '@/shared/components/ui/badge';
+import { Progress } from '@/shared/components/ui/progress';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/components/ui/select';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
-import { redisCache } from '@/shared/services/redisCache';
+import { toast } from '@/shared/components/ui/use-toast';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import AddStudentModal from '../components/AddStudentModal';
 
+/**
+ * TAB 6: ALUNOS - Gestão Completa de Membros da Turma
+ * 
+ * Funcionalidades:
+ * 1. Lista de alunos com métricas
+ * 2. Busca e filtros avançados
+ * 3. Adicionar aluno (múltiplos métodos)
+ * 4. Ver detalhes do aluno
+ * 5. Remover aluno
+ * 6. Gerar links de convite
+ * 7. Exportar lista
+ */
 const StudentsTab = ({ classId, classData }) => {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterGrade, setFilterGrade] = useState('all');
+  const [filterDelivery, setFilterDelivery] = useState('all');
+  const [sortBy, setSortBy] = useState('name');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [stats, setStats] = useState({
+    total: 0,
+    active: 0,
+    alert: 0,
+    critical: 0
+  });
 
   useEffect(() => {
     loadStudents();

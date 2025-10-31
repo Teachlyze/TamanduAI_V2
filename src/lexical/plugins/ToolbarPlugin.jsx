@@ -14,7 +14,7 @@ import { $setBlocksType } from '@lexical/selection';
 import { $createHeadingNode, $isHeadingNode } from '@lexical/rich-text';
 import { $getNearestNodeOfType } from '@lexical/utils';
 import { Bold, Italic, Underline, List, ListOrdered, Heading1, Heading2, MessageSquare as MessageSquareReply, Undo, Redo,  } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/shared/components/ui/button';
 import { $createResponseNode } from '@/lexical/nodes/ResponseNode';
 
 const ToolbarPlugin = () => {

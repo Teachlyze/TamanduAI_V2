@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Users, TrendingUp, CheckCircle, Clock, Calendar, Plus, FileText } from 'lucide-react';
+import { Users, TrendingUp, CheckCircle, Clock, Calendar, Plus, FileText, AlertCircle, Megaphone, CheckSquare } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
@@ -141,7 +141,7 @@ const OverviewTab = ({ classId, classData }) => {
 
   return (
     <div className="space-y-8">
-      {/* Cards de Estatísticas */}
+      {/* ========== SEÇÃO 1: CARDS DE ESTATÍSTICAS ========== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
@@ -167,7 +167,7 @@ const OverviewTab = ({ classId, classData }) => {
         })}
       </div>
 
-      {/* Próximas Aulas */}
+      {/* ========== SEÇÃO 2: PRÓXIMAS AULAS AGENDADAS ========== */}
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold flex items-center gap-2">
@@ -176,12 +176,54 @@ const OverviewTab = ({ classId, classData }) => {
           </h3>
           <Button variant="outline" size="sm">Ver Completa</Button>
         </div>
-        <p className="text-slate-600 dark:text-slate-400">
-          Nenhuma aula agendada nos próximos dias
-        </p>
+        <div className="text-center py-8">
+          <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400 mb-4">
+            Nenhuma aula agendada nos próximos dias
+          </p>
+          <Button variant="outline" size="sm">
+            <Plus className="w-4 h-4 mr-2" />
+            Agendar Aula
+          </Button>
+        </div>
       </Card>
 
-      {/* Ações Rápidas */}
+      {/* ========== SEÇÃO 3: ATIVIDADES RECENTES ========== */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <FileText className="w-5 h-5 text-blue-600" />
+            Últimas Atividades Postadas
+          </h3>
+          <Button variant="link" size="sm">Ver todas</Button>
+        </div>
+        <div className="text-center py-6">
+          <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+          <p className="text-slate-600 dark:text-slate-400">Nenhuma atividade postada</p>
+        </div>
+      </Card>
+
+      {/* ========== SEÇÃO 4: ALUNOS EM ALERTA ========== */}
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            Alunos que Precisam de Atenção
+          </h3>
+          <Button variant="link" size="sm">Ver todos</Button>
+        </div>
+        <div className="text-center py-8">
+          <CheckCircle className="w-12 h-12 text-green-300 dark:text-green-700 mx-auto mb-3" />
+          <p className="text-green-600 dark:text-green-400 font-medium mb-2">
+            Nenhum aluno em situação de alerta
+          </p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Parabéns! Todos estão acompanhando bem.
+          </p>
+        </div>
+      </Card>
+
+      {/* ========== SEÇÃO 5: AÇÕES RÁPIDAS ========== */}
       <div>
         <h3 className="text-lg font-bold mb-4">Ações Rápidas</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -190,16 +232,17 @@ const OverviewTab = ({ classId, classData }) => {
             { icon: Users, label: 'Adicionar Aluno', color: 'green' },
             { icon: FileText, label: 'Novo Material', color: 'purple' },
             { icon: Calendar, label: 'Agendar Aula', color: 'orange' },
-            { icon: CheckCircle, label: 'Corrigir Trabalhos', color: 'red' }
+            { icon: Megaphone, label: 'Postar Comunicado', color: 'yellow' },
+            { icon: CheckSquare, label: 'Corrigir Trabalhos', color: 'red' }
           ].map((action) => {
             const Icon = action.icon;
             return (
               <Card 
                 key={action.label}
-                className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                className="p-4 hover:shadow-lg transition-shadow cursor-pointer group"
               >
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500">
+                  <div className="p-3 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 group-hover:scale-110 transition-transform">
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <span className="text-sm font-medium">{action.label}</span>
