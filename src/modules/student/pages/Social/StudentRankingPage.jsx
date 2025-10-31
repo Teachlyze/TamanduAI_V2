@@ -14,7 +14,7 @@ const StudentRankingPage = () => {
   const loadRanking = async () => {
     const { data } = await supabase
       .from('gamification_profiles')
-      .select('*, user:profiles(name, avatar_url)')
+      .select('*, user:profiles(full_name, avatar_url)')
       .order('xp_total', { ascending: false })
       .limit(20);
     
@@ -31,10 +31,10 @@ const StudentRankingPage = () => {
             <div key={item.user_id} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
               <div className="text-2xl font-bold w-8">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}º`}</div>
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
-                {item.user?.name?.[0] || 'A'}
+                {item.user?.full_name?.[0] || 'A'}
               </div>
               <div className="flex-1">
-                <div className="font-semibold">{item.user?.name}</div>
+                <div className="font-semibold">{item.user?.full_name}</div>
                 <div className="text-sm text-slate-600">Level {item.level}</div>
               </div>
               <div className="text-right">

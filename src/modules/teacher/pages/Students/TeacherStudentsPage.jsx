@@ -69,7 +69,7 @@ const TeacherStudentsPage = () => {
         .select(`
           user_id,
           class_id,
-          user:profiles(id, name, email, avatar_url)
+          user:profiles(id, full_name, email, avatar_url)
         `)
         .in('class_id', classIds)
         .eq('role', 'student');
@@ -81,7 +81,7 @@ const TeacherStudentsPage = () => {
         if (!studentMap.has(member.user_id)) {
           studentMap.set(member.user_id, {
             id: member.user_id,
-            name: member.user?.name,
+            name: member.user?.full_name,
             email: member.user?.email,
             avatar: member.user?.avatar_url,
             classes: []

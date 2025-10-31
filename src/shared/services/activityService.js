@@ -175,7 +175,7 @@ export const ActivityService = {
       .from('activities')
       .select(`
         *,
-        created_by_user:profiles!activities_created_by_fkey(id, full_name, name, avatar_url),
+        created_by_user:profiles!activities_created_by_fkey(id, full_name, avatar_url),
         assignments:activity_class_assignments(
           class_id,
           class:classes(id, name, subject, color)

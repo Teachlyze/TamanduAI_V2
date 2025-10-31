@@ -42,14 +42,21 @@ class RedisCacheService {
       });
 
       if (!response.ok) {
-        console.warn('Redis cache request failed:', response.status);
+        // Silenciosamente falha e retorna null (aplicação continua funcionando)
+        if (response.status === 500) {
+          // Desabilita temporariamente para evitar múltiplas requisições falhadas
+          this.enabled = false;
+          console.info('[Redis] Cache temporariamente desabilitado (Edge Function não disponível)');
+        }
         return null;
       }
 
       const data = await response.json();
       return data.success ? data.result : null;
     } catch (error) {
-      console.warn('Redis cache error:', error);
+      // Erro de rede ou timeout - desabilita cache
+      this.enabled = false;
+      console.info('[Redis] Cache desabilitado devido a erro de conexão');
       return null;
     }
   }

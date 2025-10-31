@@ -245,7 +245,7 @@ const StudentActivityDetailsPage = () => {
           .from('activities')
           .select(`
             *,
-            created_by_user:profiles!activities_created_by_fkey ( id, name ),
+            created_by_user:profiles!activities_created_by_fkey ( id, full_name ),
             schema,
             meta,
             instructions,

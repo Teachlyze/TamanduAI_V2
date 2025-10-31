@@ -46,7 +46,7 @@ const TeacherRankingPage = () => {
 
       const { data: members } = await supabase
         .from('class_members')
-        .select('user_id, user:profiles(id, name, avatar_url)')
+        .select('user_id, user:profiles(id, full_name, avatar_url)')
         .in('class_id', classIds)
         .eq('role', 'student');
 
@@ -62,7 +62,7 @@ const TeacherRankingPage = () => {
 
           studentMap.set(member.user_id, {
             id: member.user_id,
-            name: member.user?.name,
+            name: member.user?.full_name,
             avatar: member.user?.avatar_url,
             xp: gamification?.xp_total || 0,
             level: gamification?.level || 1,

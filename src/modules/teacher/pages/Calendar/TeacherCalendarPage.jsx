@@ -295,7 +295,7 @@ const TeacherCalendarPage = () => {
               ))}
 
               {/* Dias do Mês */}
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 {calendarDays.map((day, idx) => {
                   const dayEvents = getDayEvents(day);
                   const isCurrentDay = isToday(day);

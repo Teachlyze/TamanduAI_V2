@@ -11,8 +11,7 @@ const CACHE_CONFIG = {
   MAX_TTL: 3600,
   MIN_TTL: 60,
   MAX_BATCH_SIZE: 100,
-  RATE_LIMIT_PER_MINUTE: 1000,
-  COMPRESSION_THRESHOLD: 1024
+  RATE_LIMIT_PER_MINUTE: 1000
 };
 // Metrics storage (in-memory for edge function)
 const metrics = {
@@ -64,22 +63,6 @@ const rateLimitMap = new Map();
   return true;
 }
 /**
- * Compress response if needed
- */ function compressResponse(data) {
-  if (data.length > CACHE_CONFIG.COMPRESSION_THRESHOLD) {
-    // Simple compression using JSON.stringify with space removal
-    const compressed = JSON.stringify(JSON.parse(data));
-    return {
-      data: compressed,
-      compressed: true
-    };
-  }
-  return {
-    data,
-    compressed: false
-  };
-}
-/**
  * Track operation metrics
  */ function trackOperation(action, success) {
   if (!metrics.operations[action]) {
@@ -102,43 +85,68 @@ const rateLimitMap = new Map();
   if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
     throw new Error("Upstash Redis not configured");
   }
+  
   const maxRetries = 3;
   let lastError = null;
+  
   for(let attempt = 1; attempt <= maxRetries; attempt++){
     try {
-      const body = JSON.stringify({
-        commands: [
-          [
-            command,
-            ...args
-          ]
-        ]
-      });
+      // Construir endpoint correto para Upstash REST API
+      let endpoint = UPSTASH_REDIS_REST_URL;
+      let method = "GET";
+      
+      // Formatar comandos para a API REST do Upstash
+      if (command === 'GET') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/get/${args[0]}`;
+      } else if (command === 'SET') {
+        const [key, value, ...opts] = args;
+        endpoint = `${UPSTASH_REDIS_REST_URL}/set/${key}/${encodeURIComponent(value)}`;
+        if (opts.length > 0) {
+          endpoint += `/${opts.join('/')}`;
+        }
+      } else if (command === 'DEL') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/del/${args.join('/')}`;
+      } else if (command === 'EXISTS') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/exists/${args[0]}`;
+      } else if (command === 'INCR') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/incr/${args[0]}`;
+      } else if (command === 'EXPIRE') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/expire/${args[0]}/${args[1]}`;
+      } else if (command === 'TTL') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/ttl/${args[0]}`;
+      } else if (command === 'PING') {
+        endpoint = `${UPSTASH_REDIS_REST_URL}/ping`;
+      } else {
+        throw new Error(`Unsupported command: ${command}`);
+      }
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(()=>controller.abort(), 10000); // 10 second timeout
-      const response = await fetch(`${UPSTASH_REDIS_REST_URL}`, {
-        method: "POST",
+      const timeoutId = setTimeout(()=>controller.abort(), 10000);
+      
+      const response = await fetch(endpoint, {
+        method,
         headers: {
-          "Authorization": `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
-          "Content-Type": "application/json"
+          "Authorization": `Bearer ${UPSTASH_REDIS_REST_TOKEN}`
         },
-        body,
         signal: controller.signal
       });
+      
       clearTimeout(timeoutId);
+      
       if (!response.ok) {
         throw new Error(`Redis API error: ${response.status} ${response.statusText}`);
       }
+      
       const data = await response.json();
       if (data.error) {
         throw new Error(`Redis command error: ${data.error}`);
       }
-      return data.result?.[0] || null;
+      
+      return data.result || null;
     } catch (error) {
       lastError = error;
       console.warn(`Redis request attempt ${attempt} failed:`, error);
       if (attempt < maxRetries) {
-        // Exponential backoff
         await new Promise((resolve)=>setTimeout(resolve, Math.pow(2, attempt) * 100));
       }
     }
@@ -146,34 +154,18 @@ const rateLimitMap = new Map();
   throw lastError || new Error("All retry attempts failed");
 }
 /**
- * Batch multiple Redis operations
+ * Batch multiple Redis operations (executa sequencialmente com a nova API)
  */ async function batchRedisRequests(operations) {
   if (operations.length > CACHE_CONFIG.MAX_BATCH_SIZE) {
     throw new Error(`Batch size exceeds maximum of ${CACHE_CONFIG.MAX_BATCH_SIZE}`);
   }
-  const commands = operations.map((op)=>[
-      op.command,
-      ...op.args
-    ]);
-  const body = JSON.stringify({
-    commands
-  });
-  const response = await fetch(`${UPSTASH_REDIS_REST_URL}`, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${UPSTASH_REDIS_REST_TOKEN}`,
-      "Content-Type": "application/json"
-    },
-    body
-  });
-  if (!response.ok) {
-    throw new Error(`Batch Redis API error: ${response.status} ${response.statusText}`);
-  }
-  const data = await response.json();
-  if (data.error) {
-    throw new Error(`Batch Redis command error: ${data.error}`);
-  }
-  return data.result || [];
+  
+  // Executa todas as operações em paralelo
+  const results = await Promise.all(
+    operations.map(op => redisRequest(op.command, ...op.args))
+  );
+  
+  return results;
 }
 /**
  * Validate TTL parameter
@@ -439,26 +431,15 @@ const rateLimitMap = new Map();
       action: action || 'batch',
       key,
       result,
-      timestamp: new Date().toISOString(),
-      metrics: {
-        processingTime: Date.now(),
-        compressed: false
-      }
+      timestamp: new Date().toISOString()
     };
-    // Compress if needed
-    const jsonResponse = JSON.stringify(responseData);
-    const { data: compressedData, compressed } = compressResponse(jsonResponse);
-    const headers = {
-      ...corsHeaders,
-      'Content-Type': 'application/json'
-    };
-    if (compressed) {
-      headers['Content-Encoding'] = 'gzip';
-      responseData.metrics.compressed = true;
-    }
-    return new Response(compressedData, {
+    
+    return new Response(JSON.stringify(responseData), {
       status: 200,
-      headers
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
     });
   } catch (error) {
     console.error('Redis cache function error:', error);

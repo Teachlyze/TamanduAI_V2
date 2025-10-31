@@ -79,7 +79,7 @@ export const ChatbotVersionService = {
       .from('chatbot_config_versions')
       .select(`
         *,
-        created_by_user:profiles!chatbot_config_versions_created_by_fkey(id, full_name, name)
+        created_by_user:profiles!chatbot_config_versions_created_by_fkey(id, full_name)
       `)
       .eq('class_id', classId)
       .order('version_number', { ascending: false });
