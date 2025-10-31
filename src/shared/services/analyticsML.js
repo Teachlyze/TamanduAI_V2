@@ -161,10 +161,9 @@ export async function clusterStudents(classId) {
             )
           `)
           .eq('student_id', member.user_id)
-          .eq('activities.activity_class_assignments.class_id', classId)
-          .not('grade', 'is', null);
+          .eq('activities.activity_class_assignments.class_id', classId);
 
-        const grades = submissions?.map((s) => parseFloat(s.grade)) || [];
+        const grades = submissions?.filter(s => s.grade !== null).map((s) => parseFloat(s.grade)) || [];
         const avgGrade = grades.length > 0
           ? grades.reduce((a, b) => a + b, 0) / grades.length
           : 0;

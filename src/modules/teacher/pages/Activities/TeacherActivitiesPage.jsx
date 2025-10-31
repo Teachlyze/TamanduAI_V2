@@ -19,7 +19,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { cn } from '@/lib/utils';
-import ActivityListItem from './components/ActivityListItem';
+import ActivityListItem from './components/ActivityListItemImproved';
 import ActivityGridCard from './components/ActivityGridCard';
 import PostActivityModal from './components/PostActivityModal';
 
@@ -267,8 +267,16 @@ const TeacherActivitiesPage = () => {
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
             <Plus className="w-5 h-5 mr-2" />Nova Atividade
           </Button>
-          <Button variant="outline" size="lg"><Upload className="w-5 h-5 mr-2" />Importar</Button>
-          <Button variant="outline" size="lg"><Globe className="w-5 h-5 mr-2" />Banco Público</Button>
+          <Button variant="outline" size="lg" onClick={() => {
+            toast({ title: 'Em breve', description: 'Função de importação de atividades será implementada em breve.' });
+          }}>
+            <Upload className="w-5 h-5 mr-2" />Importar
+          </Button>
+          <Button variant="outline" size="lg" onClick={() => {
+            toast({ title: 'Em breve', description: 'Banco público de atividades será implementado em breve.' });
+          }}>
+            <Globe className="w-5 h-5 mr-2" />Banco Público
+          </Button>
         </div>
       </div>
 
@@ -362,8 +370,25 @@ const TeacherActivitiesPage = () => {
             <Button size="sm" variant="secondary" onClick={() => setShowPostModal(true)}>
               <Share2 className="w-4 h-4 mr-2" />Postar
             </Button>
-            <Button size="sm" variant="secondary"><Download className="w-4 h-4 mr-2" />Exportar</Button>
-            <Button size="sm" variant="secondary"><Archive className="w-4 h-4 mr-2" />Arquivar</Button>
+            <Button size="sm" variant="secondary" onClick={() => {
+              toast({ title: 'Em breve', description: 'Função de exportação em massa será implementada em breve.' });
+            }}>
+              <Download className="w-4 h-4 mr-2" />Exportar
+            </Button>
+            <Button size="sm" variant="secondary" onClick={async () => {
+              try {
+                for (const activityId of selectedActivities) {
+                  await handleArchive(activityId);
+                }
+                setSelectedActivities([]);
+                toast({ title: 'Sucesso', description: `${selectedActivities.length} atividade(s) arquivada(s).` });
+              } catch (error) {
+                console.error('Erro ao arquivar:', error);
+                toast({ title: 'Erro', description: 'Não foi possível arquivar as atividades.', variant: 'destructive' });
+              }
+            }}>
+              <Archive className="w-4 h-4 mr-2" />Arquivar
+            </Button>
             <Button size="sm" variant="destructive" onClick={() => setSelectedActivities([])}><X className="w-4 h-4" /></Button>
           </div>
         </motion.div>
@@ -378,11 +403,10 @@ const TeacherActivitiesPage = () => {
                   onSelect={handleSelectActivity} onEdit={handleEdit} onDuplicate={handleDuplicate}
                   onToggleFavorite={handleToggleFavorite} onArchive={handleArchive}
                   onDelete={() => { setCurrentActivity(activity); setShowDeleteModal(true); }}
-                  onExpand={() => setExpandedActivityId(expandedActivityId === activity.id ? null : activity.id)}
-                  isExpanded={expandedActivityId === activity.id} getTypeBadge={getActivityTypeBadge} />
+                  getTypeBadge={getActivityTypeBadge} />
               ) : (
                 <ActivityGridCard activity={activity} onEdit={handleEdit} onToggleFavorite={handleToggleFavorite}
-                  getTypeBadge={getActivityTypeBadge} navigate={navigate} />
+                  onDuplicate={handleDuplicate} getTypeBadge={getActivityTypeBadge} navigate={navigate} />
               )}
             </motion.div>
           ))}

@@ -4,9 +4,11 @@ import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
+import { useToast } from '@/shared/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, getTypeBadge, navigate }) => {
+const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, getTypeBadge, navigate }) => {
+  const { toast } = useToast();
   const getTypeBadgeColor = (type) => {
     const types = {
       open: 'bg-green-100 text-green-700',
@@ -48,11 +50,13 @@ const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, getTypeBadge, na
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onDuplicate && onDuplicate(activity)}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicar
                 </DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  toast({ title: 'Em breve', description: 'Prévia em desenvolvimento.' });
+                }}>
                   <Eye className="w-4 h-4 mr-2" />
                   Prévia
                 </DropdownMenuItem>

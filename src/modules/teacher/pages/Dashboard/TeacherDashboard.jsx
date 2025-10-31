@@ -459,7 +459,11 @@ const TeacherDashboard = () => {
                         {activity.title}
                       </p>
                     </div>
-                    <Button size="sm" className="bg-gradient-to-r from-blue-600 to-cyan-600">
+                    <Button 
+                      size="sm" 
+                      className="bg-gradient-to-r from-blue-600 to-cyan-600"
+                      onClick={() => navigate(`/dashboard/activities/${activity.id}`)}
+                    >
                       Publicar
                     </Button>
                   </div>
@@ -638,6 +642,7 @@ const TeacherDashboard = () => {
                   size="sm"
                   variant="outline"
                   className="whitespace-nowrap border-yellow-600 text-yellow-700 hover:bg-yellow-50"
+                  onClick={() => navigate(`/dashboard/students/${student.id}`)}
                 >
                   Ver Detalhes
                 </Button>

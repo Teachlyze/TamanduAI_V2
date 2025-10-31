@@ -6,6 +6,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
+import { useToast } from '@/shared/components/ui/use-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -23,6 +24,8 @@ const ActivityListItem = ({
   isExpanded,
   getTypeBadge
 }) => {
+  const { toast } = useToast();
+  
   const getTypeBadgeColor = (type) => {
     const types = {
       open: 'bg-green-100 text-green-700 dark:bg-green-900/30',
@@ -155,11 +158,15 @@ const ActivityListItem = ({
                     {isExpanded ? 'Fechar' : 'Ver'} Prévia
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    toast({ title: 'Em breve', description: 'Função de exportação será implementada em breve.' });
+                  }}>
                     <Download className="w-4 h-4 mr-2" />
                     Exportar
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    toast({ title: 'Em breve', description: 'Função de compartilhamento será implementada em breve.' });
+                  }}>
                     <Share2 className="w-4 h-4 mr-2" />
                     Compartilhar
                   </DropdownMenuItem>

@@ -59,7 +59,6 @@ const StudentPerformancePage = () => {
           )
         `)
         .eq('student_id', user.id)
-        .not('grade', 'is', null)
         .order('submitted_at', { ascending: true });
 
       const grades = submissions?.filter(s => s.grade !== null) || [];
