@@ -27,6 +27,7 @@ const TeacherRankingPage = React.lazy(() => import('./pages/Ranking/TeacherRanki
 const TeacherChatbotPage = React.lazy(() => import('./pages/Chatbot/TeacherChatbotPage'));
 const ChatbotConfigPage = React.lazy(() => import('./pages/Chatbot/ChatbotConfigPage'));
 const ChatbotAnalyticsPage = React.lazy(() => import('./pages/Chatbot/ChatbotAnalyticsPage'));
+const TeacherCorrectionsPage = React.lazy(() => import('./pages/Corrections/TeacherCorrectionsPage'));
 
 const TeacherRoutes = () => {
   return (
@@ -57,6 +58,9 @@ const TeacherRoutes = () => {
       
       {/* Grading */}
       <Route path="grading/:submissionId" element={<GradingPage />} />
+      
+      {/* Corrections */}
+      <Route path="corrections" element={<TeacherCorrectionsPage />} />
       
       {/* Students */}
       <Route path="students" element={<TeacherStudentsPage />} />

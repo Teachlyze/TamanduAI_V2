@@ -690,7 +690,10 @@ const StudentActivityDetailsPage = () => {
   );
 
   const renderFeedback = () => {
-    if (!submission?.grade && !submission?.feedback?.length) {
+    // Verifica se tem nota OU feedback (texto direto do campo feedback)
+    const hasFeedback = submission?.grade !== null || submission?.feedback;
+    
+    if (!hasFeedback) {
       return (
         <Card className="bg-white dark:bg-slate-900">
           <div className="flex items-start gap-3">
@@ -724,9 +727,10 @@ const StudentActivityDetailsPage = () => {
               <MessageSquare className="w-4 h-4" />
               Feedback do professor
             </h4>
-            <p className="text-sm text-slate-600 dark:text-slate-300">
-              {submission?.feedback?.[0]?.comment || 'Sem comentários adicionais.'}
-            </p>
+            <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
+              {/* Feedback é salvo como TEXT direto no campo submission.feedback */}
+              {submission?.feedback || 'Sem comentários adicionais.'}
+            </div>
           </div>
         </div>
       </Card>
@@ -1048,9 +1052,10 @@ const StudentActivityDetailsPage = () => {
                 <MessageSquare className="w-5 h-5" />
                 Feedback do Professor
               </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
-                {submission?.feedback?.[0]?.comment || 'Sem comentários'}
-              </p>
+              <div className="text-slate-600 dark:text-slate-400 mb-4 whitespace-pre-wrap">
+                {/* Feedback é salvo como TEXT direto no campo submission.feedback */}
+                {submission?.feedback || 'Sem comentários'}
+              </div>
               <div className="flex items-center gap-4">
                 <div>
                   <span className="text-sm text-slate-600">Nota:</span>

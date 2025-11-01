@@ -426,6 +426,65 @@ class NotificationService {
   async sendNotification(payload, userId = null) {
     return await NotificationService.sendNotification(payload, userId);
   }
+
+  /**
+   * Envia notificação de correção concluída
+   * @param {string} submissionId - ID da submissão
+   * @param {string} studentId - ID do aluno
+   * @param {string} activityTitle - Título da atividade
+   * @param {number} grade - Nota atribuída
+   * @param {number} maxScore - Pontuação máxima
+   * @returns {Promise<Object>} - Resultado do envio
+   */
+  static async sendCorrectionNotification({ submissionId, studentId, activityTitle, grade, maxScore }) {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/send-correction-notification`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId,
+          studentId,
+          activityTitle,
+          grade,
+          maxScore,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao enviar notificação');
+      }
+
+      const data = await response.json();
+      return { data, error: null };
+    } catch (error) {
+      console.error('Erro ao enviar notificação de correção:', error);
+      
+      // Fallback: criar notificação in-app apenas
+      try {
+        await NotificationService.sendNotification({
+          title: 'Atividade Corrigida',
+          message: `Sua atividade "${activityTitle}" foi corrigida. Nota: ${grade}/${maxScore}`,
+          type: NotificationService.NotificationType.FEEDBACK,
+          category: NotificationService.NotificationCategory.GRADE,
+          priority: NotificationService.NotificationPriority.HIGH,
+          referenceId: submissionId,
+          referenceType: 'submission',
+          metadata: { grade, maxScore, activityTitle }
+        }, studentId);
+        
+        return { data: { notificationSent: true, emailSent: false }, error: null };
+      } catch (fallbackError) {
+        return { data: null, error: fallbackError };
+      }
+    }
+  }
 }
 
 export default new NotificationService();

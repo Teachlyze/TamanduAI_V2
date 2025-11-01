@@ -548,3 +548,46 @@ export const invokeEdgeCheck = async ({ submissionId, activityId, classId, text,
     return null;
   }
 };
+
+/**
+ * Verificar plágio usando Edge Function (versão nova e otimizada)
+ * @param {string} submissionId - ID da submissão
+ * @param {string} text - Texto para verificar
+ * @returns {Promise<Object>} - Resultado da verificação
+ */
+export const checkPlagiarismWithEdgeFunction = async (submissionId, text) => {
+  try {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/check-plagiarism`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        submissionId,
+        text,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Erro ao verificar plágio');
+    }
+
+    const data = await response.json();
+    return { data, error: null };
+  } catch (error) {
+    console.error('Erro ao verificar plágio com edge function:', error);
+    
+    // Fallback: usar método direto
+    try {
+      const result = await checkSubmissionForPlagiarism(submissionId, text);
+      return { data: result, error: null };
+    } catch (fallbackError) {
+      return { data: null, error: fallbackError };
+    }
+  }
+};
