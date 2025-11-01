@@ -59,7 +59,7 @@ const LibraryTab = ({ classId }) => {
         .from('class_materials')
         .select(`
           *,
-          uploader:profiles!created_by(id, full_name, avatar_url)
+          uploader:profiles!class_materials_created_by_fkey(id, full_name, avatar_url)
         `)
         .eq('class_id', classId)
         .neq('category', 'announcement') // Excluir comunicados
