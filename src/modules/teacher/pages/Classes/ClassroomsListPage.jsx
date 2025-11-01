@@ -142,11 +142,11 @@ const ClassroomsListPage = () => {
   };
 
   const handleClassClick = (classId) => {
-    navigate(`/teacher/classes/${classId}`);
+    navigate(`/dashboard/classes/${classId}`);
   };
 
   const handleCreateClass = () => {
-    navigate('/teacher/classes/new');
+    navigate('/dashboard/classes');
   };
 
   if (loading) {

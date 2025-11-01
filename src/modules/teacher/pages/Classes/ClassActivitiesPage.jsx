@@ -99,7 +99,7 @@ const ClassActivitiesPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <Button
         variant="ghost"
-        onClick={() => navigate(`/teacher/classes/${classId}`)}
+        onClick={() => navigate(`/dashboard/classes/${classId}`)}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -148,7 +148,7 @@ const ClassActivitiesPage = () => {
           />
         </div>
         <Button
-          onClick={() => navigate(`/teacher/activities/new?classId=${classId}`)}
+          onClick={() => navigate(`/dashboard/activities/create?classId=${classId}`)}
           className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
@@ -174,9 +174,9 @@ const ClassActivitiesPage = () => {
               totalStudents={0}
               priority="normal"
               delay={index * 0.05}
-              onClick={() => navigate(`/teacher/activities/${activity.id}/submissions`)}
+              onClick={() => navigate(`/dashboard/activities/${activity.id}/submissions`)}
               actionLabel="Ver Submissões"
-              onAction={() => navigate(`/teacher/activities/${activity.id}/submissions`)}
+              onAction={() => navigate(`/dashboard/activities/${activity.id}/submissions`)}
             />
           ))}
         </motion.div>
@@ -187,7 +187,7 @@ const ClassActivitiesPage = () => {
           description={searchQuery ? 'Tente outro termo.' : 'Crie a primeira atividade para esta turma.'}
           actionLabel="Criar Atividade"
           actionIcon={Plus}
-          action={() => navigate(`/teacher/activities/new?classId=${classId}`)}
+          action={() => navigate(`/dashboard/activities/create?classId=${classId}`)}
         />
       )}
     </div>

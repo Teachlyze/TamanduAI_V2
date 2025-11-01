@@ -58,7 +58,7 @@ const StudentDetailPage = () => {
           activity:activities(id, title, max_score),
           class_assignment:activity_class_assignments(class:classes(name))
         `)
-        .eq('user_id', studentId)
+        .eq('student_id', studentId)
         .order('submitted_at', { ascending: false });
 
       // Get gamification
@@ -154,7 +154,7 @@ const StudentDetailPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <Button
         variant="ghost"
-        onClick={() => navigate('/teacher/students')}
+        onClick={() => navigate('/dashboard/students')}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />

@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { convertToDatabase } from '../utils/gradeConverter';
 
 /**
  * Serviço para gerenciar correções de submissões
@@ -20,13 +21,24 @@ export const getSubmissionsForCorrection = async (filters = {}) => {
           max_score,
           content,
           plagiarism_enabled,
-          created_by
+          created_by,
+          activity_class_assignments(
+            class:classes(
+              grading_system
+            )
+          )
         ),
         student:profiles!student_id(
           id,
           full_name,
           avatar_url,
           email
+        ),
+        answers(
+          id,
+          question_id,
+          answer_json,
+          points_earned
         )
       `)
       .in('status', ['submitted', 'graded', 'needs_revision']);
@@ -100,7 +112,12 @@ export const getSubmissionDetails = async (submissionId) => {
           content,
           plagiarism_enabled,
           due_date,
-          created_by
+          created_by,
+          activity_class_assignments(
+            class:classes(
+              grading_system
+            )
+          )
         ),
         student:profiles!student_id(
           id,
@@ -148,21 +165,89 @@ export const saveCorrection = async (submissionId, correctionData) => {
       teacherId
     } = correctionData;
 
+    console.log('📝 Salvando correção:', {
+      submissionId,
+      grade: grade,
+      gradeType: typeof grade,
+      feedback: feedback?.substring(0, 50),
+      status
+    });
+
+    // ⚠️ IMPORTANTE: O banco SEMPRE armazena em escala 0-10 (constraint CHECK)
+    // Mas a UI pode usar outras escalas (0-100, A-F, etc)
+    
+    // Buscar grading_system da turma e max_score da atividade
+    const { data: submissionData } = await supabase
+      .from('submissions')
+      .select(`
+        activity:activities(
+          max_score,
+          activity_class_assignments(
+            class:classes(grading_system)
+          )
+        )
+      `)
+      .eq('id', submissionId)
+      .single();
+    
+    const maxScore = submissionData?.activity?.max_score || 10;
+    const gradingSystem = submissionData?.activity?.activity_class_assignments?.[0]?.class?.grading_system || '0-10';
+    
+    console.log('📊 Convertendo nota:', {
+      gradeInput: grade,
+      gradingSystem: gradingSystem,
+      maxScore: maxScore
+    });
+    
+    // Converter nota da escala da UI para escala do banco (0-10)
+    let gradeNormalized;
+    const originalGrade = grade;
+    
+    try {
+      gradeNormalized = convertToDatabase(grade, gradingSystem);
+      
+      console.log(`✅ Conversão: "${grade}" (${gradingSystem}) → ${gradeNormalized.toFixed(2)}/10`);
+    } catch (error) {
+      console.error('❌ Erro na conversão:', error);
+      throw new Error(`Nota inválida para o sistema ${gradingSystem}: ${grade}`);
+    }
+    
+    // Validar se está dentro do constraint do banco
+    if (gradeNormalized > 10) {
+      throw new Error(`Nota ${grade} resultou em ${gradeNormalized.toFixed(2)}/10, excedendo o limite.`);
+    }
+    
+    if (gradeNormalized < 0) {
+      throw new Error(`Nota não pode ser negativa.`);
+    }
+    
+    if (isNaN(gradeNormalized)) {
+      throw new Error(`Nota inválida: ${grade}`);
+    }
+
     // Iniciar transação
+    const updatePayload = {
+      grade: gradeNormalized,
+      feedback: feedback || '',
+      status: status,
+      graded_at: new Date().toISOString()
+    };
+
+    console.log('📤 Update payload:', updatePayload);
+
     const { data: submission, error: updateError } = await supabase
       .from('submissions')
-      .update({
-        grade,
-        feedback,
-        status,
-        graded_at: new Date().toISOString(),
-        graded_by: teacherId
-      })
+      .update(updatePayload)
       .eq('id', submissionId)
       .select()
       .single();
 
-    if (updateError) throw updateError;
+    if (updateError) {
+      console.error('❌ Erro no update:', updateError);
+      throw updateError;
+    }
+    
+    console.log('✅ Correção salva com sucesso');
 
     // Salvar scores de rubrica se houver
     if (rubricScores.length > 0) {
@@ -187,11 +272,21 @@ export const saveCorrection = async (submissionId, correctionData) => {
         submission_id: submissionId,
         teacher_id: teacherId,
         action: 'corrected',
-        new_grade: grade,
-        notes: `Correção realizada: ${grade} pontos`
+        new_grade: gradeNormalized,
+        notes: gradingSystem !== '0-10'
+          ? `Correção realizada: "${originalGrade}" (${gradingSystem}) = ${gradeNormalized.toFixed(2)}/10`
+          : `Correção realizada: ${gradeNormalized} pontos`
       });
 
-    return { data: submission, error: null };
+    return { 
+      data: submission, 
+      error: null,
+      converted: gradingSystem !== '0-10',
+      gradingSystem: gradingSystem,
+      originalGrade: originalGrade,
+      normalizedGrade: gradeNormalized,
+      maxScore: maxScore
+    };
   } catch (error) {
     console.error('Erro ao salvar correção:', error);
     return { data: null, error };

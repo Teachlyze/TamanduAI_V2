@@ -103,7 +103,7 @@ const TeacherStudentsPage = () => {
           const { data: subs } = await supabase
             .from('submissions')
             .select('grade')
-            .eq('user_id', student.id)
+            .eq('student_id', student.id)
             .not('grade', 'is', null);
 
           const grades = subs?.map(s => s.grade).filter(g => g !== null) || [];
@@ -231,7 +231,7 @@ const TeacherStudentsPage = () => {
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => navigate(`/teacher/students/${row.id}`)}
+          onClick={() => navigate(`/dashboard/students/${row.id}`)}
         >
           Ver Perfil
         </Button>

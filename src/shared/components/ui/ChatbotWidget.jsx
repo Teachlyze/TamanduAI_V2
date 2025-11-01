@@ -37,22 +37,26 @@ const ChatbotWidget = ({ context = {} }) => {
     setLoading(true);
 
     try {
+      // Get user session for auth
+      const { data: { session } } = await supabase.auth.getSession();
+      
       // Call OpenAI via edge function
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chatbot-query`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           message: userMessage,
-          context: {
-            userId: user?.id,
-            classId: context.classId,
-            activityId: context.activityId,
-          },
+          class_id: context.classId,
+          user_id: user?.id,
+          conversation_history: messages.filter(m => m.role !== 'assistant' || m.content !== messages[0]?.content).slice(-6).map(m => ({
+            role: m.role,
+            content: m.content
+          }))
         }),
-        signal: AbortSignal.timeout(10000), // 10s timeout
+        signal: AbortSignal.timeout(15000), // 15s timeout
       });
 
       if (!response.ok) {
@@ -64,7 +68,8 @@ const ChatbotWidget = ({ context = {} }) => {
       }
 
       const data = await response.json();
-      setMessages((m) => [...m, { role: 'assistant', content: data.reply || 'Desculpe, não consegui processar sua mensagem.', timestamp: new Date() }]);
+      const assistantMessage = data.response || data.reply || 'Desculpe, não consegui processar sua mensagem.';
+      setMessages((m) => [...m, { role: 'assistant', content: assistantMessage, timestamp: new Date() }]);
     } catch (e) {
       console.error('Erro ao enviar mensagem:', e);
       // Usar fallback ao invés de mensagem genérica de erro

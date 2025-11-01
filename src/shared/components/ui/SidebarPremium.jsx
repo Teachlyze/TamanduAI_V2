@@ -50,17 +50,17 @@ const schoolNavigation = [
   { name: 'Configurações', href: '/school/settings', icon: Settings },
 ];
 
-export const SidebarPremium = ({ isOpen, onClose }) => {
+export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [userRole, setUserRole] = useState('teacher'); // Default to teacher
   const [navigation, setNavigation] = useState(teacherNavigation);
 
-  const handleSignOut = async () => {
+  const handleSignOut = React.useCallback(async () => {
     await signOut();
     navigate('/login');
-  };
+  }, [signOut, navigate]);
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -219,7 +219,7 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
             {navigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
-  return (
+              return (
                 <Link
                   key={item.name}
                   to={item.href}
@@ -309,6 +309,8 @@ export const SidebarPremium = ({ isOpen, onClose }) => {
       </motion.aside>
     </>
   );
-};
+});
+
+SidebarPremium.displayName = 'SidebarPremium';
 
 export default SidebarPremium;

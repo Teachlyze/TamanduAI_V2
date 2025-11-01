@@ -22,9 +22,9 @@ const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, get
   };
 
   return (
-    <Card className="group h-full hover:shadow-xl transition-all duration-200 overflow-hidden">
+    <Card className="group h-full hover:shadow-xl transition-all duration-300 overflow-hidden border-t-4 border-t-blue-500">
       {/* Header */}
-      <div className="relative p-4 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+      <div className="relative p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30">
         <div className="flex items-start justify-between">
           <Badge className={getTypeBadgeColor(activity.type)}>
             {getTypeBadge(activity.type)}
@@ -46,15 +46,16 @@ const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, get
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onEdit(activity)}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(activity); }}>
                   <Edit className="w-4 h-4 mr-2" />
                   Editar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onDuplicate && onDuplicate(activity)}>
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onDuplicate && onDuplicate(activity); }}>
                   <Copy className="w-4 h-4 mr-2" />
                   Duplicar
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
                   toast({ title: 'Em breve', description: 'Prévia em desenvolvimento.' });
                 }}>
                   <Eye className="w-4 h-4 mr-2" />
@@ -67,8 +68,8 @@ const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, get
       </div>
 
       {/* Body */}
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 line-clamp-2 mb-2 min-h-[56px]">
+      <div className="p-5">
+        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 line-clamp-2 mb-3 min-h-[56px]">
           {activity.title}
         </h3>
         
@@ -109,10 +110,11 @@ const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, get
           
           <Button
             size="sm"
-            className="bg-blue-600 hover:bg-blue-700"
-            onClick={() => navigate(`/teacher/activities/${activity.id}`)}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all"
+            onClick={() => navigate(`/dashboard/activities/${activity.id}/edit`)}
           >
-            Postar
+            <Edit className="w-4 h-4 mr-1" />
+            Editar
           </Button>
         </div>
       </div>

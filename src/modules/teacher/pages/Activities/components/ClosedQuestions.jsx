@@ -57,29 +57,22 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
   const updateAlternative = (questionId, altId, field, value) => {
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
+        // Se estiver marcando como correta, desmarcar as outras
+        if (field === 'isCorrect' && value === true) {
+          return {
+            ...q,
+            alternatives: q.alternatives.map(alt => ({
+              ...alt,
+              isCorrect: alt.id === altId
+            }))
+          };
+        }
+        // Para outros campos, apenas atualizar o campo específico
         return {
           ...q,
-          alternatives: q.alternatives.map(alt => {
-            if (alt.id === altId) {
-              // Se estiver marcando como correta, desmarcar as outras
-              if (field === 'isCorrect' && value === true) {
-                setQuestions(questions.map(qq => {
-                  if (qq.id === questionId) {
-                    return {
-                      ...qq,
-                      alternatives: qq.alternatives.map(a => ({
-                        ...a,
-                        isCorrect: a.id === altId
-                      }))
-                    };
-                  }
-                  return qq;
-                }));
-              }
-              return { ...alt, [field]: value };
-            }
-            return alt;
-          })
+          alternatives: q.alternatives.map(alt =>
+            alt.id === altId ? { ...alt, [field]: value } : alt
+          )
         };
       }
       return q;
@@ -104,15 +97,18 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
   };
 
   const setCorrectAlternative = (questionId, altId) => {
+    console.log('[ClosedQuestions] ✅ Marcando alternativa como correta:', { questionId, altId });
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
-        return {
+        const updatedQuestion = {
           ...q,
           alternatives: q.alternatives.map(alt => ({
             ...alt,
             isCorrect: alt.id === altId
           }))
         };
+        console.log('[ClosedQuestions] Questão atualizada:', updatedQuestion);
+        return updatedQuestion;
       }
       return q;
     }));
@@ -126,14 +122,14 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold">Questões Fechadas (Objetivas)</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {questions.length} questão(ões) • Total: {totalPoints.toFixed(1)} pontos
+            <div className="text-sm text-gray-600 mt-1">
+              <span>{questions.length} questão(ões) • Total: {totalPoints.toFixed(1)} pontos</span>
               {maxScore && Math.abs(totalPoints - maxScore) > 0.1 && (
                 <Badge variant="destructive" className="ml-2">
                   Meta: {maxScore} pontos
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
           <Button onClick={addQuestion}>
             <Plus className="w-4 h-4 mr-2" />

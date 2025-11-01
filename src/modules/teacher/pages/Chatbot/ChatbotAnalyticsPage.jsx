@@ -76,7 +76,7 @@ const ChatbotAnalyticsPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <Button
         variant="ghost"
-        onClick={() => navigate('/teacher/chatbot')}
+        onClick={() => navigate('/dashboard/chatbot')}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -260,7 +260,7 @@ const ChatbotAnalyticsPage = () => {
         <div className="flex gap-4">
           <Button
             variant="outline"
-            onClick={() => navigate(`/teacher/chatbot/${classId}/config`)}
+            onClick={() => navigate(`/dashboard/chatbot/${classId}/config`)}
             className="flex-1"
           >
             <Edit className="w-4 h-4 mr-2" />

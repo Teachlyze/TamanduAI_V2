@@ -94,7 +94,7 @@ const ChatbotConfigPage = () => {
           clearInterval(interval);
           setTimeout(() => {
             alert('Chatbot ativado com sucesso!');
-            navigate(`/teacher/chatbot/${classId}/analytics`);
+            navigate(`/dashboard/chatbot/${classId}/analytics`);
           }, 500);
           return 100;
         }
@@ -156,7 +156,7 @@ const ChatbotConfigPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <Button
         variant="ghost"
-        onClick={() => navigate('/teacher/chatbot')}
+        onClick={() => navigate('/dashboard/chatbot')}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />

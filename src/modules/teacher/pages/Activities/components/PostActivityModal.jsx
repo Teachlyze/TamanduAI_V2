@@ -70,15 +70,25 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
 
           if (updateError) throw updateError;
 
-          // Criar assignment
-          const { error: assignError } = await supabase
+          // Verificar se já existe assignment
+          const { data: existingAssignment } = await supabase
             .from('activity_class_assignments')
-            .insert({
-              activity_id: activity.id,
-              class_id: classId
-            });
+            .select('id')
+            .eq('activity_id', activity.id)
+            .eq('class_id', classId)
+            .single();
 
-          if (assignError) throw assignError;
+          // Criar assignment apenas se não existir
+          if (!existingAssignment) {
+            const { error: assignError } = await supabase
+              .from('activity_class_assignments')
+              .insert({
+                activity_id: activity.id,
+                class_id: classId
+              });
+
+            if (assignError) throw assignError;
+          }
 
           // Notificar alunos se marcado
           if (notifyStudents) {

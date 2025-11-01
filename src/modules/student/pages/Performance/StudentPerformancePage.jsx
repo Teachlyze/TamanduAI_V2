@@ -24,6 +24,8 @@ const StudentPerformancePage = () => {
   const [attentionAreas, setAttentionAreas] = useState([]);
   const [aiRecommendations, setAiRecommendations] = useState([]);
   const [performanceData, setPerformanceData] = useState(null);
+  const [usageToday, setUsageToday] = useState(0);
+  const [dailyLimit] = useState(3);
 
   useEffect(() => {
     if (user?.id) {
@@ -167,6 +169,57 @@ const StudentPerformancePage = () => {
     }
   };
 
+  const generateFallbackRecommendations = (summary) => {
+    const recommendations = [];
+    
+    // Análise da média geral
+    if (summary.avgGrade < 60) {
+      recommendations.push({
+        title: '📚 Reforço nos Estudos',
+        description: 'Sua média está abaixo do esperado. Dedique mais tempo aos estudos diários.',
+        reason: 'Média atual abaixo de 60%',
+        priority: 'high'
+      });
+    } else if (summary.avgGrade < 75) {
+      recommendations.push({
+        title: '📈 Continue Progredindo',
+        description: 'Você está no caminho certo! Mantenha a consistência nos estudos.',
+        reason: 'Desempenho moderado',
+        priority: 'medium'
+      });
+    } else {
+      recommendations.push({
+        title: '⭐ Excelente Desempenho',
+        description: 'Continue assim! Considere ajudar colegas com dificuldades.',
+        reason: 'Média acima de 75%',
+        priority: 'low'
+      });
+    }
+    
+    // Análise comparativa com turma
+    if (summary.classComparison && summary.classComparison.length > 0) {
+      const belowAverage = summary.classComparison.filter(c => c.studentAvg < c.classAvg);
+      if (belowAverage.length > 0) {
+        recommendations.push({
+          title: '🎯 Focar em Matérias Específicas',
+          description: `Concentre-se em melhorar em: ${belowAverage.map(c => c.subject).join(', ')}`,
+          reason: 'Abaixo da média da turma',
+          priority: 'high'
+        });
+      }
+    }
+    
+    // Recomendações gerais
+    recommendations.push({
+      title: '⏰ Organize seu Tempo',
+      description: 'Crie um cronograma de estudos e reserve horários fixos para cada matéria.',
+      reason: 'Boa prática de estudo',
+      priority: 'medium'
+    });
+    
+    return recommendations;
+  };
+
   const loadAIRecommendations = async () => {
     if (!performanceData || performanceData.length === 0) {
       toast({
@@ -180,15 +233,93 @@ const StudentPerformancePage = () => {
     try {
       setLoadingRecommendations(true);
 
+      // Buscar últimas 5 submissões com detalhes completos (questões e respostas)
+      const { data: detailedSubmissions } = await supabase
+        .from('submissions')
+        .select(`
+          id,
+          grade,
+          submitted_at,
+          activity:activities(
+            id,
+            title,
+            max_score,
+            content,
+            activity_class_assignments(
+              class:classes(subject)
+            )
+          ),
+          answers(
+            question_id,
+            answer_json,
+            points_earned
+          )
+        `)
+        .eq('student_id', user.id)
+        .not('grade', 'is', null)
+        .order('submitted_at', { ascending: false })
+        .limit(5);
+
+      // Debug: ver estrutura das submissions
+      console.log('🔍 Total de Submissions encontradas:', detailedSubmissions?.length);
+      console.log('🔍 Detailed Submissions:', JSON.stringify(detailedSubmissions, null, 2));
+
+      // Processar submissões com questões detalhadas
+      const recentGradesWithDetails = (detailedSubmissions || []).map((submission, idx) => {
+        const activity = submission.activity;
+        const subject = activity?.activity_class_assignments?.[0]?.class?.subject || 'Geral';
+        
+        // Debug: ver conteúdo de CADA atividade
+        console.log(`\n📝 Activity ${idx + 1}/${detailedSubmissions.length}:`, {
+          title: activity?.title,
+          grade: submission.grade,
+          hasContent: !!activity?.content,
+          contentKeys: activity?.content ? Object.keys(activity.content) : [],
+          questionsCount: Array.isArray(activity?.content?.questions) ? activity.content.questions.length : 0,
+          questions: activity?.content?.questions,
+          answersCount: submission.answers?.length || 0,
+          answers: submission.answers
+        });
+        
+        // Extrair questões e comparar com respostas do aluno
+        const questions = [];
+        if (activity?.content?.questions && Array.isArray(activity.content.questions)) {
+          activity.content.questions.forEach((q, idx) => {
+            const studentAnswer = submission.answers?.find(a => 
+              a.question_id === q.id || a.question_id === `question_${idx}`
+            );
+
+            if (studentAnswer) {
+              const answerText = typeof studentAnswer.answer_json === 'string' 
+                ? studentAnswer.answer_json 
+                : studentAnswer.answer_json?.answer || studentAnswer.answer_json?.text || 'Não respondeu';
+
+              const correctAnswerText = q.correctAnswer || q.correct_answer || q.answer;
+              
+              questions.push({
+                question: q.text || q.question || q.title || 'Questão sem texto',
+                studentAnswer: answerText,
+                correctAnswer: correctAnswerText,
+                isCorrect: (studentAnswer.points_earned || 0) > 0
+              });
+            }
+          });
+        }
+
+        return {
+          grade: submission.grade,
+          maxScore: activity?.max_score || 100,
+          subject: subject,
+          activityTitle: activity?.title,
+          questions: questions.length > 0 ? questions : undefined
+        };
+      });
+
       // Preparar dados para a IA
       const performanceSummary = {
         avgGrade: stats.avgGrade,
         totalActivities: stats.totalActivities,
-        recentGrades: performanceData.slice(-5).map(s => ({
-          grade: s.grade,
-          maxScore: s.activity?.max_score,
-          subject: s.activity?.activity_class_assignments?.[0]?.class?.subject
-        })),
+        recentGrades: recentGradesWithDetails,
         classComparison: classComparison.map(c => ({
           subject: c.subject,
           studentAvg: c.studentAvg,
@@ -196,12 +327,25 @@ const StudentPerformancePage = () => {
         }))
       };
 
+      // Debug: verificar se questões estão sendo enviadas
+      console.log('📊 Performance Summary:', JSON.stringify(performanceSummary, null, 2));
+      console.log('❓ Total de questões encontradas:', recentGradesWithDetails.reduce((sum, g) => sum + (g.questions?.length || 0), 0));
+
       // Chamar Edge Function da OpenAI
-      const response = await fetch('/api/ai-study-recommendations', {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Erro ao obter sessão:', sessionError);
+        throw new Error('Erro de autenticação');
+      }
+
+      console.log('Session token:', session?.access_token ? 'Token presente' : 'Token ausente');
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-study-recommendations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.access_token}`
+          'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`
         },
         body: JSON.stringify({
           studentId: user.id,
@@ -210,15 +354,57 @@ const StudentPerformancePage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Falha ao obter recomendações');
+        const errorData = await response.text();
+        console.error('Erro da API:', response.status, errorData);
+        
+        // Verificar se é erro de limite diário
+        if (response.status === 429) {
+          try {
+            const errorJson = JSON.parse(errorData);
+            toast({
+              title: '⏰ Limite diário atingido',
+              description: `${errorJson.message || 'Você já gerou 3 recomendações hoje. Volte amanhã!'}`,
+              variant: 'destructive',
+              duration: 5000
+            });
+          } catch {
+            toast({
+              title: '⏰ Limite diário atingido',
+              description: 'Você já gerou 3 recomendações hoje. Volte amanhã!',
+              variant: 'destructive',
+              duration: 5000
+            });
+          }
+          return;
+        }
+        
+        // Fallback: gerar recomendações básicas localmente
+        const fallbackRecommendations = generateFallbackRecommendations(performanceSummary);
+        setAiRecommendations(fallbackRecommendations);
+        
+        toast({
+          title: 'Recomendações geradas localmente',
+          description: 'Usando análise básica. Configure a API OpenAI para recomendações avançadas.',
+        });
+        return;
       }
 
       const data = await response.json();
       setAiRecommendations(data.recommendations || []);
+      
+      // Atualizar contador de uso
+      if (data.usageToday) {
+        setUsageToday(data.usageToday);
+      }
+
+      // Mostrar contador de uso
+      const usageInfo = data.usageToday && data.dailyLimit 
+        ? ` (${data.usageToday}/${data.dailyLimit} hoje)` 
+        : '';
 
       toast({
-        title: 'Recomendações atualizadas!',
-        description: 'Confira suas sugestões personalizadas de estudo.'
+        title: '✅ Recomendações atualizadas!',
+        description: `Confira suas sugestões personalizadas de estudo${usageInfo}.`
       });
 
     } catch (error) {
@@ -399,25 +585,39 @@ const StudentPerformancePage = () => {
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-blue-600" />
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">Recomendações Personalizadas com IA</h3>
+            <Badge variant={usageToday >= dailyLimit ? "destructive" : "secondary"} className="text-xs">
+              {usageToday}/{dailyLimit} hoje
+            </Badge>
           </div>
-          <Button
-            onClick={loadAIRecommendations}
-            disabled={loadingRecommendations}
-            size="sm"
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
-          >
-            {loadingRecommendations ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Gerando...
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" />
-                Gerar Recomendações
-              </>
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              onClick={loadAIRecommendations}
+              disabled={loadingRecommendations || usageToday >= dailyLimit}
+              size="sm"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 disabled:opacity-50"
+            >
+              {loadingRecommendations ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                  Gerando...
+                </>
+              ) : usageToday >= dailyLimit ? (
+                <>
+                  ⏰ Limite Atingido
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Gerar Recomendações
+                </>
+              )}
+            </Button>
+            {usageToday >= dailyLimit && (
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                Reinicia à meia-noite
+              </span>
             )}
-          </Button>
+          </div>
         </div>
         
         {aiRecommendations.length > 0 ? (

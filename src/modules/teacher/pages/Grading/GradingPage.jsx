@@ -4,6 +4,7 @@ import { ArrowLeft, User, Calendar, FileText, ChevronLeft, ChevronRight } from '
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
+import { useToast } from '@/shared/components/ui/use-toast';
 import {
   DashboardHeader,
   GradeForm
@@ -14,17 +15,159 @@ import { supabase } from '@/shared/services/supabaseClient';
 const GradingPage = () => {
   const { submissionId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submission, setSubmission] = useState(null);
   const [activity, setActivity] = useState(null);
+  const [classInfo, setClassInfo] = useState(null);
   const [allSubmissions, setAllSubmissions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
     loadSubmission();
   }, [submissionId]);
+
+  // Função para renderizar conteúdo da submissão de forma legível
+  const renderSubmissionContent = () => {
+    if (!submission?.content) {
+      return (
+        <p className="text-slate-600 dark:text-slate-400">
+          Nenhum conteúdo enviado.
+        </p>
+      );
+    }
+
+    // Se for string, mostrar como texto
+    if (typeof submission.content === 'string') {
+      return (
+        <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
+          <pre className="whitespace-pre-wrap font-sans text-sm">
+            {submission.content}
+          </pre>
+        </div>
+      );
+    }
+
+    // Se for objeto (respostas objetivas), renderizar questões
+    try {
+      const answers = typeof submission.content === 'string' 
+        ? JSON.parse(submission.content) 
+        : submission.content;
+
+      // Pegar questões da atividade
+      const questions = activity?.content?.questions || [];
+      
+      if (questions.length === 0) {
+        // Mostrar respostas sem contexto das questões
+        return (
+          <div className="space-y-4">
+            {Object.entries(answers).map(([questionId, answer], index) => (
+              <div key={questionId} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold flex-shrink-0">
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
+                      Questão {index + 1}
+                    </p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      <span className="font-semibold">Resposta:</span> {Array.isArray(answer) ? answer.join(', ') : answer}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
+      // Renderizar com contexto das questões
+      return (
+        <div className="space-y-4">
+          {questions.map((question, index) => {
+            const studentAnswer = answers[question.id];
+            const correctAnswer = question.answerKey;
+            const isCorrect = correctAnswer && (
+              Array.isArray(studentAnswer) 
+                ? studentAnswer.length === correctAnswer.length && studentAnswer.every(a => correctAnswer.includes(a))
+                : studentAnswer === correctAnswer
+            );
+
+            return (
+              <div 
+                key={question.id} 
+                className={`p-4 rounded-lg border-2 ${
+                  correctAnswer
+                    ? isCorrect
+                      ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                      : 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800'
+                    : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
+                    correctAnswer
+                      ? isCorrect
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-red-500 text-white'
+                      : 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                      {question.title || question.label || `Questão ${index + 1}`}
+                    </p>
+                    
+                    {/* Resposta do aluno */}
+                    <div className="mb-2">
+                      <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Resposta do aluno:</span>
+                      <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                        {Array.isArray(studentAnswer) ? studentAnswer.join(', ') : studentAnswer || 'Sem resposta'}
+                      </p>
+                    </div>
+
+                    {/* Gabarito (se existir) */}
+                    {correctAnswer && (
+                      <div>
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Gabarito:</span>
+                        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mt-1">
+                          {Array.isArray(correctAnswer) ? correctAnswer.join(', ') : correctAnswer}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Status */}
+                    {correctAnswer && (
+                      <div className="mt-2">
+                        {isCorrect ? (
+                          <Badge className="bg-emerald-500 text-white">✓ Correta</Badge>
+                        ) : (
+                          <Badge className="bg-red-500 text-white">✗ Incorreta</Badge>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    } catch (error) {
+      // Se falhar o parse, mostrar raw
+      return (
+        <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
+          <pre className="whitespace-pre-wrap font-sans text-sm">
+            {JSON.stringify(submission.content, null, 2)}
+          </pre>
+        </div>
+      );
+    }
+  };
 
   const loadSubmission = async () => {
     try {
@@ -35,20 +178,45 @@ const GradingPage = () => {
         .from('submissions')
         .select(`
           *,
-          student:profiles!submissions_user_id_fkey(id, name, email, avatar_url),
-          activity:activities(id, title, max_score, due_date)
+          student:student_id(id, full_name, email, avatar_url),
+          activity:activity_id(id, title, max_score, due_date)
         `)
         .eq('id', submissionId)
         .single();
 
-      if (submissionError) throw submissionError;
+      if (submissionError) {
+        console.error('Erro ao carregar submissão:', submissionError);
+        toast({ 
+          title: 'Erro ao carregar submissão', 
+          description: submissionError?.message || 'Não foi possível encontrar esta submissão.', 
+          variant: 'destructive' 
+        });
+        navigate('/dashboard/activities');
+        return;
+      }
       setSubmission(submissionData);
       setActivity(submissionData.activity);
+      
+      // Load class info
+      if (submissionData.activity_id) {
+        const { data: classData } = await supabase
+          .from('activity_class_assignments')
+          .select(`
+            class_id,
+            classes:class_id(id, name, subject)
+          `)
+          .eq('activity_id', submissionData.activity_id)
+          .single();
+        
+        if (classData?.classes) {
+          setClassInfo(classData.classes);
+        }
+      }
 
       // Load all submissions for this activity (for navigation)
       const { data: allSubs, error: allSubsError } = await supabase
         .from('submissions')
-        .select('id, user_id, status')
+        .select('id, student_id, status')
         .eq('activity_id', submissionData.activity_id)
         .order('submitted_at', { ascending: true });
 
@@ -59,7 +227,11 @@ const GradingPage = () => {
       }
 
     } catch (error) {
-      console.error('Erro ao carregar submissão:', error);
+      toast({ 
+        title: 'Erro ao carregar submissão', 
+        description: error?.message || 'Tente novamente.', 
+        variant: 'destructive' 
+      });
     } finally {
       setLoading(false);
     }
@@ -82,19 +254,25 @@ const GradingPage = () => {
 
       if (error) throw error;
 
-      alert('Nota salva com sucesso!');
+      toast({ 
+        title: '✅ Nota salva com sucesso!',
+        description: 'O feedback foi enviado ao aluno.'
+      });
       
       // Navigate to next submission or back
       if (currentIndex < allSubmissions.length - 1) {
         const nextSubmission = allSubmissions[currentIndex + 1];
-        navigate(`/teacher/grading/${nextSubmission.id}`);
+        navigate(`/dashboard/grading/${nextSubmission.id}`);
       } else {
-        navigate(`/teacher/activities/${activity?.id}/submissions`);
+        navigate(`/dashboard/activities/${activity?.id}/submissions`);
       }
 
     } catch (error) {
-      console.error('Erro ao salvar nota:', error);
-      alert('Erro ao salvar nota. Tente novamente.');
+      toast({ 
+        title: 'Erro ao salvar nota', 
+        description: error?.message || 'Tente novamente em instantes.', 
+        variant: 'destructive' 
+      });
     } finally {
       setSaving(false);
     }
@@ -104,7 +282,7 @@ const GradingPage = () => {
     const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex >= 0 && newIndex < allSubmissions.length) {
       const targetSubmission = allSubmissions[newIndex];
-      navigate(`/teacher/grading/${targetSubmission.id}`);
+      navigate(`/dashboard/grading/${targetSubmission.id}`);
     }
   };
 
@@ -121,7 +299,7 @@ const GradingPage = () => {
       {/* Back Button */}
       <Button
         variant="ghost"
-        onClick={() => navigate(`/teacher/activities/${activity?.id}/submissions`)}
+        onClick={() => navigate(`/dashboard/activities/${activity?.id}/submissions`)}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -130,8 +308,8 @@ const GradingPage = () => {
 
       {/* Header */}
       <DashboardHeader
-        title="Corrigir Submissão"
-        subtitle={`${activity?.title || 'Atividade'} • ${currentIndex + 1} de ${allSubmissions.length}`}
+        title={`Corrigir Submissão${submission?.student?.full_name ? ` - ${submission.student.full_name}` : ''}`}
+        subtitle={`${activity?.title || 'Atividade'}${classInfo?.name ? ` • Turma: ${classInfo.name}` : ''} • ${currentIndex + 1} de ${allSubmissions.length}`}
         role="teacher"
       />
 
@@ -149,21 +327,26 @@ const GradingPage = () => {
               {submission?.student?.avatar_url ? (
                 <img
                   src={submission.student.avatar_url}
-                  alt={submission.student.name}
+                  alt={submission.student.full_name}
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-2xl font-bold">
-                  {submission?.student?.name?.[0] || 'A'}
+                  {submission?.student?.full_name?.[0] || 'A'}
                 </div>
               )}
               <div>
                 <h4 className="font-semibold text-slate-900 dark:text-white text-lg">
-                  {submission?.student?.name || 'Aluno'}
+                  {submission?.student?.full_name || 'Aluno'}
                 </h4>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   {submission?.student?.email || 'Sem email'}
                 </p>
+                {classInfo && (
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-1">
+                    🏫 {classInfo.name} {classInfo.subject && `- ${classInfo.subject}`}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -199,21 +382,8 @@ const GradingPage = () => {
               Conteúdo da Submissão
             </h3>
             
-            <div className="prose dark:prose-invert max-w-none">
-              {submission?.content ? (
-                <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
-                  <pre className="whitespace-pre-wrap font-sans text-sm">
-                    {typeof submission.content === 'string' 
-                      ? submission.content 
-                      : JSON.stringify(submission.content, null, 2)
-                    }
-                  </pre>
-                </div>
-              ) : (
-                <p className="text-slate-600 dark:text-slate-400">
-                  Nenhum conteúdo enviado.
-                </p>
-              )}
+            <div className="max-w-none">
+              {renderSubmissionContent()}
             </div>
           </Card>
         </div>
@@ -225,7 +395,7 @@ const GradingPage = () => {
             initialGrade={submission?.grade}
             initialFeedback={submission?.feedback || ''}
             onSave={handleSaveGrade}
-            onCancel={() => navigate(`/teacher/activities/${activity?.id}/submissions`)}
+            onCancel={() => navigate(`/dashboard/activities/${activity?.id}/submissions`)}
             loading={saving}
           />
 

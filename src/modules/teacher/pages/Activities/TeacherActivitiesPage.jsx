@@ -28,6 +28,11 @@ const TeacherActivitiesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // 🔍 DEBUG: Log inicial
+  console.log('[TeacherActivitiesPage] Componente montado');
+  console.log('[TeacherActivitiesPage] User:', user);
+  console.log('[TeacherActivitiesPage] Current URL:', window.location.pathname);
+
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
   const [classes, setClasses] = useState([]);
@@ -52,9 +57,13 @@ const TeacherActivitiesPage = () => {
   const [expandedActivityId, setExpandedActivityId] = useState(null);
 
   useEffect(() => {
+    console.log('[TeacherActivitiesPage] useEffect triggered, user:', user);
     if (user) {
+      console.log('[TeacherActivitiesPage] Loading activities and classes...');
       loadActivities();
       loadClasses();
+    } else {
+      console.warn('[TeacherActivitiesPage] ⚠️ User not found!');
     }
   }, [user]);
 
@@ -172,26 +181,39 @@ const TeacherActivitiesPage = () => {
     );
   };
 
-  const handleEdit = (activity) => navigate(`/teacher/activities/${activity.id}/edit`);
+  const handleEdit = (activity) => {
+    console.log('[TeacherActivitiesPage] 🎯 handleEdit chamado');
+    console.log('[TeacherActivitiesPage] Activity:', activity);
+    console.log('[TeacherActivitiesPage] Navegando para:', `/dashboard/activities/${activity.id}/edit`);
+    navigate(`/dashboard/activities/${activity.id}/edit`);
+  };
 
   const handleDuplicate = async (activity) => {
+    console.log('[TeacherActivitiesPage] 📋 handleDuplicate chamado');
+    console.log('[TeacherActivitiesPage] Activity:', activity);
     try {
+      // Remover campos que não existem na tabela (vieram do SELECT)
+      const { assignments, submissions, submittedCount, avgGrade, timesUsed, classNames, ...activityData } = activity;
+      
       const { data, error } = await supabase
         .from('activities')
         .insert({
-          ...activity,
+          ...activityData,
           id: undefined,
           title: `${activity.title} - Cópia`,
           status: 'draft',
+          is_published: false,
           created_at: undefined,
-          updated_at: undefined
+          updated_at: undefined,
+          deleted_at: null
         })
         .select()
         .single();
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Atividade duplicada com sucesso!' });
       loadActivities();
-      navigate(`/teacher/activities/${data.id}/edit`);
+      console.log('[TeacherActivitiesPage] Navegando após duplicar para:', `/dashboard/activities/${data.id}/edit`);
+      navigate(`/dashboard/activities/${data.id}/edit`);
     } catch (error) {
       console.error('Erro ao duplicar:', error);
       toast({ title: 'Erro', description: 'Não foi possível duplicar a atividade.', variant: 'destructive' });
@@ -199,21 +221,18 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleToggleFavorite = async (activityId) => {
-    try {
-      const activity = activities.find(a => a.id === activityId);
-      const { error } = await supabase
-        .from('activities')
-        .update({ is_favorite: !activity.is_favorite })
-        .eq('id', activityId);
-      if (error) throw error;
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, is_favorite: !a.is_favorite } : a));
-      toast({ title: activity.is_favorite ? 'Removido dos favoritos' : 'Adicionado aos favoritos' });
-    } catch (error) {
-      console.error('Erro ao favoritar:', error);
-    }
+    console.log('[TeacherActivitiesPage] ⭐ handleToggleFavorite chamado');
+    console.log('[TeacherActivitiesPage] Activity ID:', activityId);
+    // Funcionalidade de favoritos desabilitada (coluna is_favorite não existe no DB)
+    toast({ 
+      title: 'Funcionalidade em desenvolvimento',
+      description: 'Sistema de favoritos será implementado em breve.'
+    });
   };
 
   const handleArchive = async (activityId) => {
+    console.log('[TeacherActivitiesPage] 📦 handleArchive chamado');
+    console.log('[TeacherActivitiesPage] Activity ID:', activityId);
     try {
       const { error } = await supabase.from('activities').update({ status: 'archived' }).eq('id', activityId);
       if (error) throw error;
@@ -225,6 +244,8 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleDelete = async (activityId) => {
+    console.log('[TeacherActivitiesPage] 🗑️ handleDelete chamado');
+    console.log('[TeacherActivitiesPage] Activity ID:', activityId);
     try {
       const { error } = await supabase.from('activities').update({ deleted_at: new Date().toISOString() }).eq('id', activityId);
       if (error) throw error;
@@ -263,7 +284,12 @@ const TeacherActivitiesPage = () => {
       <div className="mb-8">
         <DashboardHeader title="Banco de Atividades" subtitle="Crie, organize e reutilize suas atividades" role="teacher" />
         <div className="flex flex-wrap gap-3 mt-4">
-          <Button size="lg" onClick={() => navigate('/teacher/activities/create')}
+          <Button size="lg" onClick={() => {
+            console.log('[TeacherActivitiesPage] ➕ Botão "Nova Atividade" clicado');
+            console.log('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create');
+            console.log('[TeacherActivitiesPage] URL atual:', window.location.pathname);
+            navigate('/dashboard/activities/create');
+          }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
             <Plus className="w-5 h-5 mr-2" />Nova Atividade
           </Button>
@@ -271,11 +297,6 @@ const TeacherActivitiesPage = () => {
             toast({ title: 'Em breve', description: 'Função de importação de atividades será implementada em breve.' });
           }}>
             <Upload className="w-5 h-5 mr-2" />Importar
-          </Button>
-          <Button variant="outline" size="lg" onClick={() => {
-            toast({ title: 'Em breve', description: 'Banco público de atividades será implementado em breve.' });
-          }}>
-            <Globe className="w-5 h-5 mr-2" />Banco Público
           </Button>
         </div>
       </div>
@@ -414,12 +435,20 @@ const TeacherActivitiesPage = () => {
       ) : (
         <EmptyState icon={ClipboardList} title={searchQuery ? 'Nenhuma atividade encontrada' : 'Você ainda não criou nenhuma atividade'}
           description={searchQuery ? 'Tente ajustar os filtros.' : 'Comece criando sua primeira atividade.'}
-          actionLabel="Criar Primeira Atividade" actionIcon={Plus} action={() => navigate('/teacher/activities/create')} />
+          actionLabel="Criar Primeira Atividade" actionIcon={Plus} action={() => {
+            console.log('[TeacherActivitiesPage] ➕ EmptyState "Criar Primeira Atividade" clicado');
+            console.log('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create');
+            navigate('/dashboard/activities/create');
+          }} />
       )}
 
       {filteredActivities.length > 0 && (
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5 }} className="fixed bottom-8 right-8 z-40">
-          <Button size="lg" onClick={() => navigate('/teacher/activities/create')}
+          <Button size="lg" onClick={() => {
+            console.log('[TeacherActivitiesPage] 🎯 FAB (Floating Action Button) clicado');
+            console.log('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create');
+            navigate('/dashboard/activities/create');
+          }}
             className="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-r from-blue-600 to-blue-700">
             <Plus className="w-8 h-8" />
           </Button>
@@ -430,15 +459,15 @@ const TeacherActivitiesPage = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Excluir Atividade</DialogTitle>
-            <DialogDescription>
+            <DialogDescription asChild>
               {currentActivity?.timesUsed > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-yellow-600 font-semibold">⚠️ Atenção!</p>
-                  <p>Esta atividade foi usada {currentActivity.timesUsed} vez(es).</p>
-                  <p>As submissões existentes não serão afetadas.</p>
+                  <div className="text-yellow-600 font-semibold">⚠️ Atenção!</div>
+                  <div>Esta atividade foi usada {currentActivity.timesUsed} vez(es).</div>
+                  <div>As submissões existentes não serão afetadas.</div>
                 </div>
               ) : (
-                <p>Tem certeza? Esta ação não pode ser desfeita.</p>
+                <div>Tem certeza? Esta ação não pode ser desfeita.</div>
               )}
             </DialogDescription>
           </DialogHeader>

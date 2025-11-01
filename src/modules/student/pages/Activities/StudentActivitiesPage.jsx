@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Clock, CheckCircle, AlertCircle, PlayCircle, Eye, Filter, ArrowUpDown } from 'lucide-react';
+import { FileText, Clock, CheckCircle, AlertCircle, AlertTriangle, PlayCircle, Eye, Filter, ArrowUpDown } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
@@ -232,6 +232,10 @@ const StudentActivitiesPage = () => {
     const dueDate = activity.due_date ? new Date(activity.due_date) : null;
     const isUrgent = dueDate && (dueDate - now) / (1000 * 60 * 60 * 24) < 3 && status.status === 'pending';
     
+    const isLate = dueDate && dueDate < now;
+    const canAnswerLate = isLate && activity.accept_late_submissions === true;
+    const isBlocked = isLate && !canAnswerLate;
+    
     const getButtonConfig = () => {
       if (submission?.grade !== null) {
         return { text: 'Ver Correção', icon: Eye, variant: 'outline', disabled: false };
@@ -241,6 +245,24 @@ const StudentActivitiesPage = () => {
       }
       if (submission?.status === 'draft') {
         return { text: 'Continuar Rascunho', icon: PlayCircle, variant: 'default', disabled: false };
+      }
+      if (isBlocked) {
+        return { 
+          text: 'Prazo Encerrado', 
+          icon: AlertTriangle, 
+          variant: 'outline', 
+          disabled: true,
+          tooltip: 'O prazo desta atividade expirou e o professor não permite respostas atrasadas.' 
+        };
+      }
+      if (canAnswerLate) {
+        return { 
+          text: 'Responder (Atrasada)', 
+          icon: PlayCircle, 
+          variant: 'default', 
+          disabled: false,
+          className: 'bg-orange-600 hover:bg-orange-700'
+        };
       }
       return { text: 'Iniciar', icon: PlayCircle, variant: 'default', disabled: false };
     };
@@ -297,15 +319,26 @@ const StudentActivitiesPage = () => {
           </div>
         )}
 
-        <Button
-          onClick={() => navigate(`/students/activities/${activity.id}`)}
-          variant={buttonConfig.variant}
-          disabled={buttonConfig.disabled}
-          className="w-full"
-        >
-          <ButtonIcon className="w-4 h-4 mr-2" />
-          {buttonConfig.text}
-        </Button>
+        <div className="relative group/tooltip">
+          <Button
+            onClick={() => navigate(`/students/activities/${activity.id}`)}
+            variant={buttonConfig.variant}
+            disabled={buttonConfig.disabled}
+            className={`w-full ${buttonConfig.className || ''}`}
+            title={buttonConfig.tooltip}
+          >
+            <ButtonIcon className="w-4 h-4 mr-2" />
+            {buttonConfig.text}
+          </Button>
+          {buttonConfig.tooltip && buttonConfig.disabled && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover/tooltip:block z-10">
+              <div className="bg-slate-900 text-white text-xs rounded-lg px-3 py-2 whitespace-nowrap shadow-lg">
+                {buttonConfig.tooltip}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+              </div>
+            </div>
+          )}
+        </div>
       </Card>
     );
   };

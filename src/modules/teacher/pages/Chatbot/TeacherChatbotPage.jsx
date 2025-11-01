@@ -208,7 +208,7 @@ const TeacherChatbotPage = () => {
                   <div className="flex gap-2">
                     {cls.chatbot.status === 'not_configured' ? (
                       <Button
-                        onClick={() => navigate(`/teacher/chatbot/${cls.id}/config`)}
+                        onClick={() => navigate(`/dashboard/chatbot/${cls.id}/config`)}
                         className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
                       >
                         <Settings className="w-4 h-4 mr-2" />
@@ -218,7 +218,7 @@ const TeacherChatbotPage = () => {
                       <>
                         <Button
                           variant="outline"
-                          onClick={() => navigate(`/teacher/chatbot/${cls.id}/config`)}
+                          onClick={() => navigate(`/dashboard/chatbot/${cls.id}/config`)}
                           className="flex-1"
                         >
                           <Settings className="w-4 h-4 mr-2" />
@@ -226,7 +226,7 @@ const TeacherChatbotPage = () => {
                         </Button>
                         <Button
                           variant="outline"
-                          onClick={() => navigate(`/teacher/chatbot/${cls.id}/analytics`)}
+                          onClick={() => navigate(`/dashboard/chatbot/${cls.id}/analytics`)}
                           className="flex-1"
                         >
                           <BarChart3 className="w-4 h-4 mr-2" />
@@ -254,7 +254,7 @@ const TeacherChatbotPage = () => {
           description="Crie uma turma para configurar seu primeiro chatbot IA"
           actionLabel="Criar Turma"
           actionIcon={Settings}
-          action={() => navigate('/teacher/classes/new')}
+          action={() => navigate('/dashboard/classes')}
         />
       )}
     </div>

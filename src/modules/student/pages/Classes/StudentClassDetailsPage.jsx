@@ -1,135 +1,160 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, FileText, Calendar, Users, MessageSquare, Download, BookOpen, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, Users, MessageSquare, BookOpen, Megaphone, RefreshCw, Clock, Badge as BadgeIcon } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
-import { DashboardHeader } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
+import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
-import { ClassService } from '@/shared/services/classService';
+
+// Importar tabs separados
+import FeedTab from './tabs/FeedTab';
+import AnnouncementsTab from './tabs/AnnouncementsTab';
+import LibraryTab from './tabs/LibraryTab';
 
 const StudentClassDetailsPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
   
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [classData, setClassData] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [announcements, setAnnouncements] = useState([]);
+  const [library, setLibrary] = useState([]);
   const [activities, setActivities] = useState([]);
-  const [discussions, setDiscussions] = useState([]);
-  const [materials, setMaterials] = useState([]);
   const [members, setMembers] = useState([]);
   const [activeTab, setActiveTab] = useState('feed');
+  const [useEdgeFunction, setUseEdgeFunction] = useState(true); // Toggle para usar edge function
+
+  const loadData = useCallback(async (showRefresh = false) => {
+    try {
+      if (showRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      if (useEdgeFunction) {
+        // Usar Edge Function com cache Redis
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-class-data`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ classId })
+          }
+        );
+
+        if (!response.ok) throw new Error('Erro ao carregar dados');
+
+        const result = await response.json();
+        const data = result.data;
+
+        console.log('[StudentClassDetailsPage] 📦 Dados recebidos da Edge Function:', {
+          classInfo: data.classInfo,
+          posts: data.posts?.length || 0,
+          discussions: data.discussions?.length || 0,
+          announcements: data.announcements?.length || 0,
+          library: data.library?.length || 0,
+          activities: data.activities?.length || 0,
+          members: data.members?.length || 0,
+          fullData: data
+        });
+
+        // Combinar posts e discussions (discussions são os "posts" do professor)
+        const allPosts = [
+          ...(data.posts || []),
+          ...(data.discussions || []).map(d => ({
+            ...d,
+            title: d.title,
+            description: d.description,
+            creator: d.author,
+            is_pinned: d.is_pinned,
+            created_at: d.created_at
+          }))
+        ];
+
+        console.log('[StudentClassDetailsPage] 📝 Posts combinados (materials + discussions):', allPosts.length);
+
+        // Filtrar apenas atividades publicadas para alunos
+        const publishedActivities = (data.activities || []).filter(act => act.status === 'published');
+        
+        console.log('[StudentClassDetailsPage] 🎯 Atividades filtradas:', {
+          total: data.activities?.length || 0,
+          published: publishedActivities.length,
+          filtered: data.activities?.filter(a => a.status !== 'published').map(a => ({ title: a.title, status: a.status }))
+        });
+
+        setClassData(data.classInfo);
+        setPosts(allPosts);
+        setAnnouncements(data.announcements || []);
+        setLibrary(data.library || []);
+        setActivities(publishedActivities);
+        setMembers(data.members || []);
+
+        if (showRefresh && result.cached) {
+          toast({ title: 'Dados atualizados', description: 'Cache atualizado com sucesso' });
+        }
+      } else {
+        // Fallback: carregar direto do Supabase
+        const [classInfo, materials, acts, memberData] = await Promise.all([
+          supabase.from('classes').select('id, name, subject, description, color').eq('id', classId).single(),
+          supabase
+            .from('class_materials')
+            .select(`
+              id, title, description, file_url, file_type, file_size, category, tags, created_at,
+              creator:profiles!class_materials_created_by_fkey(id, full_name, avatar_url)
+            `)
+            .eq('class_id', classId)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('activity_class_assignments')
+            .select('activity_id, activity:activities(id, title, description, due_date, max_score, type, status)')
+            .eq('class_id', classId),
+          supabase
+            .from('class_members')
+            .select('id, role, joined_at, profile:profiles!class_members_user_id_fkey(id, full_name, avatar_url, email)')
+            .eq('class_id', classId)
+            .order('role', { ascending: true })
+        ]);
+
+        setClassData(classInfo.data);
+        
+        const allMaterials = materials.data || [];
+        setPosts(allMaterials.filter(m => !m.category || m.category === 'post'));
+        setAnnouncements(allMaterials.filter(m => m.category === 'announcement'));
+        setLibrary(allMaterials.filter(m => m.category && m.category !== 'post' && m.category !== 'announcement'));
+        
+        setActivities(acts.data?.map(a => a.activity).filter(Boolean) || []);
+        setMembers(memberData.data || []);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar os dados da turma',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [classId, useEdgeFunction, toast]);
 
   useEffect(() => {
     loadData();
-  }, [classId]);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-
-      // Get class info
-      const classInfo = await ClassService.getClassById(classId);
-      setClassData(classInfo);
-
-      // Get activities for this class
-      const { data: acts } = await supabase
-        .from('activity_class_assignments')
-        .select(`
-          activity_id,
-          activity:activities (
-            id,
-            title,
-            description,
-            due_date,
-            max_score,
-            type,
-            status
-          )
-        `)
-        .eq('class_id', classId);
-
-      const activitiesList = acts?.map(a => a.activity).filter(Boolean) || [];
-      setActivities(activitiesList);
-
-      // Get discussions (from discussions table)
-      const { data: discs } = await supabase
-        .from('discussions')
-        .select(`
-          id,
-          title,
-          content,
-          type,
-          created_at,
-          created_by,
-          author:profiles!discussions_created_by_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `)
-        .eq('class_id', classId)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-      setDiscussions(discs || []);
-
-      // Get materials from class_materials join table
-      const { data: mats } = await supabase
-        .from('class_materials')
-        .select(`
-          id,
-          title,
-          description,
-          file_url,
-          file_type,
-          created_at,
-          created_by,
-          uploader:profiles!class_materials_created_by_fkey ( id, full_name )
-        `)
-        .eq('class_id', classId)
-        .order('created_at', { ascending: false });
-
-      setMaterials(mats || []);
-
-      // Get members (students + teachers) from class_members and profiles
-      const { data: memberData } = await supabase
-        .from('class_members')
-        .select(`
-          id,
-          role,
-          created_at,
-          profile:profiles!class_members_user_id_fkey (
-            id,
-            full_name,
-            avatar_url,
-            email
-          )
-        `)
-        .eq('class_id', classId)
-        .order('role', { ascending: true });
-
-      setMembers(memberData || []);
-
-    } catch (error) {
-      console.error('Erro:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const materialsMapped = useMemo(() => {
-    return materials.map((material) => ({
-      ...material,
-      createdAtFormatted: material.created_at
-        ? new Date(material.created_at).toLocaleDateString('pt-BR')
-        : null,
-      uploaderName: material.uploader?.full_name || 'Professor'
-    }));
-  }, [materials]);
+  }, [loadData]);
 
   const membersGrouped = useMemo(() => {
     if (!members.length) return { teachers: [], students: [] };
@@ -147,218 +172,250 @@ const StudentClassDetailsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      {/* Header Grande com Banner */}
-      <div className="relative h-64 bg-gradient-to-r from-blue-600 to-cyan-500 overflow-hidden">
-        {/* Pattern de fundo */}
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      {/* Header Moderno com Banner */}
+      <div className="relative h-72 bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 overflow-hidden shadow-2xl">
+        {/* Pattern de fundo animado */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-grid-white/[0.1] bg-[size:30px_30px]" />
+        </div>
+        
+        {/* Shapes decorativos */}
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-cyan-300/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-300/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}} />
         
         {/* Conteúdo do Header */}
-        <div className="relative z-10 container mx-auto px-6 h-full flex flex-col justify-between py-6">
-          {/* Botão Voltar */}
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/students/classes')}
-            className="self-start text-white hover:bg-white/20 border-white/20"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar para Turmas
-          </Button>
+        <div className="relative z-10 container mx-auto px-4 md:px-6 h-full flex flex-col justify-between py-6">
+          {/* Botões de Navegação */}
+          <div className="flex items-center justify-between">
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/students/classes')}
+                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => loadData(true)}
+                disabled={refreshing}
+                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
+            
+            {/* Badge de Membros */}
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-full border border-white/30"
+            >
+              <Users className="w-4 h-4 text-white" />
+              <span className="text-white font-medium">{members.length} membros</span>
+            </motion.div>
+          </div>
 
           {/* Informações da Turma */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-white"
+            transition={{ duration: 0.5 }}
+            className="text-white pb-4"
           >
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-                <BookOpen className="w-8 h-8" />
-              </div>
-              <div>
-                <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            <div className="flex items-start gap-4">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", duration: 0.6 }}
+                className="p-4 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 shadow-xl"
+              >
+                <BookOpen className="w-10 h-10" />
+              </motion.div>
+              <div className="flex-1">
+                <motion.h1 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-4xl md:text-5xl font-bold mb-2 drop-shadow-lg"
+                >
                   {classData?.name || 'Carregando...'}
-                </h1>
-                <p className="text-lg text-white/90">
-                  {classData?.subject || 'Disciplina'}
-                </p>
+                </motion.h1>
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="flex items-center gap-3 flex-wrap"
+                >
+                  <div className="px-4 py-1.5 bg-white/20 backdrop-blur-sm rounded-full border border-white/30">
+                    <p className="text-base font-medium">{classData?.subject || 'Disciplina'}</p>
+                  </div>
+                  {classData?.description && (
+                    <p className="text-white/90 text-sm max-w-2xl">
+                      {classData.description}
+                    </p>
+                  )}
+                </motion.div>
               </div>
             </div>
-            {classData?.description && (
-              <p className="text-white/80 max-w-2xl mt-3">
-                {classData.description}
-              </p>
-            )}
           </motion.div>
         </div>
-
-        {/* Decorações */}
-        <div className="absolute top-10 right-10 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-10 left-10 w-40 h-40 bg-cyan-300/10 rounded-full blur-3xl" />
       </div>
 
       {/* Conteúdo com Tabs */}
-      <div className="container mx-auto px-6 -mt-8 relative z-20">
+      <div className="w-full px-8 -mt-8 relative z-20">
 
-        {/* Tabs com novo design */}
+        {/* Tabs com design moderno */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <Card className="mb-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg">
-            <TabsList className="w-full grid grid-cols-4 p-2 bg-transparent">
-              <TabsTrigger 
-                value="feed" 
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
-              >
-                <MessageSquare className="w-4 h-4 mr-2" />
-                Mural
-              </TabsTrigger>
-              <TabsTrigger 
-                value="activities" 
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Atividades
-              </TabsTrigger>
-              <TabsTrigger 
-                value="materials" 
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Materiais
-              </TabsTrigger>
-              <TabsTrigger 
-                value="members" 
-                className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border-b-2 data-[state=active]:border-blue-600 dark:data-[state=active]:bg-blue-950/30 dark:data-[state=active]:text-blue-400 rounded-t-lg"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Membros
-              </TabsTrigger>
-            </TabsList>
-          </Card>
-
-        {/* Feed Tab */}
-        <TabsContent value="feed">
-          <div className="space-y-4">
-            {discussions.length > 0 ? (
-              discussions.map(disc => (
-                <motion.div
-                  key={disc.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <Card className="mb-8 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80 border-2 border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl overflow-hidden">
+              <TabsList className="w-full grid grid-cols-5 p-3 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 gap-2">
+                <TabsTrigger 
+                  value="feed" 
+                  className="flex items-center justify-center gap-2 px-4 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-xl hover:scale-[1.02]"
                 >
-                  <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:shadow-lg transition-shadow">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                        {disc.author?.full_name?.[0]?.toUpperCase() || 'A'}
-                      </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-slate-900 dark:text-white">{disc.author?.full_name || 'Autor'}</span>
-                        {disc.type && (
-                          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
-                            {disc.type}
-                          </Badge>
-                        )}
-                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {new Date(disc.created_at).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white">{disc.title}</h3>
-                      <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap">{disc.content}</p>
-                    </div>
-                    </div>
-                  </Card>
-                </motion.div>
-              ))
-            ) : (
-              <Card className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-600">Nenhuma publicação no mural ainda</p>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
+                  <MessageSquare className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm font-semibold">Mural</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="announcements" 
+                  className="flex items-center justify-center gap-2 px-4 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-xl hover:scale-[1.02]"
+                >
+                  <Megaphone className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm font-semibold">Comunicados</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="library" 
+                  className="flex items-center justify-center gap-2 px-4 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-xl hover:scale-[1.02]"
+                >
+                  <BookOpen className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm font-semibold">Biblioteca</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="activities" 
+                  className="flex items-center justify-center gap-2 px-4 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-green-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-xl hover:scale-[1.02]"
+                >
+                  <FileText className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm font-semibold">Atividades</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="members" 
+                  className="flex items-center justify-center gap-2 px-4 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-cyan-500 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all duration-300 rounded-xl hover:scale-[1.02]"
+                >
+                  <Users className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm font-semibold">Membros</span>
+                </TabsTrigger>
+              </TabsList>
+            </Card>
+          </motion.div>
+
+          {/* Feed Tab */}
+          <TabsContent value="feed">
+            <FeedTab posts={posts} loading={loading} />
+          </TabsContent>
+
+          {/* Announcements Tab */}
+          <TabsContent value="announcements">
+            <AnnouncementsTab announcements={announcements} loading={loading} />
+          </TabsContent>
+
+          {/* Library Tab */}
+          <TabsContent value="library">
+            <LibraryTab materials={library} loading={loading} />
+          </TabsContent>
 
         {/* Activities Tab */}
         <TabsContent value="activities">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activities.map(activity => (
-              <Card
+            {activities.map((activity, index) => (
+              <motion.div
                 key={activity.id}
-                onClick={() => navigate(`/students/activities/${activity.id}`)}
-                className="p-6 cursor-pointer hover:shadow-xl transition-all border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <FileText className="w-8 h-8 text-sky-600" />
-                  <Badge className={
-                    activity.status === 'active'
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
-                      : activity.status === 'closed'
-                      ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'
-                      : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'
-                  }>
-                    {activity.status === 'active' ? 'Ativa' :
-                     activity.status === 'closed' ? 'Encerrada' : 'Rascunho'}
-                  </Badge>
-                </div>
-                <h3 className="font-bold mb-2">{activity.title}</h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                  {activity.description}
-                </p>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-600">
-                    📅 {activity.due_date ? new Date(activity.due_date).toLocaleDateString('pt-BR') : 'Sem prazo'}
-                  </span>
-                  <span className="font-semibold text-blue-600">
-                    {activity.max_score} pts
-                  </span>
-                </div>
-              </Card>
-            ))}
-            {activities.length === 0 && (
-              <Card className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <FileText className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-600">Nenhuma atividade vinculada ainda</p>
-              </Card>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Materials Tab */}
-        <TabsContent value="materials">
-          <div className="space-y-4">
-            {materialsMapped.map(material => (
-              <Card key={material.id} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center text-white shadow-md">
-                      <Download className="w-6 h-6" />
+                <Card
+                  onClick={() => navigate(`/students/activities/${activity.id}`)}
+                  className="group relative p-6 cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 hover:scale-105 overflow-hidden rounded-2xl"
+                >
+                  {/* Decoração de fundo */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className={`p-3 rounded-xl ${
+                        activity.status === 'published' 
+                          ? 'bg-gradient-to-br from-green-500 to-emerald-500' 
+                          : 'bg-gradient-to-br from-slate-400 to-slate-500'
+                      } shadow-lg group-hover:scale-110 transition-transform`}>
+                        <FileText className="w-6 h-6 text-white" />
+                      </div>
+                      <Badge className={
+                        activity.status === 'published'
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0'
+                          : activity.status === 'archived'
+                          ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white border-0'
+                          : 'bg-gradient-to-r from-slate-400 to-slate-500 text-white border-0'
+                      }>
+                        {activity.status === 'published' ? '✓ Publicada' :
+                         activity.status === 'archived' ? '✕ Arquivada' : 
+                         activity.status === 'draft' ? '📝 Rascunho' : activity.status}
+                      </Badge>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-slate-900 dark:text-white">{material.title}</h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2">{material.description}</p>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                        {material.createdAtFormatted && `Publicado em ${material.createdAtFormatted}`} · Por {material.uploaderName}
+                    
+                    <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {activity.title}
+                    </h3>
+                    
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
+                      {activity.description || 'Sem descrição'}
+                    </p>
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                          📅
+                        </div>
+                        <span className="font-medium">
+                          {activity.due_date 
+                            ? new Date(activity.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+                            : 'Sem prazo'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-full shadow-md">
+                        <span>{activity.max_score}</span>
+                        <span className="text-xs">pts</span>
                       </div>
                     </div>
                   </div>
-                  {material.file_url ? (
-                    <Button asChild variant="outline" size="sm" className="border-slate-300 dark:border-slate-700">
-                      <a href={material.file_url} target="_blank" rel="noopener noreferrer">
-                        Baixar
-                      </a>
-                    </Button>
-                  ) : (
-                    <Badge className="bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200">Arquivo indisponível</Badge>
-                  )}
-                </div>
-              </Card>
+                </Card>
+              </motion.div>
             ))}
-            {materialsMapped.length === 0 && (
-              <Card className="p-8 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <Download className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-600">Nenhum material publicado nesta turma ainda.</p>
-              </Card>
+            {activities.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="col-span-full"
+              >
+                <Card className="p-12 text-center bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl">
+                  <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 rounded-full flex items-center justify-center">
+                    <FileText className="w-10 h-10 text-slate-400 dark:text-slate-500" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    Nenhuma atividade ainda
+                  </h3>
+                  <p className="text-slate-500 dark:text-slate-400">
+                    As atividades da turma aparecerão aqui
+                  </p>
+                </Card>
+              </motion.div>
             )}
           </div>
         </TabsContent>

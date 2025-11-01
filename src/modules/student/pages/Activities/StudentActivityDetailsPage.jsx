@@ -224,6 +224,22 @@ const StudentActivityDetailsPage = () => {
   const [schemaQuestions, setSchemaQuestions] = useState([]);
   const [selectedAttempt, setSelectedAttempt] = useState(null);
 
+  // Calcular se a atividade está atrasada e se pode responder
+  const isLate = useMemo(() => 
+    activity?.due_date && new Date(activity.due_date) < new Date(), 
+    [activity?.due_date]
+  );
+  
+  const canAnswerLate = useMemo(() => 
+    isLate && activity?.accept_late_submissions === true, 
+    [isLate, activity?.accept_late_submissions]
+  );
+  
+  const isBlocked = useMemo(() => 
+    (isLate && !canAnswerLate) || (activity?.status !== 'published' && activity?.status !== 'active'),
+    [isLate, canAnswerLate, activity?.status]
+  );
+
   useEffect(() => {
     loadActivity();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -240,27 +256,21 @@ const StudentActivityDetailsPage = () => {
     try {
       setLoading(true);
 
+      console.log('[StudentActivityDetailsPage] 🔍 Carregando atividade:', activityId);
+      
       const [activityRes, submissionRes, assignmentsRes, attemptsRes] = await Promise.all([
         supabase
           .from('activities')
           .select(`
             *,
-            created_by_user:profiles!activities_created_by_fkey ( id, full_name ),
-            schema,
-            meta,
-            instructions,
-            activity_type
+            created_by,
+            created_by_user:created_by ( id, full_name )
           `)
           .eq('id', activityId)
           .single(),
         supabase
           .from('submissions')
-          .select(`
-            *,
-            feedback_history:feedback_history(*),
-            feedback:feedbacks (*),
-            student:profiles!submissions_user_id_fkey ( id, name, email )
-          `)
+          .select('*')
           .eq('activity_id', activityId)
           .eq('student_id', user.id)
           .maybeSingle(),
@@ -284,7 +294,34 @@ const StudentActivityDetailsPage = () => {
       const assignments = assignmentsRes.data || [];
       const attemptsData = attemptsRes.data || [];
 
-      const questions = buildQuestions(act?.schema, act?.meta || {});
+      console.log('[StudentActivityDetailsPage] ✅ Atividade carregada:', {
+        title: act?.title,
+        description: act?.description,
+        type: act?.type,
+        content: act?.content,
+        hasQuestions: !!act?.content?.questions
+      });
+
+      // Processar questões do campo content.questions
+      let questions = [];
+      if (act?.content?.questions && Array.isArray(act.content.questions)) {
+        questions = act.content.questions.map((q, index) => ({
+          id: q.id || `q-${index}`,
+          index,
+          title: q.text || q.title || `Questão ${index + 1}`,
+          description: q.description || q.hint,
+          required: true,
+          type: q.type === 'closed' ? 'select' : 'text',
+          options: q.alternatives?.map(alt => alt.text) || [],
+          points: q.points || 1,
+          answerKey: q.alternatives?.find(alt => alt.isCorrect)?.text
+        }));
+      } else if (act?.schema) {
+        // Fallback para schema antigo
+        questions = buildQuestions(act.schema, act?.meta || {});
+      }
+
+      console.log('[StudentActivityDetailsPage] 📝 Questões processadas:', questions);
 
       setActivity(act);
       setSchemaQuestions(questions);
@@ -300,8 +337,22 @@ const StudentActivityDetailsPage = () => {
 
       if (sub) {
         setSubmission(sub);
-        setDraftContent(ensureRichTextContent(sub.content));
-        setObjectiveAnswers(normaliseObjectiveAnswers(sub.data, questions));
+        
+        // Se tem questões objetivas, o content é JSON com as respostas
+        if (questions.length > 0) {
+          try {
+            const answers = typeof sub.content === 'string' ? JSON.parse(sub.content) : sub.content;
+            setObjectiveAnswers(answers || {});
+            setDraftContent(EMPTY_RICH_TEXT);
+          } catch (e) {
+            setObjectiveAnswers({});
+            setDraftContent(EMPTY_RICH_TEXT);
+          }
+        } else {
+          // Se é dissertativa, content é o texto rico
+          setDraftContent(ensureRichTextContent(sub.content));
+          setObjectiveAnswers({});
+        }
       } else {
         setSubmission(null);
         setDraftContent(EMPTY_RICH_TEXT);
@@ -360,7 +411,7 @@ const StudentActivityDetailsPage = () => {
   const submissionLocked = submission?.submitted_at && !allowMultipleAttempts;
 
   const canSubmit = useMemo(() => {
-    if (submissionLocked || activity?.status !== 'active') return false;
+    if (submissionLocked || isBlocked) return false;
     if (schemaQuestions.length > 0) {
       return schemaQuestions.every((q) => {
         const value = objectiveAnswers[q.id];
@@ -369,7 +420,7 @@ const StudentActivityDetailsPage = () => {
       });
     }
     return !isRichTextEmpty(draftContent);
-  }, [activity?.status, schemaQuestions, objectiveAnswers, submissionLocked, draftContent]);
+  }, [isBlocked, schemaQuestions, objectiveAnswers, submissionLocked, draftContent]);
 
   const statusBadge = useMemo(() => {
     if (!submission) {
@@ -385,33 +436,31 @@ const StudentActivityDetailsPage = () => {
   }, [submission]);
 
   const saveDraft = async () => {
-    if (submissionLocked || activity?.status !== 'active') return;
+    if (submissionLocked || isBlocked) return;
 
     try {
       setSavingDraft(true);
 
+      const payload = {
+        content: schemaQuestions.length > 0 ? JSON.stringify(objectiveAnswers) : draftContent,
+        status: 'draft',
+        updated_at: new Date().toISOString()
+      };
+
       if (submission) {
         const { error } = await supabase
           .from('submissions')
-          .update({
-            content: draftContent,
-            data: schemaQuestions.length > 0 ? objectiveAnswers : null,
-            status: 'draft',
-            updated_at: new Date().toISOString()
-          })
+          .update(payload)
           .eq('id', submission.id);
         if (error) throw error;
       } else {
         const { data, error } = await supabase
           .from('submissions')
           .insert({
+            ...payload,
             activity_id: activityId,
             student_id: user.id,
-            content: draftContent,
-            data: schemaQuestions.length > 0 ? objectiveAnswers : null,
-            status: 'draft',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            created_at: new Date().toISOString()
           })
           .select()
           .single();
@@ -422,11 +471,54 @@ const StudentActivityDetailsPage = () => {
       toast({ title: 'Rascunho salvo', description: 'Continue quando se sentir pronto.' });
       loadActivity();
     } catch (error) {
-      console.error('Erro ao salvar rascunho:', error);
-      toast({ title: 'Não foi possível salvar o rascunho', description: 'Tente novamente.', variant: 'destructive' });
+      toast({ 
+        title: 'Erro ao salvar rascunho', 
+        description: error?.message || 'Tente novamente em instantes.', 
+        variant: 'destructive' 
+      });
     } finally {
       setSavingDraft(false);
     }
+  };
+
+  // Função para calcular nota automática de questões objetivas
+  const calculateAutomaticGrade = () => {
+    // Verifica se todas as questões têm gabarito (answerKey)
+    const allHaveAnswerKey = schemaQuestions.every(q => q.answerKey);
+    if (!allHaveAnswerKey || schemaQuestions.length === 0) return null;
+
+    let correctAnswers = 0;
+    const totalQuestions = schemaQuestions.length;
+
+    schemaQuestions.forEach(question => {
+      const studentAnswer = objectiveAnswers[question.id];
+      const correctAnswer = question.answerKey;
+
+      // Para questões de múltipla escolha
+      if (question.type === 'select' || question.type === 'multiple_choice') {
+        if (studentAnswer === correctAnswer) {
+          correctAnswers++;
+        }
+      }
+      // Para questões checkbox (múltiplas respostas)
+      else if (question.type === 'checkbox') {
+        const studentAnswersArray = Array.isArray(studentAnswer) ? studentAnswer : [];
+        const correctAnswersArray = Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer];
+        
+        // Verifica se as respostas são iguais (mesmo tamanho e mesmos elementos)
+        const isCorrect = studentAnswersArray.length === correctAnswersArray.length &&
+                         studentAnswersArray.every(ans => correctAnswersArray.includes(ans));
+        
+        if (isCorrect) {
+          correctAnswers++;
+        }
+      }
+    });
+
+    // Calcula a nota proporcional ao max_score
+    const maxScore = activity?.max_score || 100;
+    const grade = (correctAnswers / totalQuestions) * maxScore;
+    return Math.round(grade * 100) / 100; // Arredonda para 2 casas decimais
   };
 
   const handleSubmit = async () => {
@@ -442,27 +534,33 @@ const StudentActivityDetailsPage = () => {
     try {
       setSubmitting(true);
 
+      // Calcular nota automática se possível
+      const automaticGrade = schemaQuestions.length > 0 ? calculateAutomaticGrade() : null;
+
+      const payload = {
+        content: schemaQuestions.length > 0 ? JSON.stringify(objectiveAnswers) : draftContent,
+        submitted_at: new Date().toISOString(),
+        status: automaticGrade !== null ? 'graded' : 'submitted',
+        ...(automaticGrade !== null && {
+          grade: automaticGrade,
+          graded_at: new Date().toISOString(),
+          feedback: `Correção automática: ${Math.round((automaticGrade / (activity?.max_score || 100)) * 100)}% de acerto.`
+        })
+      };
+
       if (submission) {
         const { error } = await supabase
           .from('submissions')
-          .update({
-            content: draftContent,
-            data: schemaQuestions.length > 0 ? objectiveAnswers : null,
-            submitted_at: new Date().toISOString(),
-            status: 'submitted'
-          })
+          .update(payload)
           .eq('id', submission.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from('submissions')
           .insert({
+            ...payload,
             activity_id: activityId,
-            student_id: user.id,
-            content: draftContent,
-            data: schemaQuestions.length > 0 ? objectiveAnswers : null,
-            submitted_at: new Date().toISOString(),
-            status: 'submitted'
+            student_id: user.id
           });
         if (error) throw error;
       }
@@ -471,8 +569,11 @@ const StudentActivityDetailsPage = () => {
       loadActivity();
       setActiveTab('feedback');
     } catch (error) {
-      console.error('Erro ao enviar atividade:', error);
-      toast({ title: 'Erro ao enviar atividade', description: 'Tente novamente em instantes.', variant: 'destructive' });
+      toast({ 
+        title: 'Erro ao enviar atividade', 
+        description: error?.message || 'Verifique sua conexão e tente novamente.', 
+        variant: 'destructive' 
+      });
     } finally {
       setSubmitting(false);
     }
@@ -480,7 +581,7 @@ const StudentActivityDetailsPage = () => {
 
   const renderQuestionField = (question) => {
     const value = objectiveAnswers[question.id];
-    const disabled = submissionLocked || activity?.status !== 'active';
+    const disabled = submissionLocked || isBlocked;
 
     const questionHeader = (
       <div className="flex items-center justify-between">
@@ -496,25 +597,50 @@ const StudentActivityDetailsPage = () => {
 
     if (question.type === 'select' || question.type === 'multiple_choice') {
       return (
-        <Card key={question.id} className="p-4 space-y-3">
+        <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-slate-900 dark:via-blue-950/20 dark:to-purple-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-blue-400/60 dark:hover:border-blue-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10">
           {questionHeader}
-          {question.description && <p className="text-sm text-slate-500">{question.description}</p>}
-          <Select
-            value={value ?? ''}
-            onValueChange={(val) => handleObjectiveChange(question.id, val)}
-            disabled={disabled}
-          >
-            <SelectTrigger className="bg-white dark:bg-slate-900">
-              <SelectValue placeholder="Selecione uma opção" />
-            </SelectTrigger>
-            <SelectContent>
-              {question.options.map((option) => (
-                <SelectItem key={`${question.id}-${option}`} value={option}>
+          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
+          
+          <div className="space-y-3">
+            {question.options.map((option, idx) => (
+              <label
+                key={`${question.id}-${option}`}
+                className={`group/option flex items-center gap-4 rounded-xl border-2 px-4 py-3.5 transition-all duration-200 cursor-pointer hover:shadow-md ${
+                  value === option 
+                    ? 'bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border-blue-500 dark:border-blue-400' 
+                    : 'border-slate-200/60 dark:border-slate-700/40 hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-purple-50/50 dark:hover:from-blue-950/30 dark:hover:to-purple-950/30 hover:border-blue-400/60 dark:hover:border-blue-500/40'
+                }`}
+                onClick={() => !disabled && handleObjectiveChange(question.id, option)}
+              >
+                {/* LETRA À ESQUERDA */}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all flex-shrink-0 ${
+                  value === option
+                    ? 'bg-blue-500 dark:bg-blue-400 text-white scale-100'
+                    : 'bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 text-blue-600 dark:text-blue-300 scale-95 group-hover/option:scale-100'
+                }`}>
+                  {String.fromCharCode(65 + idx)}
+                </div>
+                
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                  value === option 
+                    ? 'border-blue-500 dark:border-blue-400 bg-blue-500 dark:bg-blue-400' 
+                    : 'border-slate-300 dark:border-slate-600'
+                }`}>
+                  {value === option && (
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  )}
+                </div>
+                
+                <span className={`flex-1 font-medium transition-colors ${
+                  value === option 
+                    ? 'text-blue-700 dark:text-blue-300' 
+                    : 'text-slate-700 dark:text-slate-300 group-hover/option:text-blue-700 dark:group-hover/option:text-blue-300'
+                }`}>
                   {option}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                </span>
+              </label>
+            ))}
+          </div>
         </Card>
       );
     }
@@ -529,21 +655,30 @@ const StudentActivityDetailsPage = () => {
       };
 
       return (
-        <Card key={question.id} className="p-4 space-y-3">
+        <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 dark:from-slate-900 dark:via-purple-950/20 dark:to-pink-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-purple-400/60 dark:hover:border-purple-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
           {questionHeader}
-          {question.description && <p className="text-sm text-slate-500">{question.description}</p>}
-          <div className="space-y-2">
-            {question.options.map((option) => (
+          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
+          <div className="space-y-3">
+            {question.options.map((option, idx) => (
               <label
                 key={`${question.id}-${option}`}
-                className="flex items-center gap-3 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-900/40"
+                className="group/option flex items-center gap-4 rounded-xl border-2 border-slate-200/60 dark:border-slate-700/40 px-4 py-3.5 hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-pink-50/50 dark:hover:from-purple-950/30 dark:hover:to-pink-950/30 hover:border-purple-400/60 dark:hover:border-purple-500/40 transition-all duration-200 cursor-pointer hover:shadow-md"
               >
+                {/* LETRA À ESQUERDA */}
+                <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/40 dark:to-pink-900/40 flex items-center justify-center text-sm font-bold text-purple-600 dark:text-purple-300 flex-shrink-0 ${
+                  values.includes(option) ? 'scale-100 opacity-100' : 'scale-95 opacity-80 group-hover/option:scale-100 group-hover/option:opacity-100'
+                } transition-all`}>
+                  {String.fromCharCode(65 + idx)}
+                </div>
+                
                 <Checkbox
                   checked={values.includes(option)}
                   onCheckedChange={() => toggle(option)}
                   disabled={disabled}
+                  className="border-2 flex-shrink-0"
                 />
-                <span>{option}</span>
+                
+                <span className="flex-1 font-medium text-slate-700 dark:text-slate-300 group-hover/option:text-purple-700 dark:group-hover/option:text-purple-300 transition-colors">{option}</span>
               </label>
             ))}
           </div>
@@ -553,14 +688,16 @@ const StudentActivityDetailsPage = () => {
 
     if (question.type === 'number') {
       return (
-        <Card key={question.id} className="p-4 space-y-3">
+        <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 dark:from-slate-900 dark:via-emerald-950/20 dark:to-teal-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-emerald-400/60 dark:hover:border-emerald-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/10">
           {questionHeader}
+          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
           <Input
             type="number"
             value={value ?? ''}
             onChange={(event) => handleObjectiveChange(question.id, event.target.value)}
             disabled={disabled}
-            placeholder="Digite um valor"
+            placeholder="🔢 Digite um valor numérico"
+            className="h-12 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500 focus:border-emerald-500 dark:focus:border-emerald-400 transition-colors"
           />
         </Card>
       );
@@ -568,26 +705,31 @@ const StudentActivityDetailsPage = () => {
 
     if (question.type === 'date') {
       return (
-        <Card key={question.id} className="p-4 space-y-3">
+        <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 dark:from-slate-900 dark:via-amber-950/20 dark:to-orange-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-amber-400/60 dark:hover:border-amber-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10">
           {questionHeader}
+          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
           <Input
             type="date"
             value={value ?? ''}
             onChange={(event) => handleObjectiveChange(question.id, event.target.value)}
             disabled={disabled}
+            className="h-12 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500 focus:border-amber-500 dark:focus:border-amber-400 transition-colors"
           />
         </Card>
       );
     }
 
     return (
-      <Card key={question.id} className="p-4 space-y-3">
+      <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-rose-50/30 to-pink-50/20 dark:from-slate-900 dark:via-rose-950/20 dark:to-pink-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-rose-400/60 dark:hover:border-rose-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/10">
         {questionHeader}
+        {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
         <Textarea
           value={value ?? ''}
           onChange={(event) => handleObjectiveChange(question.id, event.target.value)}
           disabled={disabled}
-          placeholder="Digite sua resposta"
+          placeholder="✍️ Digite sua resposta detalhada aqui..."
+          className="min-h-[120px] bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-2 border-slate-200 dark:border-slate-700 hover:border-rose-400 dark:hover:border-rose-500 focus:border-rose-500 dark:focus:border-rose-400 transition-colors resize-none"
+          rows={5}
         />
       </Card>
     );
@@ -620,17 +762,6 @@ const StudentActivityDetailsPage = () => {
 
     if (submission?.graded_at) {
       events.push({ key: 'graded', label: 'Correção disponível', timestamp: submission.graded_at, accent: 'bg-emerald-500' });
-    }
-
-    if (Array.isArray(submission?.feedback_history)) {
-      submission.feedback_history.forEach((entry) => {
-        events.push({
-          key: `feedback-${entry.id}`,
-          label: 'Feedback atualizado',
-          timestamp: entry.created_at,
-          accent: 'bg-blue-500'
-        });
-      });
     }
 
     return events
@@ -961,152 +1092,256 @@ const StudentActivityDetailsPage = () => {
     );
   }
 
-  const isLate = activity?.due_date && new Date(activity.due_date) < new Date();
+  if (!activity) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+          <p className="text-slate-600">Atividade não encontrada</p>
+          <Button onClick={() => navigate('/students/activities')} className="mt-4">
+            Voltar para Atividades
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   const hasGrade = submission?.grade !== null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/students/activities')}
-        className="mb-4"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar
-      </Button>
-
-      <DashboardHeader
-        title={activity?.title || 'Atividade'}
-        subtitle={`Por ${activity?.created_by_user?.name || 'Professor'}`}
-        role="student"
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Activity Info */}
-          <Card className="p-6 bg-white dark:bg-slate-900">
-            <div className="flex items-center gap-2 mb-4">
-              <Badge className={
-                activity?.status === 'active' ? 'bg-green-100 text-green-700' :
-                'bg-slate-100 text-slate-700'
-              }>
-                {activity?.status === 'active' ? 'Ativa' : 'Encerrada'}
-              </Badge>
-              {isLate && <Badge className="bg-red-100 text-red-700">Atrasada</Badge>}
-              {hasGrade && <Badge className="bg-blue-100 text-blue-700">Corrigida</Badge>}
-            </div>
-
-            <h3 className="font-bold text-lg mb-2">Instruções</h3>
-            <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap">
-              {activity?.description || 'Sem descrição'}
-            </p>
-          </Card>
-
-          {/* Submission Area */}
-          {!hasGrade && activity?.status === 'active' ? (
-            <Card className="p-6 bg-white dark:bg-slate-900">
-              <h3 className="font-bold text-lg mb-4">Sua Resposta</h3>
-              
-              <Textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Digite sua resposta aqui..."
-                className="mb-4 min-h-[300px]"
-                disabled={hasGrade}
-              />
-
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleSubmit}
-                  disabled={submitting || hasGrade}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600"
-                >
-                  {submitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                      Enviando...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-4 h-4 mr-2" />
-                      {submission ? 'Atualizar Resposta' : 'Enviar Resposta'}
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Card>
-          ) : hasGrade ? (
-            <Card className="p-6 bg-white dark:bg-slate-900">
-              <h3 className="font-bold text-lg mb-4">Sua Resposta (Corrigida)</h3>
-              <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg mb-4">
-                <p className="whitespace-pre-wrap">{submission?.content}</p>
-              </div>
-            </Card>
-          ) : null}
-
-          {/* Feedback */}
-          {hasGrade && (
-            <Card className="p-6 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800">
-              <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                Feedback do Professor
-              </h3>
-              <div className="text-slate-600 dark:text-slate-400 mb-4 whitespace-pre-wrap">
-                {/* Feedback é salvo como TEXT direto no campo submission.feedback */}
-                {submission?.feedback || 'Sem comentários'}
-              </div>
-              <div className="flex items-center gap-4">
-                <div>
-                  <span className="text-sm text-slate-600">Nota:</span>
-                  <div className="text-3xl font-bold text-blue-600">
-                    {submission?.grade}/{activity?.max_score}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      {/* Header Moderno */}
+      <div className="relative bg-gradient-to-br from-blue-600 via-blue-500 to-cyan-500 overflow-hidden shadow-2xl">
+        {/* Pattern de fundo */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 bg-grid-white/[0.1] bg-[size:30px_30px]" />
         </div>
-
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Details */}
-          <Card className="p-6 bg-white dark:bg-slate-900">
-            <h3 className="font-bold mb-4">Detalhes</h3>
-            <div className="space-y-3 text-sm">
-              <div>
-                <span className="text-slate-600 dark:text-slate-400">Prazo:</span>
-                <div className="font-semibold">
-                  {activity?.due_date 
-                    ? new Date(activity.due_date).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })
-                    : 'Sem prazo'}
+        
+        {/* Shapes decorativos */}
+        <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -bottom-20 -left-20 w-96 h-96 bg-cyan-300/10 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}} />
+        
+        <div className="relative z-10 w-full px-8 py-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate(-1)}
+            className="mb-4 text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
+          
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30">
+                  <FileText className="w-8 h-8 text-white" />
+                </div>
+                <Badge className={statusBadge.className}>
+                  {statusBadge.label}
+                </Badge>
+                {isLate && (
+                  <Badge className="bg-red-500/90 text-white border-0">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Atrasada
+                  </Badge>
+                )}
+              </div>
+              <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-lg">{activity?.title}</h1>
+              <p className="text-white/90 text-lg">{activity?.description || 'Sem descrição'}</p>
+              <div className="flex items-center gap-4 mt-4 text-white/80">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <CalendarIcon className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-medium">
+                    {activity?.due_date 
+                      ? format(new Date(activity.due_date), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })
+                      : 'Sem prazo'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <PieChart className="w-4 h-4" />
+                  </div>
+                  <span className="text-sm font-bold">{activity?.max_score} pontos</span>
                 </div>
               </div>
-              <div>
-                <span className="text-slate-600 dark:text-slate-400">Pontuação:</span>
-                <div className="font-semibold">{activity?.max_score} pontos</div>
-              </div>
-              <div>
-                <span className="text-slate-600 dark:text-slate-400">Tipo:</span>
-                <div className="font-semibold capitalize">{activity?.type || 'Tarefa'}</div>
-              </div>
-              {submission && (
-                <div>
-                  <span className="text-slate-600 dark:text-slate-400">Status:</span>
-                  <div className="font-semibold">
-                    {hasGrade ? 'Corrigida' : 
-                     submission.submitted_at ? 'Enviada' : 'Rascunho'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full px-8 py-8">
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-lg rounded-xl overflow-hidden">
+                <TabsList className="w-full grid grid-cols-3 p-1.5 bg-slate-50 dark:bg-slate-800/50 gap-1">
+                  <TabsTrigger 
+                    value="instructions"
+                    className="flex items-center justify-center gap-2 py-2.5 text-sm font-medium data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all rounded-lg"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Instruções
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="answer"
+                    className="flex items-center justify-center gap-2 py-2.5 text-sm font-medium data-[state=active]:bg-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all rounded-lg"
+                  >
+                    <FileText className="w-4 h-4" />
+                    Responder
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="feedback"
+                    className="flex items-center justify-center gap-2 py-2.5 text-sm font-medium data-[state=active]:bg-purple-500 data-[state=active]:text-white data-[state=active]:shadow-md transition-all rounded-lg"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    Feedback
+                  </TabsTrigger>
+                </TabsList>
+              </Card>
+
+              <TabsContent value="instructions" className="space-y-4 mt-4">
+                {renderInstructionsTab()}
+              </TabsContent>
+
+              <TabsContent value="answer" className="space-y-4 mt-4">
+                {submissionLocked ? (
+                  <Card className="p-8 bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                    <div className="flex items-start gap-4">
+                      <AlertTriangle className="w-6 h-6 text-amber-600 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
+                          Atividade já enviada
+                        </h4>
+                        <p className="text-sm text-amber-700 dark:text-amber-200">
+                          Você já submeteu esta atividade. {!allowMultipleAttempts && 'Não é permitido reenviar.'}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ) : isBlocked ? (
+                  <Card className="p-8 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800">
+                    <div className="flex items-start gap-4">
+                      <AlertTriangle className="w-6 h-6 text-slate-500 mt-1" />
+                      <div>
+                        <h4 className="font-semibold mb-2">
+                          {isLate ? 'Prazo encerrado' : 'Atividade encerrada'}
+                        </h4>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {isLate 
+                            ? 'O prazo desta atividade expirou e o professor não permite respostas atrasadas.' 
+                            : 'Esta atividade não está mais disponível para submissões.'}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ) : canAnswerLate ? (
+                  <>
+                    <Card className="p-6 bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800">
+                      <div className="flex items-start gap-4">
+                        <Clock className="w-6 h-6 text-orange-600 mt-1" />
+                        <div>
+                          <h4 className="font-semibold text-orange-900 dark:text-orange-100 mb-2">
+                            Atenção: Resposta fora do prazo
+                          </h4>
+                          <p className="text-sm text-orange-700 dark:text-orange-200">
+                            O prazo desta atividade já expirou, mas o professor permite respostas atrasadas. 
+                            Sua submissão pode receber penalidade na pontuação.
+                          </p>
+                        </div>
+                      </div>
+                    </Card>
+                    {isObjectiveActivity ? renderObjectiveTab() : renderSubjectiveTab()}
+                  </>
+                ) : isObjectiveActivity ? (
+                  renderObjectiveTab()
+                ) : (
+                  renderSubjectiveTab()
+                )}
+              </TabsContent>
+
+              <TabsContent value="feedback" className="space-y-4 mt-4">
+                {renderFeedback()}
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
+            {/* Details Card */}
+            <Card className="p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-md rounded-xl">
+              <h3 className="font-semibold text-base mb-4 flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-blue-500" />
+                Detalhes
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+                    <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500">Prazo</p>
+                    <p className="font-medium text-sm">
+                      {activity?.due_date 
+                        ? format(new Date(activity.due_date), "dd/MM 'às' HH:mm", { locale: ptBR })
+                        : 'Sem prazo'}
+                    </p>
+                  </div>
+                  {isLate && (
+                    <Badge className="bg-red-100 text-red-700 text-xs">
+                      Expirado
+                    </Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                    <PieChart className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500">Pontuação</p>
+                    <p className="font-semibold text-lg text-emerald-600 dark:text-emerald-400">{activity?.max_score || 100} pts</p>
                   </div>
                 </div>
-              )}
-            </div>
-          </Card>
+
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+                    <FileText className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-slate-500">Tipo</p>
+                    <p className="font-medium text-sm">
+                      {activity?.type === 'closed' ? 'Objetiva' : 
+                       activity?.type === 'open' ? 'Dissertativa' : 
+                       activity?.type || 'Mista'}
+                    </p>
+                  </div>
+                </div>
+
+                {submission && (
+                  <div className="flex items-center gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                    <div className="p-2 bg-sky-50 dark:bg-sky-950/30 rounded-lg">
+                      <CheckCircle2 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-500">Status</p>
+                      <p className="font-medium text-sm">
+                        {hasGrade ? '✅ Corrigida' : 
+                         submission.submitted_at ? '📤 Enviada' : '📝 Rascunho'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+
+            {renderAttemptsInfo()}
+            {renderTimeline()}
+          </div>
         </div>
       </div>
     </div>

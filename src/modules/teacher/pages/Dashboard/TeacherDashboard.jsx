@@ -12,6 +12,7 @@ import {
   Calendar,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   TrendingUp,
   Bell,
   Video,

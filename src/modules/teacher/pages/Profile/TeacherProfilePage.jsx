@@ -39,7 +39,6 @@ const TeacherProfilePage = () => {
     phone: '',
     cpf: '',
     date_of_birth: '',
-    bio: '',
     specializations: [],
     education: '',
     institution: '',
@@ -100,7 +99,6 @@ const TeacherProfilePage = () => {
           phone: data.phone || '',
           cpf: data.cpf || '',
           date_of_birth: data.date_of_birth || '',
-          bio: data.bio || '',
           specializations: data.specializations || [],
           education: data.education || '',
           institution: data.institution || '',
@@ -194,7 +192,6 @@ const TeacherProfilePage = () => {
         phone: profileData.phone,
         cpf: profileData.cpf,
         date_of_birth: profileData.date_of_birth,
-        bio: profileData.bio,
         specializations: profileData.specializations,
         education: profileData.education,
         institution: profileData.institution
@@ -430,28 +427,6 @@ const TeacherProfilePage = () => {
               <div className="space-y-4 mb-8">
                 <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Informações Profissionais</h3>
                 
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Biografia Profissional
-                    </label>
-                    <span className="text-xs text-slate-500">
-                      {profileData.bio.length}/500
-                    </span>
-                  </div>
-                  <textarea
-                    value={profileData.bio}
-                    onChange={(e) => {
-                      if (e.target.value.length <= 500) {
-                        setProfileData(prev => ({ ...prev, bio: e.target.value }));
-                      }
-                    }}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
-                    placeholder="Conte um pouco sobre sua experiência e metodologia..."
-                  />
-                </div>
-
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                     Instituição

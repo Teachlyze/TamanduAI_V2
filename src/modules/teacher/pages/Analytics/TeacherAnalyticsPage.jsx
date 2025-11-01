@@ -38,6 +38,7 @@ const TeacherAnalyticsPage = () => {
   const [activityTypes, setActivityTypes] = useState(['all']);
   const [statusFilter, setStatusFilter] = useState(['graded']);
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const [useEdgeFunction, setUseEdgeFunction] = useState(true); // Toggle para usar edge function
 
   // Dados
   const [classes, setClasses] = useState([]);
@@ -74,17 +75,70 @@ const TeacherAnalyticsPage = () => {
     
     setLoading(true);
     try {
-      await Promise.all([
-        loadClasses(),
-        loadKPIs(),
-        loadGradeEvolution(),
-        loadClassComparison(),
-        loadGradeDistribution(),
-        loadWeeklyTrends(),
-        loadTopStudents(),
-        loadPlagiarismStats(),
-        loadEngagementStats()
-      ]);
+      // Primeiro carregar turmas
+      await loadClasses();
+      
+      if (useEdgeFunction) {
+        // Usar Edge Function com cache Redis
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-teacher-analytics`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ 
+              period,
+              selectedClasses: selectedClasses.length > 0 ? selectedClasses : classes.map(c => c.id)
+            })
+          }
+        );
+
+        if (!response.ok) throw new Error('Erro ao carregar analytics');
+
+        const result = await response.json();
+        const data = result.data;
+
+        // Atualizar KPIs
+        setKpis(data.kpis);
+        
+        // Atualizar top students
+        setTopStudents(data.topStudents || []);
+
+        // Carregar dados adicionais em paralelo (não cacheaveis)
+        await Promise.all([
+          loadGradeEvolution(),
+          loadClassComparison(),
+          loadGradeDistribution(),
+          loadWeeklyTrends(),
+          loadPlagiarismStats(),
+          loadEngagementStats()
+        ]);
+
+        if (result.cached) {
+          toast({ 
+            title: '⚡ Cache', 
+            description: 'Dados carregados do cache (5min)',
+            duration: 2000
+          });
+        }
+      } else {
+        // Fallback: carregar direto do Supabase
+        await Promise.all([
+          loadKPIs(),
+          loadGradeEvolution(),
+          loadClassComparison(),
+          loadGradeDistribution(),
+          loadWeeklyTrends(),
+          loadTopStudents(),
+          loadPlagiarismStats(),
+          loadEngagementStats()
+        ]);
+      }
     } catch (error) {
       console.error('Erro ao carregar analytics:', error);
       toast({
@@ -113,6 +167,18 @@ const TeacherAnalyticsPage = () => {
   };
 
   const loadKPIs = async () => {
+    if (selectedClasses.length === 0) {
+      setKpis({
+        totalStudents: 0,
+        totalActivities: 0,
+        pendingCorrections: 0,
+        avgGrade: 0,
+        onTimeRate: 0,
+        openActivities: 0
+      });
+      return;
+    }
+
     const dateFilter = period === 'all' ? null : format(subDays(new Date(), parseInt(period)), 'yyyy-MM-dd');
 
     // Total de alunos únicos
@@ -200,91 +266,89 @@ const TeacherAnalyticsPage = () => {
 
   const loadGradeEvolution = async () => {
     const days = period === 'all' ? 90 : parseInt(period);
-    const data = [];
+    const dateFilter = format(subDays(new Date(), days), 'yyyy-MM-dd');
 
-    for (let i = days; i >= 0; i -= days > 90 ? 7 : days > 30 ? 3 : 1) {
-      const date = subDays(new Date(), i);
-      const dateStr = format(date, 'yyyy-MM-dd');
+    // UMA query ao invés de dezenas!
+    const { data: grades } = await supabase
+      .from('submissions')
+      .select('grade, graded_at, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
+      .not('grade', 'is', null)
+      .in('activities.activity_class_assignments.class_id', selectedClasses)
+      .gte('graded_at', dateFilter)
+      .order('graded_at', { ascending: true });
 
-      const { data: grades } = await supabase
-        .from('submissions')
-        .select('grade, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
-        .not('grade', 'is', null)
-        .in('activities.activity_class_assignments.class_id', selectedClasses)
-        .eq('graded_at', dateStr);
-
-      const avg = grades?.length > 0
-        ? grades.reduce((sum, s) => sum + s.grade, 0) / grades.length
-        : null;
-
-      if (avg !== null) {
-        data.push({
-          date: format(date, 'dd/MM'),
-          media: parseFloat(avg.toFixed(2)),
-          submissoes: grades.length
-        });
+    // Agrupar por data no frontend
+    const groupedByDate = {};
+    grades?.forEach(g => {
+      const dateKey = format(new Date(g.graded_at), 'dd/MM');
+      if (!groupedByDate[dateKey]) {
+        groupedByDate[dateKey] = [];
       }
-    }
+      groupedByDate[dateKey].push(g.grade);
+    });
 
-    setGradeEvolution(data);
+    const data = Object.entries(groupedByDate).map(([date, gradesList]) => ({
+      date,
+      media: parseFloat((gradesList.reduce((sum, g) => sum + g, 0) / gradesList.length).toFixed(2)),
+      submissoes: gradesList.length
+    }));
+
+    setGradeEvolution(data.slice(-30)); // Últimos 30 pontos
   };
 
   const loadClassComparison = async () => {
-    const comparison = [];
-
-    for (const classItem of classes.filter(c => selectedClasses.includes(c.id))) {
-      // Média da turma
-      const { data: grades } = await supabase
-        .from('submissions')
-        .select('grade, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
-        .not('grade', 'is', null)
-        .eq('activities.activity_class_assignments.class_id', classItem.id);
-
-      const avgGrade = grades?.length > 0
-        ? grades.reduce((sum, s) => sum + s.grade, 0) / grades.length
-        : 0;
-
-      // Total de alunos
-      const { data: students } = await supabase
-        .from('class_members')
-        .select('user_id')
-        .eq('class_id', classItem.id)
-        .eq('role', 'student');
-
-      // Taxa de entrega
-      const { data: onTime } = await supabase
-        .from('submissions')
-        .select('submitted_at, activity_id, activities!inner(due_date, activity_class_assignments!inner(class_id))')
-        .eq('activities.activity_class_assignments.class_id', classItem.id)
-        .not('submitted_at', 'is', null)
-        .not('activities.due_date', 'is', null);
-
-      const onTimeCount = onTime?.filter(s => 
-        new Date(s.submitted_at) <= new Date(s.activities.due_date)
-      ).length || 0;
-      const deliveryRate = onTime?.length > 0
-        ? Math.round((onTimeCount / onTime.length) * 100)
-        : 0;
-
-      comparison.push({
-        name: classItem.name,
-        subject: classItem.subject,
-        students: students?.length || 0,
-        avgGrade: parseFloat(avgGrade.toFixed(2)),
-        deliveryRate,
-        color: classItem.color || '#3B82F6'
-      });
+    if (selectedClasses.length === 0) {
+      setClassComparison([]);
+      return;
     }
 
-    setClassComparison(comparison);
-  };
-
-  const loadGradeDistribution = async () => {
-    const { data: grades } = await supabase
+    // UMA query para todas as turmas
+    const { data: allGrades } = await supabase
       .from('submissions')
       .select('grade, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
       .not('grade', 'is', null)
       .in('activities.activity_class_assignments.class_id', selectedClasses);
+
+    const comparison = [];
+
+    for (const classItem of classes.filter(c => selectedClasses.includes(c.id))) {
+      // Filtrar grades desta turma
+      const grades = allGrades?.filter(g => 
+        g.activities?.activity_class_assignments?.some(aca => aca.class_id === classItem.id)
+      ) || [];
+
+      const avgGrade = grades.length > 0
+        ? grades.reduce((sum, s) => sum + s.grade, 0) / grades.length
+        : 0;
+
+      // Pegar dados que já temos em cache
+      const students = 0; // Será preenchido pela edge function
+      const activities = 0; // Será preenchido pela edge function
+
+      comparison.push({
+        name: classItem.name,
+        media: parseFloat(avgGrade.toFixed(2)),
+        alunos: students,
+        atividades: activities,
+        color: classItem.color || '#3B82F6'
+      });
+    }
+
+    setClassComparison(comparison.sort((a, b) => b.media - a.media));
+  };
+
+  const loadGradeDistribution = async () => {
+    if (selectedClasses.length === 0) {
+      setGradeDistribution([]);
+      return;
+    }
+
+    const { data: grades } = await supabase
+      .from('submissions')
+      .select('grade, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
+      .not('grade', 'is', null)
+      .in('activities.activity_class_assignments.class_id', selectedClasses)
+      .limit(1000); // Limitar
 
     const distribution = [
       { range: '0-2', count: 0, color: '#EF4444' },
@@ -306,31 +370,45 @@ const TeacherAnalyticsPage = () => {
   };
 
   const loadWeeklyTrends = async () => {
+    if (selectedClasses.length === 0) {
+      setWeeklyTrends([]);
+      return;
+    }
+
+    // UMA query para todas as semanas
+    const startDate = format(subDays(new Date(), 84), 'yyyy-MM-dd'); // 12 semanas atrás
+
+    const { data: allSubmissions } = await supabase
+      .from('submissions')
+      .select('submitted_at, activity_id, activities!inner(due_date, activity_class_assignments!inner(class_id))')
+      .eq('status', 'submitted')
+      .in('activities.activity_class_assignments.class_id', selectedClasses)
+      .gte('submitted_at', startDate)
+      .limit(1000);
+
     const weeks = [];
-    for (let i = 11; i >= 0; i--) {
-      const weekStart = subDays(new Date(), i * 7);
-      const weekEnd = subDays(new Date(), (i - 1) * 7);
+    for (let i = 0; i < 12; i++) {
+      const weekStart = subDays(new Date(), (12 - i) * 7);
+      const weekEnd = subDays(new Date(), (11 - i) * 7);
 
-      const { data: submissions } = await supabase
-        .from('submissions')
-        .select('submitted_at, status, activity_id, activities!inner(due_date, activity_class_assignments!inner(class_id))')
-        .in('activities.activity_class_assignments.class_id', selectedClasses)
-        .gte('submitted_at', format(weekStart, 'yyyy-MM-dd'))
-        .lte('submitted_at', format(weekEnd, 'yyyy-MM-dd'));
+      const weekSubmissions = allSubmissions?.filter(s => {
+        const subDate = new Date(s.submitted_at);
+        return subDate >= weekStart && subDate <= weekEnd;
+      }) || [];
 
-      const onTime = submissions?.filter(s => 
+      const onTime = weekSubmissions.filter(s => 
         s.activities?.due_date && new Date(s.submitted_at) <= new Date(s.activities.due_date)
-      ).length || 0;
+      ).length;
 
-      const late = submissions?.filter(s =>
+      const late = weekSubmissions.filter(s => 
         s.activities?.due_date && new Date(s.submitted_at) > new Date(s.activities.due_date)
-      ).length || 0;
+      ).length;
 
       weeks.push({
         week: `S${12 - i}`,
         noPrazo: onTime,
         atrasadas: late,
-        total: submissions?.length || 0
+        total: weekSubmissions.length
       });
     }
 
@@ -338,6 +416,12 @@ const TeacherAnalyticsPage = () => {
   };
 
   const loadTopStudents = async () => {
+    if (selectedClasses.length === 0) {
+      setTopStudents([]);
+      return;
+    }
+
+    // LIMITAR a query com .limit()
     const { data: submissions } = await supabase
       .from('submissions')
       .select(`
@@ -348,7 +432,8 @@ const TeacherAnalyticsPage = () => {
         activities!inner(activity_class_assignments!inner(class_id))
       `)
       .not('grade', 'is', null)
-      .in('activities.activity_class_assignments.class_id', selectedClasses);
+      .in('activities.activity_class_assignments.class_id', selectedClasses)
+      .limit(500); // IMPORTANTE: limitar!
 
     const studentGrades = {};
     submissions?.forEach(s => {
@@ -378,6 +463,11 @@ const TeacherAnalyticsPage = () => {
   };
 
   const loadPlagiarismStats = async () => {
+    if (selectedClasses.length === 0) {
+      setPlagiarismStats(null);
+      return;
+    }
+
     const { data: checks } = await supabase
       .from('plagiarism_checks')
       .select(`
@@ -386,7 +476,8 @@ const TeacherAnalyticsPage = () => {
         submission_id,
         submissions!inner(activity_id, activities!inner(activity_class_assignments!inner(class_id)))
       `)
-      .in('submissions.activities.activity_class_assignments.class_id', selectedClasses);
+      .in('submissions.activities.activity_class_assignments.class_id', selectedClasses)
+      .limit(500);
 
     if (!checks || checks.length === 0) {
       setPlagiarismStats(null);

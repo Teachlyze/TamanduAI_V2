@@ -13,6 +13,8 @@ import { DashboardHeader } from '@/shared/design';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import reportService from '@/services/reportService';
+import ReportViewer from './components/ReportViewer';
 
 const REPORT_TEMPLATES = [
   {
@@ -118,6 +120,12 @@ const TeacherReportsPage = () => {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('templates');
   const [recentReports, setRecentReports] = useState([]);
+  const [generatingReport, setGeneratingReport] = useState(false);
+  const [currentReport, setCurrentReport] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [period, setPeriod] = useState('30');
 
   useEffect(() => {
     loadRecentReports();
@@ -128,11 +136,52 @@ const TeacherReportsPage = () => {
     setRecentReports([]);
   };
 
-  const handleGenerateReport = (templateId) => {
-    toast({
-      title: 'Em desenvolvimento',
-      description: `Geração de relatório ${templateId} será implementada em breve`
-    });
+  const handleGenerateReport = async (templateId) => {
+    setGeneratingReport(true);
+    setCurrentReport(null);
+
+    try {
+      let targetId = user?.id; // Usar ID do professor por padrão
+      
+      // Para relatórios que precisam de contexto específico
+      const reportInfo = REPORT_TEMPLATES.find(t => t.id === templateId);
+      
+      toast({
+        title: `📊 Gerando ${reportInfo?.name || 'Relatório'}`,
+        description: 'Processando dados... Aguarde.',
+      });
+
+      // Gerar relatório com dados reais
+      const report = await reportService.generateReport(templateId, targetId, { period: parseInt(period) });
+      
+      setCurrentReport(report);
+      
+      toast({
+        title: '✅ Relatório Gerado',
+        description: `${report.templateName} gerado com sucesso!`,
+      });
+
+      // Adicionar ao histórico
+      setRecentReports(prev => [
+        {
+          id: Date.now(),
+          templateId,
+          generatedAt: new Date().toISOString(),
+          cached: false
+        },
+        ...prev.slice(0, 9)
+      ]);
+
+    } catch (error) {
+      console.error('Erro ao gerar relatório:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível gerar o relatório',
+        variant: 'destructive'
+      });
+    } finally {
+      setGeneratingReport(false);
+    }
   };
 
   const handleViewHistory = () => {
@@ -189,8 +238,9 @@ const TeacherReportsPage = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
+                  style={{ pointerEvents: 'auto' }}
                 >
-                  <Card className="p-6 hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+                  <Card className="p-6 h-full flex flex-col hover:shadow-lg transition-shadow relative" style={{ pointerEvents: 'auto' }}>
                     {/* Gradient Background */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${template.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
                     
@@ -203,8 +253,10 @@ const TeacherReportsPage = () => {
                     )}
 
                     {/* Icon */}
-                    <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${template.color} flex items-center justify-center mb-4`}>
-                      <Icon className="w-8 h-8 text-white" />
+                    <div className="mb-4 relative z-10">
+                      <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${template.color}`}>
+                        <Icon className="w-6 h-6 text-white" />
+                      </div>
                     </div>
 
                     {/* Content */}
@@ -239,10 +291,13 @@ const TeacherReportsPage = () => {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 mt-auto pt-4 relative z-50">
                       <Button 
-                        className={`flex-1 bg-gradient-to-r ${template.color}`}
-                        onClick={() => handleGenerateReport(template.id)}
+                        className={`flex-1 bg-gradient-to-r ${template.color} text-white hover:opacity-90`}
+                        onClick={() => {
+                          console.log('Botão Gerar clicado:', template.id);
+                          handleGenerateReport(template.id);
+                        }}
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Gerar
@@ -250,7 +305,10 @@ const TeacherReportsPage = () => {
                       <Button 
                         variant="outline" 
                         size="icon"
-                        onClick={() => toast({ title: 'Preview', description: 'Visualização será implementada' })}
+                        onClick={() => {
+                          console.log('Botão Preview clicado');
+                          toast({ title: 'Preview', description: 'Visualização será implementada' });
+                        }}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
@@ -265,21 +323,49 @@ const TeacherReportsPage = () => {
           <Card className="mt-8 p-6">
             <h3 className="text-lg font-bold mb-4">Formatos de Exportação</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/20"
+                onClick={() => {
+                  console.log('Exportar PDF clicado');
+                  toast({ title: 'Exportar PDF', description: 'Funcionalidade em desenvolvimento' });
+                }}
+              >
                 <FileText className="w-8 h-8 mb-2 text-red-600" />
-                <span className="text-sm">PDF</span>
+                <span className="text-sm font-medium">PDF</span>
               </Button>
-              <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center hover:bg-green-50 hover:border-green-300 dark:hover:bg-green-950/20"
+                onClick={() => {
+                  console.log('Exportar Excel clicado');
+                  toast({ title: 'Exportar Excel', description: 'Funcionalidade em desenvolvimento' });
+                }}
+              >
                 <FileSpreadsheet className="w-8 h-8 mb-2 text-green-600" />
-                <span className="text-sm">Excel</span>
+                <span className="text-sm font-medium">Excel</span>
               </Button>
-              <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-950/20"
+                onClick={() => {
+                  console.log('Exportar Word clicado');
+                  toast({ title: 'Exportar Word', description: 'Funcionalidade em desenvolvimento' });
+                }}
+              >
                 <FileText className="w-8 h-8 mb-2 text-blue-600" />
-                <span className="text-sm">Word</span>
+                <span className="text-sm font-medium">Word</span>
               </Button>
-              <Button variant="outline" className="h-24 flex flex-col items-center justify-center">
+              <Button 
+                variant="outline" 
+                className="h-24 flex flex-col items-center justify-center hover:bg-purple-50 hover:border-purple-300 dark:hover:bg-purple-950/20"
+                onClick={() => {
+                  console.log('Exportar PNG clicado');
+                  toast({ title: 'Exportar PNG', description: 'Funcionalidade em desenvolvimento' });
+                }}
+              >
                 <FileImage className="w-8 h-8 mb-2 text-purple-600" />
-                <span className="text-sm">PNG</span>
+                <span className="text-sm font-medium">PNG</span>
               </Button>
             </div>
           </Card>
@@ -302,6 +388,14 @@ const TeacherReportsPage = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Report Viewer Modal */}
+      {currentReport && (
+        <ReportViewer 
+          report={currentReport} 
+          onClose={() => setCurrentReport(null)} 
+        />
+      )}
     </div>
   );
 };

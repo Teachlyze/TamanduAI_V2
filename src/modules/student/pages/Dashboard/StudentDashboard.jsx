@@ -439,6 +439,7 @@ const StudentDashboard = () => {
           activity_title: meta.title || 'Atividade',
           class_name: meta.className || 'Turma',
           score: gradeValue,
+          max_score: meta.maxScore || 100,
         };
       });
 
@@ -665,13 +666,16 @@ const StudentDashboard = () => {
             </div>
             <ResponsiveContainer width="100%" height={320}>
               <BarChart data={classPerformance} layout="vertical" margin={{ left: 80 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} />
-                <YAxis type="category" dataKey="className" width={140} />
-                <Tooltip formatter={(value) => `${value}%`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
+                <XAxis type="number" domain={[0, 100]} tickFormatter={(value) => `${value}%`} stroke="#64748B" />
+                <YAxis type="category" dataKey="className" width={140} stroke="#64748B" />
+                <Tooltip 
+                  formatter={(value) => `${value}%`}
+                  contentStyle={{ backgroundColor: '#fff', border: '1px solid #E2E8F0', borderRadius: '8px' }}
+                />
                 <Bar dataKey="average" radius={[0, 12, 12, 0]}>
                   {classPerformance.map((item) => (
-                    <Cell key={item.classId} fill={item.classColor || '#0EA5E9'} />
+                    <Cell key={item.classId} fill={item.classColor || '#3B82F6'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -956,7 +960,8 @@ const StudentDashboard = () => {
                     </p>
                     <div className="flex items-center gap-3">
                       <span className={`text-2xl font-bold ${getGradeColor(grade.score)}`}>
-                        {((grade.score / grade.activity.max_score) * 100).toFixed(0)}%
+                        {grade.score !== null && grade.max_score ? 
+                          ((grade.score / grade.max_score) * 100).toFixed(0) : '0'}%
                       </span>
                       <span className="text-xs text-slate-500 dark:text-slate-500">
                         Corrigido em {new Date(grade.graded_at).toLocaleDateString('pt-BR')}

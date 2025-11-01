@@ -54,7 +54,7 @@ const EditClassPage = () => {
       setSaving(true);
       await ClassService.updateClass(classId, formData);
       alert('Turma atualizada com sucesso!');
-      navigate(`/teacher/classes/${classId}`);
+      navigate(`/dashboard/classes/${classId}`);
     } catch (error) {
       console.error('Erro ao salvar:', error);
       alert('Erro ao salvar. Tente novamente.');
@@ -69,7 +69,7 @@ const EditClassPage = () => {
     try {
       await ClassService.archiveClass(classId);
       alert('Turma arquivada!');
-      navigate('/teacher/classes');
+      navigate('/dashboard/classes');
     } catch (error) {
       console.error('Erro ao arquivar:', error);
       alert('Erro ao arquivar. Tente novamente.');
@@ -82,7 +82,7 @@ const EditClassPage = () => {
     try {
       await ClassService.deleteClass(classId);
       alert('Turma deletada!');
-      navigate('/teacher/classes');
+      navigate('/dashboard/classes');
     } catch (error) {
       console.error('Erro ao deletar:', error);
       alert('Erro ao deletar. Tente novamente.');
@@ -112,7 +112,7 @@ const EditClassPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <Button
         variant="ghost"
-        onClick={() => navigate(`/teacher/classes/${classId}`)}
+        onClick={() => navigate(`/dashboard/classes/${classId}`)}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -195,7 +195,7 @@ const EditClassPage = () => {
             </Button>
             <Button
               variant="outline"
-              onClick={() => navigate(`/teacher/classes/${classId}`)}
+              onClick={() => navigate(`/dashboard/classes/${classId}`)}
             >
               Cancelar
             </Button>

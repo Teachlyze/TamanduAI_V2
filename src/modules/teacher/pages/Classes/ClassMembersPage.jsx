@@ -140,7 +140,7 @@ const ClassMembersPage = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/teacher/students/${row.user_id}`)}
+            onClick={() => navigate(`/dashboard/students/${row.user_id}`)}
           >
             Ver Perfil
           </Button>
@@ -170,7 +170,7 @@ const ClassMembersPage = () => {
       {/* Back Button */}
       <Button
         variant="ghost"
-        onClick={() => navigate(`/teacher/classes/${classId}`)}
+        onClick={() => navigate(`/dashboard/classes/${classId}`)}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />

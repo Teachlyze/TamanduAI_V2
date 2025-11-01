@@ -4,8 +4,9 @@ import { cn } from '@/shared/utils/cn';
 
 /**
  * Enhanced LoadingSpinner component with multiple variants and animations
+ * Otimizado com React.memo para evitar re-renders desnecessários
  */
-const LoadingSpinner = ({
+const LoadingSpinner = React.memo(({
   className,
   size = 'md',
   text = 'Carregando...',
@@ -111,6 +112,7 @@ const LoadingSpinner = ({
   }
 
   return spinnerContent;
-};
+});
+LoadingSpinner.displayName = 'LoadingSpinner';
 
 export default LoadingSpinner;

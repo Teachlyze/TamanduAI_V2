@@ -261,7 +261,7 @@ const ActivitiesListPage = () => {
           }
           actionLabel="Criar Primeira Atividade"
           actionIcon={Plus}
-          action={() => navigate('/teacher/activities/new')}
+          action={() => navigate('/dashboard/activities/create')}
         />
       )}
 
@@ -274,7 +274,7 @@ const ActivitiesListPage = () => {
           className="fixed bottom-8 right-8 z-50"
         >
           <Button
-            onClick={() => navigate('/teacher/activities/new')}
+            onClick={() => navigate('/dashboard/activities/create')}
             className="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white"
           >
             <Plus className="w-8 h-8" />

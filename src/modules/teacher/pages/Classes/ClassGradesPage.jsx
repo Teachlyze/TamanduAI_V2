@@ -63,7 +63,7 @@ const ClassGradesPage = () => {
           const { data: subs } = await supabase
             .from('submissions')
             .select('grade, activity_id')
-            .eq('user_id', member.user_id)
+            .eq('student_id', member.user_id)
             .in('activity_id', activityIds)
             .not('grade', 'is', null);
 
@@ -181,7 +181,7 @@ const ClassGradesPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <Button
         variant="ghost"
-        onClick={() => navigate(`/teacher/classes/${classId}`)}
+        onClick={() => navigate(`/dashboard/classes/${classId}`)}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />

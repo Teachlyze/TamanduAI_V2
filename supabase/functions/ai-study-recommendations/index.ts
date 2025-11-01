@@ -24,6 +24,13 @@ interface PerformanceData {
     grade: number;
     maxScore: number;
     subject?: string;
+    activityTitle?: string;
+    questions?: Array<{
+      question: string;
+      studentAnswer: string;
+      correctAnswer?: string;
+      isCorrect: boolean;
+    }>;
   }>;
   classComparison: Array<{
     subject: string;
@@ -46,15 +53,28 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Verificar autenticação
+    // 1. Verificar autenticação básica
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      throw new Error('Missing authorization header');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Token de autenticação ausente'
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
+    console.log('Auth header presente');
+
+    // Criar cliente Supabase
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: { Authorization: authHeader },
@@ -62,37 +82,183 @@ serve(async (req) => {
       }
     );
 
-    // Verificar usuário autenticado
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      throw new Error('Unauthorized');
-    }
-
     // 2. Extrair dados do request
-    const { studentId, performanceData } = (await req.json()) as {
+    const body = await req.json();
+    console.log('Body recebido:', JSON.stringify(body).substring(0, 100));
+    
+    const { studentId, performanceData } = body as {
       studentId: string;
       performanceData: PerformanceData;
     };
 
-    // Validar que o usuário está consultando seus próprios dados
-    if (user.id !== studentId) {
-      throw new Error('Forbidden: Cannot access other student data');
+    if (!studentId || !performanceData) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Bad Request',
+          message: 'studentId e performanceData são obrigatórios'
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    // 3. Verificar cache no Redis (opcional)
-    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+    console.log('StudentId:', studentId);
+
+    // 2.5. Verificar limite diário (3 recomendações/dia)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const { count, error: countError } = await supabaseClient
+      .from('ai_recommendations_usage')
+      .select('*', { count: 'exact', head: true })
+      .eq('student_id', studentId)
+      .gte('generated_at', today.toISOString());
+
+    if (countError) {
+      console.warn('Erro ao verificar limite:', countError);
+    } else if (count !== null && count >= 3) {
+      console.log('Limite diário atingido:', count);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Daily limit reached',
+          message: 'Você já gerou 3 recomendações hoje. Limite diário atingido. Tente novamente amanhã!',
+          usageToday: count,
+          limitReset: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
+        }),
+        {
+          status: 429, // Too Many Requests
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    console.log('Uso hoje:', count, '/ 3');
+
+    // Normalizar dados (garantir que números são números E preservar questões)
+    const normalizedData: PerformanceData = {
+      avgGrade: Number(performanceData.avgGrade) || 0,
+      totalActivities: Number(performanceData.totalActivities) || 0,
+      recentGrades: (performanceData.recentGrades || []).map(g => ({
+        grade: Number(g.grade) || 0,
+        maxScore: Number(g.maxScore) || 100,
+        subject: g.subject,
+        activityTitle: g.activityTitle,
+        questions: g.questions // ⚠️ PRESERVAR QUESTÕES!
+      })),
+      classComparison: (performanceData.classComparison || []).map(c => ({
+        subject: c.subject,
+        studentAvg: Number(c.studentAvg) || 0,
+        classAvg: Number(c.classAvg) || 0
+      }))
+    };
+
+    console.log('Dados normalizados:', { avgGrade: normalizedData.avgGrade, totalActivities: normalizedData.totalActivities });
+    console.log('Total de recentGrades:', normalizedData.recentGrades.length);
+    console.log('Questões por grade:', normalizedData.recentGrades.map(g => ({
+      title: g.activityTitle || g.subject,
+      questionsCount: g.questions?.length || 0
+    })));
+
+    // 3. Verificar OpenAI API key
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY') || Deno.env.get('VITE_OPENAI_API_KEY');
+    console.log('OpenAI key presente:', !!OPENAI_API_KEY);
+    
     if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+      console.error('OpenAI API key not configured');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Configuration error',
+          message: 'OpenAI API key não configurada. Configure OPENAI_API_KEY nas secrets.'
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     // 4. Construir prompt para OpenAI
-    const prompt = buildPrompt(performanceData);
+    // Calcular notas como percentuais e incluir detalhes das questões se disponíveis
+    const recentGradesText = normalizedData.recentGrades.map((g, idx) => {
+      const percentage = g.maxScore > 0 ? (g.grade / g.maxScore * 100).toFixed(1) : 0;
+      let text = `  ${idx + 1}. ${g.activityTitle || g.subject || 'Atividade'}: ${g.grade}/${g.maxScore} = ${percentage}%`;
+      
+      // Se tem questões detalhadas, incluir análise
+      if (g.questions && g.questions.length > 0) {
+        const errors = g.questions.filter(q => !q.isCorrect);
+        if (errors.length > 0) {
+          text += `\n     ❌ Erros (${errors.length}/${g.questions.length} questões):`;
+          errors.slice(0, 3).forEach((q, i) => { // Limitar a 3 erros por atividade
+            text += `\n        • "${q.question.substring(0, 100)}..."`;
+            text += `\n          Resposta do aluno: "${q.studentAnswer.substring(0, 80)}..."`;
+            if (q.correctAnswer) {
+              text += `\n          Resposta correta: "${q.correctAnswer.substring(0, 80)}..."`;
+            }
+          });
+        }
+      }
+      
+      return text;
+    }).join('\n\n');
+
+    const avgPercentage = normalizedData.avgGrade.toFixed(1);
+
+    const classComparisonText = normalizedData.classComparison.map(c => {
+      const studentPct = c.studentAvg.toFixed(1);
+      const classPct = c.classAvg.toFixed(1);
+      const diff = (c.studentAvg - c.classAvg).toFixed(1);
+      const status = c.studentAvg >= c.classAvg ? '✓ acima' : '✗ abaixo';
+      return `  - ${c.subject}: Aluno ${studentPct}% vs Turma ${classPct}% (${diff > 0 ? '+' : ''}${diff}%) ${status}`;
+    }).join('\n');
+
+    const prompt = `Você é um assistente educacional especializado. Analise o desempenho do aluno e forneça 3-5 recomendações ESPECÍFICAS e PRÁTICAS.
+
+📊 DESEMPENHO DO ALUNO:
+- Média geral: ${avgPercentage}% (escala 0-100%)
+- Total de atividades concluídas: ${normalizedData.totalActivities}
+
+📝 NOTAS RECENTES (com escala real):
+${recentGradesText || '  Nenhuma nota recente'}
+
+📈 COMPARAÇÃO COM A TURMA:
+${classComparisonText || '  Sem dados de comparação'}
+
+⚠️ IMPORTANTE:
+- As notas estão em PERCENTUAL (0-100%)
+- Se a nota é 10/100 = 10%, isso é RUIM, não bom!
+- Se a nota é 90/100 = 90%, isso é EXCELENTE
+- Compare SEMPRE com a turma para identificar pontos fracos
+
+🎯 SUAS RECOMENDAÇÕES DEVEM:
+1. Identificar matérias onde o aluno está ABAIXO da média da turma
+2. Ser ESPECÍFICAS (não genéricas como "estude mais")
+3. Incluir TÉCNICAS práticas de estudo
+4. Considerar o PERCENTUAL real de acerto
+5. Priorizar matérias com pior desempenho
+6. Se houver detalhes de questões erradas, mencionar os CONCEITOS específicos que o aluno precisa revisar
+7. Dar exemplos concretos de como melhorar baseado nos erros
+
+Retorne APENAS um JSON válido no formato:
+{
+  "recommendations": [
+    {
+      "title": "Título específico (ex: Reforço urgente em Matemática)",
+      "description": "Ação concreta e prática (2-3 frases)",
+      "reason": "Motivo baseado nos DADOS REAIS (inclua percentuais)",
+      "priority": "high|medium|low"
+    }
+  ]
+}`;
+
+    console.log('Prompt construído, tamanho:', prompt.length);
 
     // 5. Chamar OpenAI API
+    console.log('Chamando OpenAI...');
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -100,11 +266,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-3.5-turbo',
         messages: [
           {
             role: 'system',
-            content: 'Você é um assistente educacional especializado em análise de desempenho acadêmico e recomendações de estudo personalizadas. Sempre responda em português brasileiro.',
+            content: 'Você é um assistente educacional. Responda APENAS com JSON válido.',
           },
           {
             role: 'user',
@@ -112,34 +278,60 @@ serve(async (req) => {
           },
         ],
         temperature: 0.7,
-        max_tokens: 1000,
-        response_format: { type: 'json_object' },
+        max_tokens: 800,
       }),
     });
 
+    console.log('OpenAI status:', openaiResponse.status);
+
     if (!openaiResponse.ok) {
-      const error = await openaiResponse.json();
+      const error = await openaiResponse.text();
       console.error('OpenAI Error:', error);
-      throw new Error('Failed to get recommendations from AI');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'OpenAI API error',
+          message: 'Erro ao processar com IA: ' + error.substring(0, 100)
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
     const aiResult = await openaiResponse.json();
+    console.log('OpenAI respondeu');
+    
     const content = aiResult.choices[0].message.content;
-    const recommendations = JSON.parse(content);
+    const parsed = JSON.parse(content);
+    const recommendations = parsed.recommendations || [];
 
-    // 6. Processar e formatar recomendações
-    const formattedRecommendations: Recommendation[] = formatRecommendations(
-      recommendations,
-      performanceData
-    );
+    // 6. Formatar recomendações
+    const formattedRecommendations: Recommendation[] = recommendations.map((r: any) => ({
+      title: r.title || 'Recomendação',
+      description: r.description || '',
+      reason: r.reason || '',
+      priority: r.priority || 'medium'
+    }));
 
-    // 7. Salvar log de recomendações (opcional)
-    await supabaseClient.from('ai_recommendation_logs').insert({
-      student_id: studentId,
-      recommendations: formattedRecommendations,
-      performance_snapshot: performanceData,
-      created_at: new Date().toISOString(),
-    });
+    console.log('Recomendações formatadas:', formattedRecommendations.length);
+
+    // 7. Salvar uso para tracking (ignora erros)
+    try {
+      await supabaseClient
+        .from('ai_recommendations_usage')
+        .insert({
+          student_id: studentId,
+          generated_at: new Date().toISOString(),
+          recommendations: formattedRecommendations,
+          performance_snapshot: normalizedData,
+          tokens_used: aiResult.usage?.total_tokens || 0
+        });
+      console.log('Uso salvo com sucesso');
+    } catch (saveError) {
+      console.warn('Erro ao salvar uso (não crítico):', saveError);
+    }
 
     // 8. Retornar resposta
     return new Response(
@@ -147,6 +339,8 @@ serve(async (req) => {
         success: true,
         recommendations: formattedRecommendations,
         generatedAt: new Date().toISOString(),
+        usageToday: (count || 0) + 1,
+        dailyLimit: 3
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -154,119 +348,19 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in ai-study-recommendations:', error);
+    console.error('ERRO COMPLETO:', error);
+    console.error('Stack:', error.stack);
 
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message || 'Internal server error',
+        details: error.stack?.substring(0, 200)
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: error.message === 'Unauthorized' ? 401 : 500,
+        status: 500,
       }
     );
   }
 });
-
-/**
- * Constrói prompt para OpenAI baseado nos dados de performance
- */
-function buildPrompt(data: PerformanceData): string {
-  const { avgGrade, totalActivities, recentGrades, classComparison } = data;
-
-  // Calcular tendência
-  const recentAvg =
-    recentGrades.length > 0
-      ? recentGrades.reduce((sum, g) => sum + g.grade, 0) / recentGrades.length
-      : avgGrade;
-
-  const trend = recentAvg > avgGrade ? 'melhorando' : recentAvg < avgGrade ? 'piorando' : 'estável';
-
-  // Identificar disciplinas problemáticas
-  const weakSubjects = classComparison
-    .filter((c) => c.studentAvg < c.classAvg)
-    .map((c) => c.subject);
-
-  // Identificar disciplinas fortes
-  const strongSubjects = classComparison
-    .filter((c) => c.studentAvg > c.classAvg)
-    .map((c) => c.subject);
-
-  return `
-Analise o desempenho acadêmico do estudante e gere 4-6 recomendações PERSONALIZADAS de estudo.
-
-**Dados do Estudante:**
-- Média Geral: ${avgGrade.toFixed(1)} de 10
-- Total de Atividades: ${totalActivities}
-- Tendência: ${trend}
-- Média Recente: ${recentAvg.toFixed(1)}
-
-**Disciplinas onde está ABAIXO da média da turma:**
-${weakSubjects.length > 0 ? weakSubjects.join(', ') : 'Nenhuma'}
-
-**Disciplinas onde está ACIMA da média da turma:**
-${strongSubjects.length > 0 ? strongSubjects.join(', ') : 'Nenhuma'}
-
-**Comparação Detalhada:**
-${classComparison.map((c) => `- ${c.subject}: Aluno ${c.studentAvg} vs Turma ${c.classAvg}`).join('\n')}
-
-Gere recomendações práticas e acionáveis em JSON com a seguinte estrutura:
-{
-  "recommendations": [
-    {
-      "title": "Título curto da recomendação",
-      "description": "Descrição detalhada e prática (2-3 frases)",
-      "reason": "Por que esta recomendação é importante",
-      "priority": "high" | "medium" | "low"
-    }
-  ]
-}
-
-IMPORTANTE:
-- Seja específico sobre disciplinas que precisa melhorar
-- Sugira técnicas de estudo concretas
-- Considere a tendência de performance
-- Elogie pontos fortes
-- Seja motivacional mas realista
-- Máximo 6 recomendações
-`;
-}
-
-/**
- * Formata e enriquece as recomendações da IA
- */
-function formatRecommendations(
-  aiRecommendations: any,
-  performanceData: PerformanceData
-): Recommendation[] {
-  const recommendations = aiRecommendations.recommendations || [];
-
-  // Adicionar recomendações padrão se IA retornar poucas
-  if (recommendations.length < 3) {
-    if (performanceData.avgGrade < 6) {
-      recommendations.push({
-        title: 'Agende uma sessão de reforço',
-        description:
-          'Considere agendar sessões de reforço com o professor ou um monitor para revisar conceitos fundamentais.',
-        reason: 'Sua média está abaixo de 6.0',
-        priority: 'high',
-      });
-    }
-
-    recommendations.push({
-      title: 'Crie um cronograma de estudos',
-      description:
-        'Organize seu tempo de estudo dedicando períodos específicos para cada disciplina, priorizando as mais desafiadoras.',
-      reason: 'Organização é fundamental para melhorar o desempenho',
-      priority: 'medium',
-    });
-  }
-
-  // Ordenar por prioridade
-  const priorityOrder = { high: 0, medium: 1, low: 2 };
-  return recommendations.sort(
-    (a: Recommendation, b: Recommendation) =>
-      priorityOrder[a.priority || 'medium'] - priorityOrder[b.priority || 'medium']
-  );
-}

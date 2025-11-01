@@ -28,23 +28,23 @@ const StatsCard = ({
       transition={{ delay }}
     >
       <Card 
-        className={`p-6 border border-border bg-card text-card-foreground ${components.card.hover} ${onClick ? 'cursor-pointer' : ''}`}
+        className={`p-6 border border-border bg-white dark:bg-slate-900 ${components.card.hover} ${onClick ? 'cursor-pointer' : ''}`}
         onClick={onClick}
       >
         <div className="flex items-center justify-between mb-4">
-          <div className={`p-3 rounded-xl ${bgColor || 'bg-primary/10'} ${gradient ? `bg-gradient-to-r ${gradient}` : ''} text-primary-foreground`}> 
+          <div className={`p-3 rounded-xl ${gradient ? `bg-gradient-to-r ${gradient}` : bgColor || 'bg-primary/10'}`}> 
             {Icon && (
-              <Icon className="w-6 h-6" />
+              <Icon className="w-6 h-6 text-white" />
             )}
           </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          {onClick && <ChevronRight className="w-5 h-5 text-slate-400 dark:text-slate-500" />}
         </div>
         
-        <h3 className="text-3xl font-bold">
+        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">
           {formattedValue}
         </h3>
         
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
           {title}
         </p>
       </Card>

@@ -139,7 +139,7 @@ const TeacherActivityCreatePage = () => {
         description: 'Não foi possível carregar a atividade.',
         variant: 'destructive'
       });
-      navigate('/teacher/activities');
+      navigate('/dashboard/activities');
     } finally {
       setLoading(false);
     }
@@ -218,7 +218,7 @@ const TeacherActivityCreatePage = () => {
           errors.push({ field: `question-${index}`, message: `Questão ${index + 1}: deve ter pelo menos 2 alternativas` });
         }
 
-        const correctAlternatives = question.alternatives?.filter(alt => alt.is_correct) || [];
+        const correctAlternatives = question.alternatives?.filter(alt => alt.isCorrect) || [];
         if (correctAlternatives.length === 0) {
           errors.push({ field: `question-${index}`, message: `Questão ${index + 1}: marque pelo menos uma alternativa correta` });
         }
@@ -269,6 +269,13 @@ const TeacherActivityCreatePage = () => {
         created_by: user.id,
         updated_at: new Date().toISOString()
       };
+
+      console.log('[TeacherActivityCreatePage] 💾 Salvando atividade:', {
+        title,
+        type: activityType,
+        questionsCount: questions.length,
+        advancedSettings
+      });
 
       if (isEditMode) {
         const { error } = await supabase
@@ -375,7 +382,7 @@ const TeacherActivityCreatePage = () => {
         description: 'Agora você pode postar em suas turmas.'
       });
 
-      navigate('/teacher/activities');
+      navigate('/dashboard/activities');
     } catch (error) {
       console.error('Erro ao publicar:', error);
       toast({
@@ -405,7 +412,7 @@ const TeacherActivityCreatePage = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate('/teacher/activities')}
+              onClick={() => navigate('/dashboard/activities')}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

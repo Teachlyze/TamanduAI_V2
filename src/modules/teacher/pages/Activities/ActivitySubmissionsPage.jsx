@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, FileText, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import { useToast } from '@/shared/components/ui/use-toast';
 import {
   DashboardHeader,
   StatsCard,
@@ -17,6 +18,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 const ActivitySubmissionsPage = () => {
   const { activityId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [activity, setActivity] = useState(null);
@@ -56,7 +58,7 @@ const ActivitySubmissionsPage = () => {
         .from('submissions')
         .select(`
           *,
-          student:profiles(id, full_name, email, avatar_url)
+          student:student_id(id, full_name, email, avatar_url)
         `)
         .eq('activity_id', activityId)
         .order('submitted_at', { ascending: false });
@@ -77,6 +79,11 @@ const ActivitySubmissionsPage = () => {
 
     } catch (error) {
       console.error('Erro ao carregar submissões:', error);
+      toast({ 
+        title: 'Erro ao carregar submissões',
+        description: error?.message || 'Tente novamente.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
     }
@@ -90,18 +97,18 @@ const ActivitySubmissionsPage = () => {
 
     const query = searchQuery.toLowerCase();
     const filtered = submissions.filter(submission =>
-      submission.student?.name?.toLowerCase().includes(query) ||
+      submission.student?.full_name?.toLowerCase().includes(query) ||
       submission.student?.email?.toLowerCase().includes(query)
     );
     setFilteredSubmissions(filtered);
   };
 
   const handleViewSubmission = (submission) => {
-    navigate(`/teacher/grading/${submission.id}`);
+    navigate(`/dashboard/grading/${submission.id}`);
   };
 
   const handleGradeSubmission = (submission) => {
-    navigate(`/teacher/grading/${submission.id}`);
+    navigate(`/dashboard/grading/${submission.id}`);
   };
 
   if (loading) {
@@ -181,7 +188,7 @@ const ActivitySubmissionsPage = () => {
               submission={{
                 id: submission.id,
                 student: {
-                  name: submission.student?.name || 'Aluno',
+                  name: submission.student?.full_name || 'Aluno',
                   avatar: submission.student?.avatar_url
                 },
                 activity: {

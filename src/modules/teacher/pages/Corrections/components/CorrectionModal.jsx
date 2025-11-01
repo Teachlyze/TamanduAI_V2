@@ -16,15 +16,27 @@ import FeedbackTemplatesSelector from './FeedbackTemplatesSelector';
 import RubricScoring from './RubricScoring';
 import SubmissionView from './SubmissionView';
 import InlineComments from './InlineComments';
+import { convertFromDatabase, getGradeOptions, isValidGrade as validateGrade, GRADING_SYSTEMS } from '@/shared/utils/gradeConverter';
 
 const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClose, onSaved, onNavigate }) => {
   const { user } = useAuth();
   const { toast } = useToast();
   
+  // Buscar grading_system da turma
+  const gradingSystem = submission.activity?.activity_class_assignments?.[0]?.class?.grading_system || '0-10';
+  const gradeOptions = getGradeOptions(gradingSystem);
+  const systemConfig = GRADING_SYSTEMS[gradingSystem];
+  
   const [loading, setLoading] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
   const [checkingPlagiarism, setCheckingPlagiarism] = useState(false);
-  const [grade, setGrade] = useState(submission.grade || '');
+  
+  // Converter nota do banco (0-10) para escala da UI ao inicializar
+  const initialGrade = submission.grade 
+    ? convertFromDatabase(submission.grade, gradingSystem)
+    : '';
+  
+  const [grade, setGrade] = useState(initialGrade);
   const [feedback, setFeedback] = useState(submission.feedback || '');
   const [rubricScores, setRubricScores] = useState([]);
   const [templates, setTemplates] = useState([]);
@@ -36,7 +48,7 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
   
   // Validações
   const maxScore = submission.activity?.max_score || 10;
-  const isValidGrade = grade !== '' && parseFloat(grade) >= 0 && parseFloat(grade) <= maxScore;
+  const isValidGrade = grade !== '' && validateGrade(grade, gradingSystem);
   const isValidFeedback = feedback.length >= 20;
 
   useEffect(() => {
@@ -101,14 +113,33 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
       const correctionTime = Math.round((Date.now() - startTime) / 1000);
 
       // Salvar correção
-      const { error } = await saveCorrection(submission.id, {
-        grade: parseFloat(grade),
+      // IMPORTANTE: Passar grade como string, pois pode ser "B", "Aprovado", etc
+      // A função saveCorrection fará a conversão para 0-10
+      const result = await saveCorrection(submission.id, {
+        grade: grade, // String: "85", "B", "Aprovado", etc
         feedback,
         rubricScores,
         teacherId: user.id
       });
 
-      if (error) throw error;
+      if (result.error) throw result.error;
+
+      // Mostrar mensagem sobre conversão se necessário
+      if (result.converted) {
+        const systemName = {
+          '0-10': '0-10',
+          '0-100': '0-100',
+          'A-F': 'A-F',
+          'pass-fail': 'Aprovado/Reprovado',
+          'excellent-poor': 'Conceitos'
+        }[result.gradingSystem] || result.gradingSystem;
+        
+        toast({
+          title: 'ℹ️ Nota Convertida',
+          description: `Nota "${result.originalGrade}" (${systemName}) foi salva como ${result.normalizedGrade.toFixed(2)}/10 no sistema`,
+          duration: 4000
+        });
+      }
 
       // Atualizar métricas
       await updateCorrectionMetrics(
@@ -264,7 +295,12 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
               <ChevronRight className="w-5 h-5" />
             </Button>
             
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onClose}
+              title="Fechar e voltar"
+            >
               <X className="w-5 h-5" />
             </Button>
           </div>
@@ -335,22 +371,44 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
               <Card className="p-6">
                 <h3 className="font-semibold text-lg mb-4">Nota Final</h3>
                 <div className="space-y-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    max={maxScore}
-                    step="0.1"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                    className="text-2xl font-bold text-center"
-                    placeholder="0.0"
-                  />
-                  <p className="text-sm text-center text-gray-600">
-                    de {maxScore} pontos
+                  {gradeOptions ? (
+                    // Sistema de letras, pass-fail ou conceitos
+                    <select
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="w-full px-4 py-3 text-2xl font-bold text-center border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-600 dark:bg-slate-800"
+                    >
+                      <option value="">Selecione...</option>
+                      {gradeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    // Sistema numérico (0-10, 0-100)
+                    <Input
+                      type="number"
+                      min={systemConfig?.min || 0}
+                      max={systemConfig?.max || maxScore}
+                      step={systemConfig?.type === 'numeric' && systemConfig.max === 100 ? "1" : "0.1"}
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="text-2xl font-bold text-center"
+                      placeholder="0"
+                    />
+                  )}
+                  
+                  <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+                    {systemConfig?.type === 'numeric' 
+                      ? `Escala: ${systemConfig.min}-${systemConfig.max}`
+                      : `Sistema: ${gradingSystem}`
+                    }
                   </p>
+                  
                   {!isValidGrade && grade !== '' && (
                     <p className="text-sm text-red-600 text-center">
-                      Nota deve estar entre 0 e {maxScore}
+                      Nota inválida para o sistema {gradingSystem}
                     </p>
                   )}
                 </div>
