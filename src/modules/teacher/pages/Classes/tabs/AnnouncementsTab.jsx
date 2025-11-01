@@ -55,7 +55,7 @@ const AnnouncementsTab = ({ classId }) => {
         .from('class_materials')
         .select(`
           *,
-          creator:profiles!created_by(id, full_name, avatar_url)
+          creator:profiles!class_materials_created_by_fkey(id, full_name, avatar_url)
         `)
         .eq('class_id', classId)
         .eq('category', 'announcement')
