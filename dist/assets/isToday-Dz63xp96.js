@@ -1,1 +1,0 @@
-import{n as i,c}from"./pt-BR-CcyWMXEv.js";import{c as m}from"./constructNow-PU7y2RSz.js";import{s as r}from"./format-7pK25_6I.js";function e(t,o,s){const[a,n]=i(s?.in,t,o);return+r(a)==+r(n)}function y(t,o){return e(c(t,t),m(t))}export{e as a,y as i};
