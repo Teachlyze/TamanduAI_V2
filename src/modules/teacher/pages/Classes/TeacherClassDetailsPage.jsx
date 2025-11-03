@@ -285,7 +285,8 @@ const TeacherClassDetailsPage = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/dashboard/classes')}
-            className="text-white hover:bg-white/20 backdrop-blur-sm"
+            className="text-white hover:bg-white/20 backdrop-blur-sm cursor-pointer relative z-10"
+            style={{ pointerEvents: 'auto' }}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar

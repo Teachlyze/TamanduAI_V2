@@ -199,8 +199,9 @@ const StudentClassDetailsPage = () => {
             <div className="flex gap-2">
               <Button
                 variant="ghost"
-                onClick={() => navigate('/students/classes')}
-                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
+                onClick={() => navigate('/student/classes')}
+                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105 cursor-pointer relative z-10"
+                style={{ pointerEvents: 'auto' }}
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
@@ -209,7 +210,8 @@ const StudentClassDetailsPage = () => {
                 variant="ghost"
                 onClick={() => loadData(true)}
                 disabled={refreshing}
-                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
+                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105 cursor-pointer relative z-10"
+                style={{ pointerEvents: 'auto' }}
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
@@ -217,7 +219,8 @@ const StudentClassDetailsPage = () => {
                 variant="ghost"
                 onClick={() => setShowArchiveModal(true)}
                 disabled={archivingClass}
-                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
+                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105 cursor-pointer relative z-10"
+                style={{ pointerEvents: 'auto' }}
               >
                 <Archive className="w-4 h-4 mr-2" />
                 Arquivar
@@ -359,7 +362,7 @@ const StudentClassDetailsPage = () => {
                   grade: null,
                   max_grade: activity.max_score || 100
                 }}
-                onClick={() => startTransition(() => navigate(`/students/activities/${activity.id}`))}
+                onClick={() => startTransition(() => navigate(`/student/activities/${activity.id}`))}
               />
             ))}
             {activities.length === 0 && (
@@ -453,7 +456,7 @@ const StudentClassDetailsPage = () => {
           const result = await archiveClass(classId, user.id);
           if (result.success) {
             setShowArchiveModal(false);
-            navigate('/students/classes');
+            navigate('/student/classes');
           }
         }}
         loading={archivingClass}

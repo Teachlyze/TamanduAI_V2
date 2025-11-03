@@ -11,6 +11,8 @@ const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('./features/auth/pages/RegisterPage'));
 const ForgotPasswordPage = React.lazy(() => import('./features/auth/pages/ForgotPasswordPage'));
 const VerifyEmailPage = React.lazy(() => import('./features/auth/pages/VerifyEmailPage'));
+const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
+const ContactPage = React.lazy(() => import('./pages/ContactPage'));
 
 // Module Routes
 const TeacherRoutes = React.lazy(() => import('./modules/teacher/routes'));
@@ -152,6 +154,15 @@ const AppRoutes = () => {
             </PublicRoute>
           }
         />
+        
+        <Route
+          path="/contact"
+          element={
+            <OpenRoute>
+              <ContactPage />
+            </OpenRoute>
+          }
+        />
 
         {/* Protected Routes - Student */}
         <Route
@@ -184,7 +195,7 @@ const AppRoutes = () => {
         />
 
         {/* 404 - Not Found */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );

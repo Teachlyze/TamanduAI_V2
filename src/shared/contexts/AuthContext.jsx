@@ -1,6 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useContext, createContext, useMemo, useCallback } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
+import { storageManager } from '@/shared/services/storageManager';
 
 // Create and export the context
 export const AuthContext = createContext(null);
@@ -244,11 +245,21 @@ export const AuthProvider = ({ children }) => {
   // Sign Out
   const signOut = useCallback(async () => {
     try {
+      logger.debug('[AuthContext] Starting sign out...')
+      
+      // 1. Sign out do Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // 2. Limpar estado do contexto
       setUser(null);
       setProfile(null);
+      
+      // 3. Limpar localStorage (mantém apenas preferências globais)
+      storageManager.clearUserData();
+      logger.debug('[AuthContext] User data cleared from localStorage')
+      logger.debug('[AuthContext] App preferences preserved (theme, language, etc.)')
+      
       return { error: null };
     } catch (error) {
       logger.error('[AuthContext] Sign out error:', error)

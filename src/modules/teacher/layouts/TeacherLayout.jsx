@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback, memo } from 'react';
+import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { SidebarPremium } from '@/shared/components/ui/SidebarPremium';
 import { Button } from '@/shared/components/ui/button';
 import { Toaster } from '@/shared/components/ui/toaster';
+import { storageManager } from '@/shared/services/storageManager';
 
 // Memoizar header para evitar re-renders
 const MobileHeader = memo(({ onMenuClick }) => (
@@ -30,6 +31,19 @@ MobileHeader.displayName = 'MobileHeader';
 
 export const TeacherLayout = memo(({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => storageManager.getSidebarCollapsed());
+
+  // Escutar mudanças no localStorage (quando sidebar é colapsada/expandida)
+  useEffect(() => {
+    const checkCollapsedState = () => {
+      setSidebarCollapsed(storageManager.getSidebarCollapsed());
+    };
+    
+    // Verificar a cada 100ms (evento de storage não funciona na mesma tab)
+    const interval = setInterval(checkCollapsedState, 100);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Memoizar callbacks
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
@@ -45,7 +59,11 @@ export const TeacherLayout = memo(({ children }) => {
       />
 
       {/* Main Content */}
-      <div className="lg:pl-[280px] min-h-screen">
+      <div 
+        className={`min-h-screen transition-all duration-300 ${
+          sidebarCollapsed ? 'lg:pl-[70px]' : 'lg:pl-[280px]'
+        }`}
+      >
         {/* Mobile Header - memoizado */}
         <MobileHeader onMenuClick={handleSidebarOpen} />
 

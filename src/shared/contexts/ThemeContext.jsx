@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { storageManager } from '@/shared/services/storageManager';
 
 const ThemeContext = createContext();
 
@@ -12,16 +13,12 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    // Prefer explicit user preference
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('appTheme') : null;
-    if (saved === 'light' || saved === 'dark') return saved;
-    // Default to light (do not auto-apply system dark by default)
-    return 'light';
+    // Usar storageManager para recuperar preferência
+    return storageManager.getTheme();
   });
 
   const [highContrast, setHighContrast] = useState(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('highContrast') : null;
-    return saved === 'true';
+    return storageManager.getHighContrast();
   });
 
   useEffect(() => {
@@ -41,9 +38,9 @@ export const ThemeProvider = ({ children }) => {
       root.classList.add('high-contrast');
     }
     
-    // Save to localStorage
-    localStorage.setItem('appTheme', theme);
-    localStorage.setItem('highContrast', highContrast.toString());
+    // Save to localStorage using storageManager (persiste após logout)
+    storageManager.setTheme(theme);
+    storageManager.setHighContrast(highContrast);
   }, [theme, highContrast]);
 
   // Listen for system theme changes
@@ -54,8 +51,8 @@ export const ThemeProvider = ({ children }) => {
     
     const handleSystemThemeChange = (e) => {
       // Only update if user hasn't manually set a preference
-      const saved = localStorage.getItem('appTheme');
-      if (!saved) {
+      const saved = storageManager.getTheme();
+      if (!saved || saved === 'light') { // Se não tem preferência salva ou está no padrão
         setTheme(e.matches ? 'dark' : 'light');
       }
     };

@@ -43,10 +43,10 @@ export default function LandingPage() {
   ];
 
   const stats = [
-    { number: "15K+", label: "Professores Ativos" },
-    { number: "80K+", label: "Alunos Beneficiados" },
-    { number: "2M+", label: "Atividades Criadas" },
-    { number: "98.5%", label: "Satisfação" }
+    { number: "500+", label: "Professores Ativos" },
+    { number: "5.000+", label: "Alunos Beneficiados" },
+    { number: "15K+", label: "Atividades Criadas" },
+    { number: "92%", label: "Satisfação" }
   ];
 
   const allFeatures = [
@@ -209,12 +209,20 @@ export default function LandingPage() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center lg:text-left">
                 <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring" }}
-                  className="inline-flex items-center px-3 py-1.5 bg-cyan-100 dark:bg-gray-800 rounded-full text-xs font-semibold text-cyan-700 dark:text-cyan-300 mb-6"
+                  initial={{ opacity: 0, y: 10 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  transition={{ duration: 0.6 }}
+                  className="flex flex-wrap items-center gap-3 mb-6"
                 >
-                  <Sparkles className="w-3.5 h-3.5 mr-1.5" />Revolucione sua forma de ensinar
+                  <div className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />Revolucione sua forma de ensinar
+                  </div>
+                  <div className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full bg-blue-600 text-white shadow-md">
+                    BETA
+                  </div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Em crescimento desde 2024
+                  </span>
                 </motion.div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
