@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { User, Mail, Phone } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
@@ -6,29 +7,59 @@ import { Button } from '@/shared/components/ui/button';
 import { DashboardHeader } from '@/shared/design';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const StudentProfilePage = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState({ name: '', email: '', phone: '' });
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
-      setProfile({
-        name: user.user_metadata?.name || '',
-        email: user.email || '',
-        phone: user.user_metadata?.phone || ''
-      });
-    }
+    const loadProfile = async () => {
+      if (!user?.id) return;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', user.id)
+          .single();
+        if (error && error.code !== 'PGRST116') throw error; // ignore not found
+        setProfile({
+          name: data?.full_name || user.user_metadata?.name || '',
+          email: data?.email || user.email || '',
+          phone: user.user_metadata?.phone || ''
+        });
+      } catch (e) {
+        logger.warn('Falha ao carregar perfil:', e)
+        setProfile({
+          name: user.user_metadata?.name || '',
+          email: user.email || '',
+          phone: user.user_metadata?.phone || ''
+        });
+      }
+    };
+    loadProfile();
   }, [user]);
 
   const handleSave = async () => {
     try {
-      await supabase.auth.updateUser({
+      if (!user?.id) return;
+      // Atualiza tabela profiles
+      const { error: upsertError } = await supabase
+        .from('profiles')
+        .upsert({ id: user.id, full_name: profile.name, email: profile.email }, { onConflict: 'id' });
+      if (upsertError) throw upsertError;
+
+      // Atualiza metadados de auth (telefone e nome para consistência)
+      const { error: authError } = await supabase.auth.updateUser({
         data: { name: profile.name, phone: profile.phone }
       });
-      alert('Perfil atualizado!');
+      if (authError) throw authError;
+
+      toast({ title: 'Perfil atualizado', description: 'Suas informações foram salvas com sucesso.' });
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
+      toast({ variant: 'destructive', title: 'Erro ao salvar', description: 'Não foi possível atualizar seu perfil.' });
     }
   };
 

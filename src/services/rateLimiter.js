@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { Redis } from '@upstash/redis';
 
 /**
@@ -121,7 +122,7 @@ export async function checkRateLimit(key, limit) {
       message: allowed ? null : limit.message,
     };
   } catch (error) {
-    console.error('[RateLimiter] Error checking rate limit:', error);
+    logger.error('[RateLimiter] Error checking rate limit:', error)
     // Em caso de erro, permitir a requisição (fail-open)
     return {
       allowed: true,
@@ -206,7 +207,7 @@ export async function resetRateLimit(key) {
     await redis.del(key);
     return { success: true };
   } catch (error) {
-    console.error('[RateLimiter] Error resetting rate limit:', error);
+    logger.error('[RateLimiter] Error resetting rate limit:', error)
     return { success: false, error: error.message };
   }
 }
@@ -244,7 +245,7 @@ export async function getRateLimitStats(userId) {
 
     return stats;
   } catch (error) {
-    console.error('[RateLimiter] Error getting stats:', error);
+    logger.error('[RateLimiter] Error getting stats:', error)
     return {};
   }
 }
@@ -256,10 +257,10 @@ export async function cleanupExpiredLimits() {
   try {
     // Redis já faz isso automaticamente com EXPIRE
     // Esta função é apenas para logging
-    console.log('[RateLimiter] Cleanup não necessário - Redis TTL automático');
+    logger.debug('[RateLimiter] Cleanup não necessário - Redis TTL automático')
     return { success: true };
   } catch (error) {
-    console.error('[RateLimiter] Cleanup error:', error);
+    logger.error('[RateLimiter] Cleanup error:', error)
     return { success: false, error: error.message };
   }
 }
@@ -273,7 +274,7 @@ export async function incrementCounter(key, amount = 1, ttl = 3600) {
     await redis.expire(key, ttl);
     return { success: true, value: newValue };
   } catch (error) {
-    console.error('[RateLimiter] Error incrementing counter:', error);
+    logger.error('[RateLimiter] Error incrementing counter:', error)
     return { success: false, error: error.message };
   }
 }
@@ -308,7 +309,7 @@ export function useRateLimit(type, identifier) {
       setLimit(result);
       return result;
     } catch (error) {
-      console.error('[useRateLimit] Error:', error);
+      logger.error('[useRateLimit] Error:', error)
       return { allowed: true, error: true };
     } finally {
       setLoading(false);

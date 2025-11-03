@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -22,6 +23,8 @@ import { cn } from '@/lib/utils';
 import ActivityListItem from './components/ActivityListItemImproved';
 import ActivityGridCard from './components/ActivityGridCard';
 import PostActivityModal from './components/PostActivityModal';
+import ActivityPreview from './components/ActivityPreview';
+import ImportActivityModal from './components/ImportActivityModal';
 
 const TeacherActivitiesPage = () => {
   const navigate = useNavigate();
@@ -29,9 +32,9 @@ const TeacherActivitiesPage = () => {
   const { toast } = useToast();
 
   // 🔍 DEBUG: Log inicial
-  console.log('[TeacherActivitiesPage] Componente montado');
-  console.log('[TeacherActivitiesPage] User:', user);
-  console.log('[TeacherActivitiesPage] Current URL:', window.location.pathname);
+  logger.debug('[TeacherActivitiesPage] Componente montado')
+  logger.debug('[TeacherActivitiesPage] User:', user)
+  logger.debug('[TeacherActivitiesPage] Current URL:', window.location.pathname)
 
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
@@ -49,28 +52,33 @@ const TeacherActivitiesPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({ type: [], status: [] });
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showArchived, setShowArchived] = useState(false);
   const [sortBy, setSortBy] = useState('created_desc');
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewActivity, setPreviewActivity] = useState(null);
   const [currentActivity, setCurrentActivity] = useState(null);
   const [expandedActivityId, setExpandedActivityId] = useState(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
-    console.log('[TeacherActivitiesPage] useEffect triggered, user:', user);
+    logger.debug('[TeacherActivitiesPage] useEffect triggered, user:', user)
     if (user) {
-      console.log('[TeacherActivitiesPage] Loading activities and classes...');
+      logger.debug('[TeacherActivitiesPage] Loading activities and classes...')
       loadActivities();
       loadClasses();
     } else {
-      console.warn('[TeacherActivitiesPage] ⚠️ User not found!');
+      logger.warn('[TeacherActivitiesPage] ⚠️ User not found!')
     }
-  }, [user]);
+  }, [user, showArchived]);
 
   const loadActivities = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      let query = supabase
         .from('activities')
         .select(`
           *,
@@ -81,8 +89,14 @@ const TeacherActivitiesPage = () => {
           submissions:submissions(id, status, grade)
         `)
         .eq('created_by', user.id)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+        .is('deleted_at', null);
+      
+      // Excluir arquivadas por padrão
+      if (!showArchived) {
+        query = query.neq('status', 'archived');
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -102,7 +116,7 @@ const TeacherActivitiesPage = () => {
       setActivities(processedActivities);
       calculateStats(processedActivities);
     } catch (error) {
-      console.error('Erro ao carregar atividades:', error);
+      logger.error('Erro ao carregar atividades:', error)
       toast({ title: 'Erro', description: 'Não foi possível carregar as atividades.', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -119,7 +133,7 @@ const TeacherActivitiesPage = () => {
       if (error) throw error;
       setClasses(data || []);
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error);
+      logger.error('Erro ao carregar turmas:', error)
     }
   };
 
@@ -146,7 +160,6 @@ const TeacherActivitiesPage = () => {
     else if (activeTab === 'mixed') result = result.filter(a => a.type === 'mixed' || a.type === 'project');
     else if (activeTab === 'drafts') result = result.filter(a => a.status === 'draft');
     else if (activeTab === 'favorites') result = result.filter(a => a.is_favorite);
-    else if (activeTab === 'archived') result = result.filter(a => a.status === 'archived');
 
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -182,15 +195,15 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleEdit = (activity) => {
-    console.log('[TeacherActivitiesPage] 🎯 handleEdit chamado');
-    console.log('[TeacherActivitiesPage] Activity:', activity);
-    console.log('[TeacherActivitiesPage] Navegando para:', `/dashboard/activities/${activity.id}/edit`);
+    logger.debug('[TeacherActivitiesPage] 🎯 handleEdit chamado')
+    logger.debug('[TeacherActivitiesPage] Activity:', activity)
+    logger.debug('[TeacherActivitiesPage] Navegando para:', `/dashboard/activities/${activity.id}/edit`)
     navigate(`/dashboard/activities/${activity.id}/edit`);
   };
 
   const handleDuplicate = async (activity) => {
-    console.log('[TeacherActivitiesPage] 📋 handleDuplicate chamado');
-    console.log('[TeacherActivitiesPage] Activity:', activity);
+    logger.debug('[TeacherActivitiesPage] 📋 handleDuplicate chamado')
+    logger.debug('[TeacherActivitiesPage] Activity:', activity)
     try {
       // Remover campos que não existem na tabela (vieram do SELECT)
       const { assignments, submissions, submittedCount, avgGrade, timesUsed, classNames, ...activityData } = activity;
@@ -212,17 +225,17 @@ const TeacherActivitiesPage = () => {
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Atividade duplicada com sucesso!' });
       loadActivities();
-      console.log('[TeacherActivitiesPage] Navegando após duplicar para:', `/dashboard/activities/${data.id}/edit`);
+      logger.debug('[TeacherActivitiesPage] Navegando após duplicar para:', `/dashboard/activities/${data.id}/edit`)
       navigate(`/dashboard/activities/${data.id}/edit`);
     } catch (error) {
-      console.error('Erro ao duplicar:', error);
+      logger.error('Erro ao duplicar:', error)
       toast({ title: 'Erro', description: 'Não foi possível duplicar a atividade.', variant: 'destructive' });
     }
   };
 
   const handleToggleFavorite = async (activityId) => {
-    console.log('[TeacherActivitiesPage] ⭐ handleToggleFavorite chamado');
-    console.log('[TeacherActivitiesPage] Activity ID:', activityId);
+    logger.debug('[TeacherActivitiesPage] ⭐ handleToggleFavorite chamado')
+    logger.debug('[TeacherActivitiesPage] Activity ID:', activityId)
     // Funcionalidade de favoritos desabilitada (coluna is_favorite não existe no DB)
     toast({ 
       title: 'Funcionalidade em desenvolvimento',
@@ -231,21 +244,50 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleArchive = async (activityId) => {
-    console.log('[TeacherActivitiesPage] 📦 handleArchive chamado');
-    console.log('[TeacherActivitiesPage] Activity ID:', activityId);
+    logger.debug('[TeacherActivitiesPage] 📦 handleArchive chamado')
+    logger.debug('[TeacherActivitiesPage] Activity ID:', activityId)
     try {
-      const { error } = await supabase.from('activities').update({ status: 'archived' }).eq('id', activityId);
+      const { error } = await supabase
+        .from('activities')
+        .update({ 
+          status: 'archived',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', activityId);
       if (error) throw error;
+      
       toast({ title: 'Atividade arquivada' });
+      
+      // Atualizar lista localmente
+      setActivities(prev => prev.filter(a => a.id !== activityId));
+    } catch (error) {
+      logger.error('Erro ao arquivar:', error)
+      toast({ title: 'Erro ao arquivar', variant: 'destructive' });
+    }
+  };
+  
+  const handleUnarchive = async (activityId) => {
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ 
+          status: 'draft',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', activityId);
+      if (error) throw error;
+      
+      toast({ title: 'Atividade desarquivada' });
       loadActivities();
     } catch (error) {
-      console.error('Erro ao arquivar:', error);
+      logger.error('Erro ao desarquivar:', error)
+      toast({ title: 'Erro ao desarquivar', variant: 'destructive' });
     }
   };
 
   const handleDelete = async (activityId) => {
-    console.log('[TeacherActivitiesPage] 🗑️ handleDelete chamado');
-    console.log('[TeacherActivitiesPage] Activity ID:', activityId);
+    logger.debug('[TeacherActivitiesPage] 🗑️ handleDelete chamado')
+    logger.debug('[TeacherActivitiesPage] Activity ID:', activityId)
     try {
       const { error } = await supabase.from('activities').update({ deleted_at: new Date().toISOString() }).eq('id', activityId);
       if (error) throw error;
@@ -253,7 +295,7 @@ const TeacherActivitiesPage = () => {
       setShowDeleteModal(false);
       loadActivities();
     } catch (error) {
-      console.error('Erro ao excluir:', error);
+      logger.error('Erro ao excluir:', error)
     }
   };
 
@@ -285,19 +327,27 @@ const TeacherActivitiesPage = () => {
         <DashboardHeader title="Banco de Atividades" subtitle="Crie, organize e reutilize suas atividades" role="teacher" />
         <div className="flex flex-wrap gap-3 mt-4">
           <Button size="lg" onClick={() => {
-            console.log('[TeacherActivitiesPage] ➕ Botão "Nova Atividade" clicado');
-            console.log('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create');
-            console.log('[TeacherActivitiesPage] URL atual:', window.location.pathname);
+            logger.debug('[TeacherActivitiesPage] ➕ Botão "Nova Atividade" clicado')
+            logger.debug('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create')
+            logger.debug('[TeacherActivitiesPage] URL atual:', window.location.pathname)
             navigate('/dashboard/activities/create');
           }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
             <Plus className="w-5 h-5 mr-2" />Nova Atividade
           </Button>
-          <Button variant="outline" size="lg" onClick={() => {
-            toast({ title: 'Em breve', description: 'Função de importação de atividades será implementada em breve.' });
-          }}>
+          <Button variant="outline" size="lg" onClick={() => setShowImportModal(true)}>
             <Upload className="w-5 h-5 mr-2" />Importar
           </Button>
+          <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <Archive className="w-4 h-4" />
+            <span className="text-sm font-medium">Mostrar Arquivadas</span>
+          </label>
         </div>
       </div>
 
@@ -404,7 +454,7 @@ const TeacherActivitiesPage = () => {
                 setSelectedActivities([]);
                 toast({ title: 'Sucesso', description: `${selectedActivities.length} atividade(s) arquivada(s).` });
               } catch (error) {
-                console.error('Erro ao arquivar:', error);
+                logger.error('Erro ao arquivar:', error)
                 toast({ title: 'Erro', description: 'Não foi possível arquivar as atividades.', variant: 'destructive' });
               }
             }}>
@@ -423,11 +473,14 @@ const TeacherActivitiesPage = () => {
                 <ActivityListItem activity={activity} selected={selectedActivities.includes(activity.id)}
                   onSelect={handleSelectActivity} onEdit={handleEdit} onDuplicate={handleDuplicate}
                   onToggleFavorite={handleToggleFavorite} onArchive={handleArchive}
+                  onUnarchive={handleUnarchive}
                   onDelete={() => { setCurrentActivity(activity); setShowDeleteModal(true); }}
+                  onPreview={(act) => { setPreviewActivity(act); setShowPreview(true); }}
                   getTypeBadge={getActivityTypeBadge} />
               ) : (
                 <ActivityGridCard activity={activity} onEdit={handleEdit} onToggleFavorite={handleToggleFavorite}
-                  onDuplicate={handleDuplicate} getTypeBadge={getActivityTypeBadge} navigate={navigate} />
+                  onDuplicate={handleDuplicate} onArchive={handleArchive} onUnarchive={handleUnarchive}
+                  getTypeBadge={getActivityTypeBadge} navigate={navigate} />
               )}
             </motion.div>
           ))}
@@ -436,8 +489,8 @@ const TeacherActivitiesPage = () => {
         <EmptyState icon={ClipboardList} title={searchQuery ? 'Nenhuma atividade encontrada' : 'Você ainda não criou nenhuma atividade'}
           description={searchQuery ? 'Tente ajustar os filtros.' : 'Comece criando sua primeira atividade.'}
           actionLabel="Criar Primeira Atividade" actionIcon={Plus} action={() => {
-            console.log('[TeacherActivitiesPage] ➕ EmptyState "Criar Primeira Atividade" clicado');
-            console.log('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create');
+            logger.debug('[TeacherActivitiesPage] ➕ EmptyState "Criar Primeira Atividade" clicado')
+            logger.debug('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create')
             navigate('/dashboard/activities/create');
           }} />
       )}
@@ -445,8 +498,8 @@ const TeacherActivitiesPage = () => {
       {filteredActivities.length > 0 && (
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5 }} className="fixed bottom-8 right-8 z-40">
           <Button size="lg" onClick={() => {
-            console.log('[TeacherActivitiesPage] 🎯 FAB (Floating Action Button) clicado');
-            console.log('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create');
+            logger.debug('[TeacherActivitiesPage] 🎯 FAB (Floating Action Button) clicado');
+            logger.debug('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create')
             navigate('/dashboard/activities/create');
           }}
             className="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-r from-blue-600 to-blue-700">
@@ -486,6 +539,21 @@ const TeacherActivitiesPage = () => {
           onSuccess={() => { setShowPostModal(false); loadActivities(); setSelectedActivities([]); }}
         />
       )}
+
+      {showPreview && previewActivity && (
+        <ActivityPreview
+          activity={{
+            ...previewActivity,
+            ...previewActivity.content
+          }}
+          onClose={() => { setShowPreview(false); setPreviewActivity(null); }}
+        />
+      )}
+
+      <ImportActivityModal
+        open={showImportModal}
+        onClose={() => setShowImportModal(false)}
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { X, Save, RefreshCw, Plus, Trash2, Clock, MapPin, Link as LinkIcon, MessageCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -67,7 +68,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
         });
       }
     } catch (error) {
-      console.error('Erro ao carregar configurações:', error);
+      logger.error('Erro ao carregar configurações:', error)
     }
   };
 
@@ -81,7 +82,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
       setCodeHistory(data || []);
     } catch (error) {
-      console.error('Erro ao carregar histórico:', error);
+      logger.error('Erro ao carregar histórico:', error)
     }
   };
 
@@ -107,7 +108,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
           deactivated_at: new Date().toISOString()
         }]);
       } catch (error) {
-        console.error('Erro ao salvar histórico:', error);
+        logger.error('Erro ao salvar histórico:', error)
       }
     }
 
@@ -187,7 +188,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Erro ao salvar:', error);
+      logger.error('Erro ao salvar:', error)
       toast({
         title: 'Erro ao salvar',
         description: 'Não foi possível salvar as configurações.',

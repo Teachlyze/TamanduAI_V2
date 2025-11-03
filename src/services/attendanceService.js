@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -36,7 +37,7 @@ export const getClassAttendance = async (classId, startDate = null, endDate = nu
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting class attendance:', error);
+    logger.error('Error getting class attendance:', error)
     throw error;
   }
 };
@@ -59,7 +60,7 @@ export const getAttendanceRate = async (classId, startDate = null, endDate = nul
     if (error) throw error;
     return data?.[0] || { total_students: 0, total_classes: 0, total_attendances: 0, attendance_rate: 0 };
   } catch (error) {
-    console.error('Error getting attendance rate:', error);
+    logger.error('Error getting attendance rate:', error)
     throw error;
   }
 };
@@ -82,7 +83,7 @@ export const logAttendance = async (classId, userId, joinedAt = new Date()) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error logging attendance:', error);
+    logger.error('Error logging attendance:', error)
     throw error;
   }
 };
@@ -113,7 +114,7 @@ export const markAttendance = async (classId, userId, attendedDate, wasOnTime = 
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error marking attendance:', error);
+    logger.error('Error marking attendance:', error)
     throw error;
   }
 };
@@ -143,7 +144,7 @@ export const bulkMarkAttendance = async (classId, userIds, attendedDate) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error bulk marking attendance:', error);
+    logger.error('Error bulk marking attendance:', error)
     throw error;
   }
 };
@@ -166,7 +167,7 @@ export const updateAttendance = async (attendanceId, updates) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error updating attendance:', error);
+    logger.error('Error updating attendance:', error)
     throw error;
   }
 };
@@ -185,7 +186,7 @@ export const deleteAttendance = async (attendanceId) => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting attendance:', error);
+    logger.error('Error deleting attendance:', error)
     throw error;
   }
 };
@@ -208,7 +209,7 @@ export const getStudentAttendanceHistory = async (classId, userId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting student attendance history:', error);
+    logger.error('Error getting student attendance history:', error)
     throw error;
   }
 };
@@ -265,7 +266,7 @@ export const getAttendanceSummary = async (classId) => {
 
     return summary.sort((a, b) => b.attendance_rate - a.attendance_rate);
   } catch (error) {
-    console.error('Error getting attendance summary:', error);
+    logger.error('Error getting attendance summary:', error)
     throw error;
   }
 };
@@ -326,7 +327,7 @@ export const getAttendanceByDate = async (classId, date) => {
       attendance_rate: rollCall.length > 0 ? (presentCount / rollCall.length) * 100 : 0,
     };
   } catch (error) {
-    console.error('Error getting attendance by date:', error);
+    logger.error('Error getting attendance by date:', error)
     throw error;
   }
 };
@@ -360,7 +361,7 @@ export const exportAttendanceCSV = async (classId, className) => {
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error('Error exporting attendance CSV:', error);
+    logger.error('Error exporting attendance CSV:', error)
     throw error;
   }
 };

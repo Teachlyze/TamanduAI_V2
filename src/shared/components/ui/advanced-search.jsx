@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -299,7 +300,7 @@ export const useSearch = (options = {}) => {
         setResults(searchResults);
         setSuggestions(searchManager.getSuggestions(debouncedQuery));
       } catch (err) {
-        console.error('Search error:', err);
+        logger.error('Search error:', err)
         setError(err.message || 'Erro na busca');
         setResults([]);
       } finally {

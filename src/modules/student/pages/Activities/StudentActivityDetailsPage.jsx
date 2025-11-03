@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -256,7 +257,7 @@ const StudentActivityDetailsPage = () => {
     try {
       setLoading(true);
 
-      console.log('[StudentActivityDetailsPage] 🔍 Carregando atividade:', activityId);
+      logger.debug('[StudentActivityDetailsPage] 🔍 Carregando atividade:', activityId)
       
       const [activityRes, submissionRes, assignmentsRes, attemptsRes] = await Promise.all([
         supabase
@@ -321,7 +322,7 @@ const StudentActivityDetailsPage = () => {
         questions = buildQuestions(act.schema, act?.meta || {});
       }
 
-      console.log('[StudentActivityDetailsPage] 📝 Questões processadas:', questions);
+      logger.debug('[StudentActivityDetailsPage] 📝 Questões processadas:', questions)
 
       setActivity(act);
       setSchemaQuestions(questions);
@@ -360,7 +361,7 @@ const StudentActivityDetailsPage = () => {
       }
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
       toast({ title: 'Erro ao carregar atividade', description: 'Tente novamente em instantes.', variant: 'destructive' });
     } finally {
       setLoading(false);

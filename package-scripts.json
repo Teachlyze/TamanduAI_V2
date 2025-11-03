@@ -1,0 +1,14 @@
+{
+  "scripts": {
+    "performance:audit": "node scripts/performance-audit.js",
+    "performance:remove-logs": "node scripts/remove-console-logs.js",
+    "performance:analyze-bundle": "webpack-bundle-analyzer dist/stats.json",
+    "db:create-indexes": "psql $DATABASE_URL -f scripts/create-indexes.sql",
+    "cache:clear": "node scripts/clear-redis-cache.js",
+    "test:performance": "lighthouse http://localhost:3000 --output=json --output-path=./performance-report.json"
+  },
+  "devDependencies": {
+    "@upstash/redis": "^1.25.1",
+    "webpack-bundle-analyzer": "^4.10.1"
+  }
+}

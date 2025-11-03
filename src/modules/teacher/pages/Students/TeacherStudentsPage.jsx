@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -143,7 +144,7 @@ const TeacherStudentsPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }

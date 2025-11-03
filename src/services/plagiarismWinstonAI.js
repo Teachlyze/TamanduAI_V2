@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   checkPlagiarismEdge, 
@@ -37,7 +38,7 @@ class PlagiarismWinstonAI {
       if (this.useEdgeFunctions && checkId) {
         const cached = await getCachedPlagiarismCheck(checkId);
         if (cached) {
-          console.log('✅ Resultado de plágio encontrado em cache');
+          logger.debug('✅ Resultado de plágio encontrado em cache')
           return {
             success: true,
             percentage: cached.plagiarism_percentage,
@@ -53,11 +54,11 @@ class PlagiarismWinstonAI {
       // 2. Usar Edge Function para verificação com cache e rate limiting
       let result;
       if (this.useEdgeFunctions && checkId) {
-        console.log('🔄 Usando Edge Function para verificação de plágio...');
+        logger.debug('🔄 Usando Edge Function para verificação de plágio...')
         result = await checkPlagiarismEdge(text, checkId);
       } else {
         // Fallback: chamar API diretamente
-        console.log('🔄 Usando API WinstonAI diretamente...');
+        logger.debug('🔄 Usando API WinstonAI diretamente...')
         const response = await fetch(this.apiUrl, {
           method: 'POST',
           headers: {
@@ -110,7 +111,7 @@ class PlagiarismWinstonAI {
       };
 
     } catch (error) {
-      console.error('Erro ao verificar plágio:', error);
+      logger.error('Erro ao verificar plágio:', error)
       return {
         success: false,
         error: error.message,
@@ -131,7 +132,7 @@ class PlagiarismWinstonAI {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erro ao salvar relatório:', error);
+      logger.error('Erro ao salvar relatório:', error)
     }
   }
 
@@ -189,7 +190,7 @@ class PlagiarismWinstonAI {
       }
 
     } catch (error) {
-      console.error('Erro ao notificar professor:', error);
+      logger.error('Erro ao notificar professor:', error)
     }
   }
 
@@ -218,7 +219,7 @@ class PlagiarismWinstonAI {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar relatórios:', error);
+      logger.error('Erro ao buscar relatórios:', error)
       return [];
     }
   }

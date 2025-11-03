@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 🤖 EDGE FUNCTION WRAPPER - CHATBOT
  * 
@@ -29,7 +30,7 @@ export const queryChatbot = async (classId, userId, message, conversationHistory
     });
 
     if (error) {
-      console.error('Erro na Edge Function chatbot-query:', error);
+      logger.error('Erro na Edge Function chatbot-query:', error)
       throw error;
     }
 
@@ -38,7 +39,7 @@ export const queryChatbot = async (classId, userId, message, conversationHistory
 
     return data;
   } catch (error) {
-    console.error('Erro ao consultar chatbot:', error);
+    logger.error('Erro ao consultar chatbot:', error)
     throw error;
   }
 };
@@ -66,13 +67,13 @@ export const trainChatbot = async (classId, materials, config = {}) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function process-rag-training:', error);
+      logger.error('Erro na Edge Function process-rag-training:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao treinar chatbot:', error);
+    logger.error('Erro ao treinar chatbot:', error)
     throw error;
   }
 };
@@ -100,14 +101,14 @@ export const saveChatbotInteraction = async (classId, userId, userMessage, botRe
       .single();
 
     if (error) {
-      console.error('Erro ao salvar interação:', error);
+      logger.error('Erro ao salvar interação:', error)
       // Não lançar erro - a interação já foi feita
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao salvar interação do chatbot:', error);
+    logger.error('Erro ao salvar interação do chatbot:', error)
     return null;
   }
 };
@@ -130,13 +131,13 @@ export const getChatbotHistory = async (classId, userId, limit = 50) => {
       .limit(limit);
 
     if (error) {
-      console.error('Erro ao buscar histórico:', error);
+      logger.error('Erro ao buscar histórico:', error)
       throw error;
     }
 
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar histórico do chatbot:', error);
+    logger.error('Erro ao buscar histórico do chatbot:', error)
     return [];
   }
 };
@@ -159,13 +160,13 @@ export const getChatbotConfig = async (classId) => {
         // Nenhum registro encontrado
         return null;
       }
-      console.error('Erro ao buscar configuração:', error);
+      logger.error('Erro ao buscar configuração:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao buscar configuração do chatbot:', error);
+    logger.error('Erro ao buscar configuração do chatbot:', error)
     return null;
   }
 };
@@ -189,13 +190,13 @@ export const updateChatbotConfig = async (classId, config) => {
       .single();
 
     if (error) {
-      console.error('Erro ao atualizar configuração:', error);
+      logger.error('Erro ao atualizar configuração:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao atualizar configuração do chatbot:', error);
+    logger.error('Erro ao atualizar configuração do chatbot:', error)
     throw error;
   }
 };
@@ -223,13 +224,13 @@ export const saveChatbotTrainingData = async (classId, trainingData) => {
       .select();
 
     if (error) {
-      console.error('Erro ao salvar dados de treinamento:', error);
+      logger.error('Erro ao salvar dados de treinamento:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao salvar dados de treinamento:', error);
+    logger.error('Erro ao salvar dados de treinamento:', error)
     throw error;
   }
 };

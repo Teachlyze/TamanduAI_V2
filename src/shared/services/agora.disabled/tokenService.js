@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 const { RtcTokenBuilder, RtcRole } = require('agora-token');
 
 class TokenService {
@@ -6,7 +7,7 @@ class TokenService {
     this.appCertificate = process.env.REACT_APP_AGORA_APP_CERTIFICATE;
     
     if (!this.appId || !this.appCertificate) {
-      console.warn('Agora App ID or Certificate not found in environment variables');
+      logger.warn('Agora App ID or Certificate not found in environment variables')
     }
   }
 

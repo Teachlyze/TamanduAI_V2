@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -30,7 +31,7 @@ export const DocumentParserService = {
         parsedAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error('Error parsing DOCX:', error);
+      logger.error('Error parsing DOCX:', error)
       throw new Error('Erro ao processar arquivo DOCX');
     }
   },
@@ -63,7 +64,7 @@ export const DocumentParserService = {
         parsedAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error('Error parsing PDF:', error);
+      logger.error('Error parsing PDF:', error)
       throw new Error('Erro ao processar arquivo PDF');
     }
   },
@@ -95,7 +96,7 @@ export const DocumentParserService = {
       
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading document:', error);
+      logger.error('Error uploading document:', error)
       throw new Error('Erro ao fazer upload do arquivo');
     }
   },

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -49,7 +50,7 @@ class SchoolService {
           .rpc('count_school_students', { p_school_id: schoolId });
 
         if (studentsError) {
-          console.warn('[SchoolService] Error counting students, using fallback:', studentsError);
+          logger.warn('[SchoolService] Error counting students, using fallback:', studentsError)
           // Fallback: contar via query normal (pode falhar se RLS recursivo)
           const { count } = await supabase
             .from('class_members')
@@ -147,7 +148,7 @@ class SchoolService {
         teacherIds,
       };
     } catch (error) {
-      console.error('[SchoolService] Error getting dashboard stats:', error);
+      logger.error('[SchoolService] Error getting dashboard stats:', error)
       throw error;
     }
   }
@@ -193,7 +194,7 @@ class SchoolService {
         };
       });
     } catch (error) {
-      console.error('[SchoolService] Error getting teachers:', error);
+      logger.error('[SchoolService] Error getting teachers:', error)
       throw error;
     }
   }
@@ -248,7 +249,7 @@ class SchoolService {
           .rpc('count_class_students_batch', { p_class_ids: classIds });
         
         if (countsError) {
-          console.warn('[SchoolService] Error counting students batch, using 0:', countsError);
+          logger.warn('[SchoolService] Error counting students batch, using 0:', countsError)
         } else {
           studentCountByClass = (countsData || []).reduce((acc, row) => {
             acc[row.class_id] = row.student_count;
@@ -270,7 +271,7 @@ class SchoolService {
         };
       });
     } catch (error) {
-      console.error('[SchoolService] Error getting classes:', error);
+      logger.error('[SchoolService] Error getting classes:', error)
       throw error;
     }
   }
@@ -317,7 +318,7 @@ class SchoolService {
 
       return { success: true, teacherId: profile.id };
     } catch (error) {
-      console.error('[SchoolService] Error linking teacher:', error);
+      logger.error('[SchoolService] Error linking teacher:', error)
       throw error;
     }
   }
@@ -337,7 +338,7 @@ class SchoolService {
 
       return { success: true };
     } catch (error) {
-      console.error('[SchoolService] Error unlinking teacher:', error);
+      logger.error('[SchoolService] Error unlinking teacher:', error)
       throw error;
     }
   }
@@ -395,7 +396,7 @@ class SchoolService {
 
       return { success: true };
     } catch (error) {
-      console.error('[SchoolService] Error linking class:', error);
+      logger.error('[SchoolService] Error linking class:', error)
       throw error;
     }
   }
@@ -415,7 +416,7 @@ class SchoolService {
 
       return { success: true };
     } catch (error) {
-      console.error('[SchoolService] Error unlinking class:', error);
+      logger.error('[SchoolService] Error unlinking class:', error)
       throw error;
     }
   }
@@ -443,7 +444,7 @@ class SchoolService {
           .single();
 
         if (ownerError || !schoolByOwner) {
-          console.error('[SchoolService] School not found for user:', userId);
+          logger.error('[SchoolService] School not found for user:', userId)
           return null;
         }
 
@@ -464,7 +465,7 @@ class SchoolService {
         adminRole: 'owner',
       };
     } catch (error) {
-      console.error('[SchoolService] Error getting user school:', error);
+      logger.error('[SchoolService] Error getting user school:', error)
       return null;
     }
   }
@@ -503,7 +504,7 @@ class SchoolService {
         joined_at: item.joined_at
       }));
     } catch (error) {
-      console.error('[SchoolService] Error getting teacher affiliated schools:', error);
+      logger.error('[SchoolService] Error getting teacher affiliated schools:', error)
       return [];
     }
   }
@@ -527,7 +528,7 @@ class SchoolService {
       if (error && error.code !== 'PGRST116') throw error;
       return !!data;
     } catch (error) {
-      console.error('[SchoolService] Error checking teacher affiliation:', error);
+      logger.error('[SchoolService] Error checking teacher affiliation:', error)
       return false;
     }
   }

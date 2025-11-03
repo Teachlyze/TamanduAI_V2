@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -42,7 +43,7 @@ export const getMaterials = async (classId, filters = {}) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting materials:', error);
+    logger.error('Error getting materials:', error)
     throw error;
   }
 };
@@ -67,7 +68,7 @@ export const getMaterial = async (materialId) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting material:', error);
+    logger.error('Error getting material:', error)
     throw error;
   }
 };
@@ -127,7 +128,7 @@ export const uploadMaterial = async (classId, file, metadata) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error uploading material:', error);
+    logger.error('Error uploading material:', error)
     throw error;
   }
 };
@@ -156,7 +157,7 @@ export const updateMaterial = async (materialId, updates) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error updating material:', error);
+    logger.error('Error updating material:', error)
     throw error;
   }
 };
@@ -179,7 +180,7 @@ export const deleteMaterial = async (materialId) => {
         .from('class-materials')
         .remove([filePath]);
 
-      if (storageError) console.warn('Error deleting file from storage:', storageError);
+      if (storageError) logger.warn('Error deleting file from storage:', storageError)
     }
 
     // 3. Delete database record
@@ -190,7 +191,7 @@ export const deleteMaterial = async (materialId) => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error deleting material:', error);
+    logger.error('Error deleting material:', error)
     throw error;
   }
 };
@@ -228,7 +229,7 @@ export const getMaterialStats = async (classId) => {
 
     return stats;
   } catch (error) {
-    console.error('Error getting material stats:', error);
+    logger.error('Error getting material stats:', error)
     throw error;
   }
 };
@@ -250,7 +251,7 @@ export const getCategories = async (classId) => {
     const uniqueCategories = [...new Set(data.map(m => m.category).filter(Boolean))];
     return uniqueCategories;
   } catch (error) {
-    console.error('Error getting categories:', error);
+    logger.error('Error getting categories:', error)
     throw error;
   }
 };
@@ -278,7 +279,7 @@ export const getTags = async (classId) => {
 
     return [...tagSet];
   } catch (error) {
-    console.error('Error getting tags:', error);
+    logger.error('Error getting tags:', error)
     throw error;
   }
 };
@@ -321,7 +322,7 @@ export const duplicateMaterial = async (materialId, targetClassId) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error duplicating material:', error);
+    logger.error('Error duplicating material:', error)
     throw error;
   }
 };

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { X, Edit, Trash2, Copy, ExternalLink, Clock, MapPin, Users } from 'lucide-react';
 import { format } from 'date-fns';
@@ -32,7 +33,7 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
       onDelete();
       onClose();
     } catch (error) {
-      console.error('Erro ao excluir evento:', error);
+      logger.error('Erro ao excluir evento:', error)
       toast({
         title: 'Erro ao excluir',
         description: 'Não foi possível excluir o evento.',
@@ -53,20 +54,20 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
 
   const getEventTypeLabel = (type) => {
     const types = {
-      class: 'Aula',
-      exam: 'Prova',
+      event: 'Aula',
+      activity: 'Atividade',
       meeting: 'Reunião',
-      personal: 'Pessoal'
+      deadline: 'Prazo'
     };
-    return types[type] || type;
+    return types[type] || 'Evento';
   };
 
   const getEventTypeColor = (type) => {
     const colors = {
-      class: 'bg-blue-100 text-blue-700',
-      exam: 'bg-red-100 text-red-700',
+      event: 'bg-blue-100 text-blue-700',
+      activity: 'bg-orange-100 text-orange-700',
       meeting: 'bg-purple-100 text-purple-700',
-      personal: 'bg-gray-100 text-gray-700'
+      deadline: 'bg-red-100 text-red-700'
     };
     return colors[type] || 'bg-gray-100 text-gray-700';
   };
@@ -90,8 +91,8 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-white mb-2">{event.title}</h2>
-              <Badge className={getEventTypeColor(event.event_type)}>
-                {getEventTypeLabel(event.event_type)}
+              <Badge className={getEventTypeColor(event.type)}>
+                {getEventTypeLabel(event.type)}
               </Badge>
             </div>
             <button

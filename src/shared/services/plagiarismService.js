@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import NotificationOrchestrator from '@/shared/services/notificationOrchestrator';
 
@@ -68,7 +69,7 @@ export const checkTextForPlagiarism = async (text, options = {}) => {
       confidence: result.confidence || 0,
     };
   } catch (error) {
-    console.error('Error checking for plagiarism with Winston AI:', error);
+    logger.error('Error checking for plagiarism with Winston AI:', error)
     throw error;
   }
 };
@@ -171,7 +172,7 @@ export const checkSubmissionForPlagiarism = async (submissionId, text, options =
     return checkResult;
 
   } catch (error) {
-    console.error('Error in checkSubmissionForPlagiarism:', error);
+    logger.error('Error in checkSubmissionForPlagiarism:', error)
     throw error;
   }
 };
@@ -197,7 +198,7 @@ export const getPlagiarismCheckForSubmission = async (submissionId) => {
 
     return data || null;
   } catch (error) {
-    console.error('Error getting plagiarism check:', error);
+    logger.error('Error getting plagiarism check:', error)
     return null;
   }
 };
@@ -226,7 +227,7 @@ export const getPlagiarismChecksForActivity = async (activityId) => {
 
     return data || [];
   } catch (error) {
-    console.error('Error getting plagiarism checks for activity:', error);
+    logger.error('Error getting plagiarism checks for activity:', error)
     return [];
   }
 };
@@ -270,7 +271,7 @@ export const getPlagiarismChecksForClass = async (classId) => {
 
     return data || [];
   } catch (error) {
-    console.error('Error getting plagiarism checks for class:', error);
+    logger.error('Error getting plagiarism checks for class:', error)
     return [];
   }
 };
@@ -294,7 +295,7 @@ export const getPlagiarismNotificationSettings = async (classId) => {
 
     return data || null;
   } catch (error) {
-    console.error('Error getting plagiarism notification settings:', error);
+    logger.error('Error getting plagiarism notification settings:', error)
     return null;
   }
 };
@@ -323,7 +324,7 @@ export const updatePlagiarismNotificationSettings = async (classId, settings) =>
 
     return data;
   } catch (error) {
-    console.error('Error updating plagiarism notification settings:', error);
+    logger.error('Error updating plagiarism notification settings:', error)
     throw error;
   }
 };
@@ -410,7 +411,7 @@ const notifyTeacherOfPlagiarism = async (submission, plagiarismResult) => {
     }
 
   } catch (error) {
-    console.error('Error notifying teacher of plagiarism:', error);
+    logger.error('Error notifying teacher of plagiarism:', error)
   }
 };
 
@@ -491,7 +492,7 @@ export const getPlagiarismStatsForClass = async (classId) => {
 
     return stats;
   } catch (error) {
-    console.error('Error getting plagiarism stats:', error);
+    logger.error('Error getting plagiarism stats:', error)
     return {
       total: 0,
       bySeverity: { none: 0, low: 0, medium: 0, high: 0, critical: 0 },
@@ -544,7 +545,7 @@ export const invokeEdgeCheck = async ({ submissionId, activityId, classId, text,
     if (error) throw error;
     return data;
   } catch (e) {
-    console.warn('Edge function plagiarism check failed:', e);
+    logger.warn('Edge function plagiarism check failed:', e)
     return null;
   }
 };
@@ -580,7 +581,7 @@ export const checkPlagiarismWithEdgeFunction = async (submissionId, text) => {
     const data = await response.json();
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao verificar plágio com edge function:', error);
+    logger.error('Erro ao verificar plágio com edge function:', error)
     
     // Fallback: usar método direto
     try {

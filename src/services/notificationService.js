@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   createAndSendNotification,
@@ -65,7 +66,7 @@ class NotificationService {
       const result = await processNotificationsBatch(notifications);
       return result;
     } catch (error) {
-      console.error('Error sending notifications in batch:', error);
+      logger.error('Error sending notifications in batch:', error)
       throw error;
     }
   }
@@ -186,7 +187,7 @@ class NotificationService {
       };
 
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      logger.error('Error marking notifications as read:', error)
       return {
         success: false,
         message: error.message,
@@ -246,7 +247,7 @@ class NotificationService {
       };
 
     } catch (error) {
-      console.error('Error deleting notifications:', error);
+      logger.error('Error deleting notifications:', error)
       return {
         success: false,
         message: error.message,
@@ -317,7 +318,7 @@ class NotificationService {
       const result = await createAndSendNotification(userId, notificationData);
       return result;
     } catch (error) {
-      console.error('Error using Edge Function, falling back to direct insert:', error);
+      logger.error('Error using Edge Function, falling back to direct insert:', error)
       
       // Fallback: inserir diretamente no banco
       const { data, error: insertError } = await supabase

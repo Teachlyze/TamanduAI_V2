@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/hooks/useRedisCache.js
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -159,13 +160,13 @@ export const useUserPermissions = (userId) => {
         });
 
         if (error) {
-          console.error('Error fetching user permissions:', error);
+          logger.error('Error fetching user permissions:', error)
           return null;
         }
 
         return data;
       } catch (err) {
-        console.error('Error in useUserPermissions:', err);
+        logger.error('Error in useUserPermissions:', err)
         return null;
       }
     },
@@ -254,7 +255,7 @@ export const useUserClasses = (userId, role = 'student') => {
           })) || [];
         }
       } catch (error) {
-        console.error('Error fetching user classes:', error);
+        logger.error('Error fetching user classes:', error)
         // Return empty array instead of throwing to prevent infinite loading
         return [];
       }

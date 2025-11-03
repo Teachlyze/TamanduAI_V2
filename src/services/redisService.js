@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/redisService.js
 // This file provides a unified interface for Redis in both browser and server environments
 
@@ -110,7 +111,7 @@ if (isBrowser) {
     const { redisCache: serverRedisCache } = await import('./redis');
     redisCache = serverRedisCache;
   } catch (error) {
-    console.error('Failed to load server-side Redis client, falling back to in-memory cache');
+    logger.error('Failed to load server-side Redis client, falling back to in-memory cache')
     redisCache = new BrowserCache();
   }
 }

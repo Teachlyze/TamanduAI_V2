@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Award,
@@ -121,7 +122,7 @@ const StudentHistoryPage = () => {
       setSubmissions(normalized);
       setClasses(uniqueClasses);
     } catch (err) {
-      console.error('Erro ao carregar histórico do aluno:', err);
+      logger.error('Erro ao carregar histórico do aluno:', err)
       toast({
         title: 'Não foi possível carregar seu histórico',
         description: 'Tente novamente mais tarde.',
@@ -309,7 +310,7 @@ const StudentHistoryPage = () => {
         toast({ title: 'Planilha exportada com sucesso!' });
       }
     } catch (err) {
-      console.error('Erro ao exportar histórico:', err);
+      logger.error('Erro ao exportar histórico:', err)
       toast({
         title: 'Erro ao exportar',
         description: 'Tente novamente mais tarde.',

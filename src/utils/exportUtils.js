@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -243,7 +244,7 @@ export const exportDetailedReport = (reportData, filename) => {
  */
 export const exportToCSV = (data, filename) => {
   if (!data || data.length === 0) {
-    console.error('Nenhum dado para exportar');
+    logger.error('Nenhum dado para exportar')
     return;
   }
 

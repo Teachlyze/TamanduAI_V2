@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { X, Search, UserPlus, Link as LinkIcon, Copy, QrCode } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -50,7 +51,7 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
 
       setSearchResult({ found: true, user: data });
     } catch (error) {
-      console.error('Erro ao buscar email:', error);
+      logger.error('Erro ao buscar email:', error)
     } finally {
       setLoading(false);
     }
@@ -96,13 +97,13 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
         throw new Error('Falha ao adicionar aluno - nenhum registro criado');
       }
 
-      console.log('✅ Aluno adicionado com sucesso:', inserted[0]);
+      logger.debug('✅ Aluno adicionado com sucesso:', inserted[0])
 
       // Invalidar cache
       try {
         await redisCache.invalidateClass(classId);
       } catch (cacheError) {
-        console.warn('Aviso: Erro ao invalidar cache, mas aluno foi adicionado:', cacheError);
+        logger.warn('Aviso: Erro ao invalidar cache, mas aluno foi adicionado:', cacheError)
       }
 
       toast({
@@ -115,7 +116,7 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
       onSuccess?.();
       
     } catch (error) {
-      console.error('Erro ao adicionar aluno:', error);
+      logger.error('Erro ao adicionar aluno:', error)
       toast({
         title: 'Erro ao adicionar aluno',
         description: error.message,
@@ -198,7 +199,7 @@ const AddStudentModal = ({ isOpen, onClose, classId, classData, onSuccess }) => 
       onSuccess?.();
 
     } catch (error) {
-      console.error('Erro na importação:', error);
+      logger.error('Erro na importação:', error)
       toast({
         title: 'Erro na importação',
         description: error.message,

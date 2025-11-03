@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../lib/supabaseClient';
@@ -91,7 +92,7 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
       
       return fileMetadata;
     } catch (err) {
-      console.error('Erro ao fazer upload do arquivo:', err);
+      logger.error('Erro ao fazer upload do arquivo:', err)
       setError(err.message || 'Erro ao fazer upload do arquivo');
       throw err;
     } finally {
@@ -115,7 +116,7 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
       if (error) throw error;
       return true;
     } catch (err) {
-      console.error('Erro ao remover arquivo:', err);
+      logger.error('Erro ao remover arquivo:', err)
       setError(err.message || 'Erro ao remover o arquivo');
       throw err;
     }
@@ -160,7 +161,7 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
         );
         
         if (moveError) {
-          console.warn(`Falha ao mover o arquivo ${file.name}:`, moveError);
+          logger.warn(`Falha ao mover o arquivo ${file.name}:`, moveError)
           continue;
         }
         
@@ -181,7 +182,7 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
       
       return movedFiles;
     } catch (err) {
-      console.error('Erro ao publicar arquivos da atividade:', err);
+      logger.error('Erro ao publicar arquivos da atividade:', err)
       setError(err.message || 'Erro ao publicar os arquivos da atividade');
       throw err;
     }
@@ -246,7 +247,7 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
       
       return fileMetadata;
     } catch (err) {
-      console.error('Erro ao fazer upload da submissão:', err);
+      logger.error('Erro ao fazer upload da submissão:', err)
       setError(err.message || 'Erro ao fazer upload da submissão');
       throw err;
     } finally {

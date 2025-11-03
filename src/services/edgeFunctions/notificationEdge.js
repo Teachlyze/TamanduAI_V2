@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 🔔 EDGE FUNCTION WRAPPER - NOTIFICATIONS
  * 
@@ -21,13 +22,13 @@ export const processNotificationsBatch = async (notifications) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function process-notifications:', error);
+      logger.error('Erro na Edge Function process-notifications:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao processar notificações em lote:', error);
+    logger.error('Erro ao processar notificações em lote:', error)
     throw error;
   }
 };
@@ -55,13 +56,13 @@ export const createAndSendNotification = async (userId, notification) => {
       .single();
 
     if (error) {
-      console.error('Erro ao criar notificação:', error);
+      logger.error('Erro ao criar notificação:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao criar notificação:', error);
+    logger.error('Erro ao criar notificação:', error)
     throw error;
   }
 };
@@ -86,13 +87,13 @@ export const sendEmail = async (to, subject, template, data = {}) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function send-email-v2:', error);
+      logger.error('Erro na Edge Function send-email-v2:', error)
       throw error;
     }
 
     return result;
   } catch (error) {
-    console.error('Erro ao enviar email:', error);
+    logger.error('Erro ao enviar email:', error)
     throw error;
   }
 };
@@ -120,7 +121,7 @@ export const sendPlagiarismAlert = async (teacherId, studentName, activityTitle,
 
     return await createAndSendNotification(teacherId, notification);
   } catch (error) {
-    console.error('Erro ao enviar alerta de plágio:', error);
+    logger.error('Erro ao enviar alerta de plágio:', error)
     throw error;
   }
 };
@@ -148,7 +149,7 @@ export const sendAIDetectionAlert = async (teacherId, studentName, activityTitle
 
     return await createAndSendNotification(teacherId, notification);
   } catch (error) {
-    console.error('Erro ao enviar alerta de IA:', error);
+    logger.error('Erro ao enviar alerta de IA:', error)
     throw error;
   }
 };
@@ -174,7 +175,7 @@ export const sendSubmissionNotification = async (teacherId, studentName, activit
 
     return await createAndSendNotification(teacherId, notification);
   } catch (error) {
-    console.error('Erro ao enviar notificação de submissão:', error);
+    logger.error('Erro ao enviar notificação de submissão:', error)
     throw error;
   }
 };
@@ -200,7 +201,7 @@ export const sendGradeNotification = async (studentId, activityTitle, grade) => 
 
     return await createAndSendNotification(studentId, notification);
   } catch (error) {
-    console.error('Erro ao enviar notificação de nota:', error);
+    logger.error('Erro ao enviar notificação de nota:', error)
     throw error;
   }
 };
@@ -229,7 +230,7 @@ export const sendDeadlineNotification = async (studentId, activityTitle, deadlin
 
     return await createAndSendNotification(studentId, notification);
   } catch (error) {
-    console.error('Erro ao enviar notificação de prazo:', error);
+    logger.error('Erro ao enviar notificação de prazo:', error)
     throw error;
   }
 };

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -81,7 +82,7 @@ export const AttachmentService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching attachments:', error);
+      logger.error('Error fetching attachments:', error)
       throw error;
     }
   },
@@ -97,7 +98,7 @@ export const AttachmentService = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Error fetching event attachments:', error);
+      logger.error('Error fetching event attachments:', error)
       throw error;
     }
   },
@@ -137,7 +138,7 @@ export const AttachmentService = {
 
       return true;
     } catch (error) {
-      console.error('Error deleting attachment:', error);
+      logger.error('Error deleting attachment:', error)
       throw error;
     }
   },
@@ -158,7 +159,7 @@ export const AttachmentService = {
       if (error) throw error;
       return data.signedUrl;
     } catch (error) {
-      console.error('Error generating signed URL:', error);
+      logger.error('Error generating signed URL:', error)
       throw error;
     }
   },
@@ -171,7 +172,7 @@ export const AttachmentService = {
    */
   subscribeToAttachments(meetingId, callback) {
     if (!meetingId) {
-      console.error('meetingId is required for subscription');
+      logger.error('meetingId is required for subscription')
       return () => {};
     }
 

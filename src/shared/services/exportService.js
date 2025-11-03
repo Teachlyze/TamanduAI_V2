@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import ExcelJS from 'exceljs';
@@ -166,8 +167,144 @@ export const exportClassReportToPDF = (className, students, activities) => {
   doc.save(`relatorio_${className.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
+/**
+ * Export dashboard/analytics to PNG
+ * Requires html2canvas library
+ */
+export const exportDashboardToPNG = async (elementId, fileName = 'dashboard') => {
+  try {
+    // Dynamically import html2canvas (needs to be installed: npm install html2canvas)
+    const html2canvas = (await import('html2canvas')).default;
+    
+    const element = document.getElementById(elementId);
+    if (!element) {
+      throw new Error(`Element with id "${elementId}" not found`);
+    }
+
+    const canvas = await html2canvas(element, {
+      scale: 2, // Higher quality
+      backgroundColor: '#ffffff',
+      logging: false,
+      useCORS: true
+    });
+
+    // Convert to blob and download
+    canvas.toBlob((blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.png`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    });
+  } catch (error) {
+    logger.error('Erro ao exportar PNG:', error)
+    throw error;
+  }
+};
+
+/**
+ * Export analytics report to PDF with charts
+ */
+export const exportAnalyticsReportToPDF = (classData, analytics) => {
+  const doc = new jsPDF();
+  
+  // Title
+  doc.setFontSize(20);
+  doc.text('Relatório de Analytics - Chatbot', 14, 22);
+  
+  // Class info
+  doc.setFontSize(12);
+  doc.text(`Turma: ${classData.name}`, 14, 35);
+  doc.text(`Período: Últimos 7 dias`, 14, 42);
+  doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 49);
+  
+  // Stats summary
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('Estatísticas Gerais', 14, 62);
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(11);
+  doc.text(`Total de Conversas: ${analytics.totalConversations}`, 20, 70);
+  doc.text(`Alunos Ativos: ${analytics.activeStudents}`, 20, 77);
+  doc.text(`Satisfação: ${analytics.satisfaction}%`, 20, 84);
+  doc.text(`Tempo Médio de Resposta: ${analytics.avgResponseTime}s`, 20, 91);
+  
+  // Top questions table
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('Perguntas Mais Frequentes', 14, 105);
+  
+  const questionsData = analytics.topQuestions.map(q => [
+    q.question,
+    q.count.toString(),
+    q.activity,
+    q.resolved ? 'Resolvida' : 'Atenção'
+  ]);
+  
+  doc.autoTable({
+    startY: 110,
+    head: [['Pergunta', 'Freq.', 'Atividade', 'Status']],
+    body: questionsData,
+    theme: 'striped',
+    headStyles: { fillColor: [59, 130, 246] },
+    styles: { fontSize: 9, cellWidth: 'wrap' },
+    columnStyles: {
+      0: { cellWidth: 80 },
+      1: { cellWidth: 20 },
+      2: { cellWidth: 40 },
+      3: { cellWidth: 30 }
+    }
+  });
+  
+  // Difficult topics
+  const startY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('Tópicos Mais Difíceis', 14, startY);
+  
+  const topicsData = analytics.difficultTopics.map(t => [
+    t.topic,
+    t.questions.toString(),
+    `${t.satisfaction}%`
+  ]);
+  
+  doc.autoTable({
+    startY: startY + 5,
+    head: [['Tópico', 'Perguntas', 'Satisfação']],
+    body: topicsData,
+    theme: 'striped',
+    headStyles: { fillColor: [59, 130, 246] },
+    styles: { fontSize: 10 }
+  });
+  
+  // Insights
+  const insightsY = doc.lastAutoTable.finalY + 10;
+  doc.setFontSize(14);
+  doc.setFont(undefined, 'bold');
+  doc.text('💡 Insights Automáticos', 14, insightsY);
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  
+  let currentY = insightsY + 7;
+  analytics.insights.forEach((insight, idx) => {
+    doc.text(`• ${insight.message}`, 20, currentY);
+    currentY += 6;
+    if (insight.suggestion) {
+      doc.setTextColor(100, 100, 100);
+      doc.text(`  💡 ${insight.suggestion}`, 24, currentY);
+      doc.setTextColor(0, 0, 0);
+      currentY += 6;
+    }
+  });
+  
+  doc.save(`analytics_chatbot_${classData.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+};
+
 export default {
   exportGradesToPDF,
   exportGradesToExcel,
-  exportClassReportToPDF
+  exportClassReportToPDF,
+  exportDashboardToPNG,
+  exportAnalyticsReportToPDF
 };

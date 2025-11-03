@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/monitoring.js
 import redisCache from './redis';
 
@@ -269,7 +270,7 @@ class MonitoringService {
       const key = `metrics:${category}:${name}`;
       await redisCache.set(key, metric, 3600); // 1 hour TTL
     } catch (error) {
-      console.warn('Failed to store metric in cache:', error);
+      logger.warn('Failed to store metric in cache:', error)
     }
   }
 
@@ -456,7 +457,7 @@ class MonitoringService {
    * Disparar alerta
    */
   triggerAlert(type, data) {
-    console.warn(`🚨 ALERT: ${type}`, data);
+    logger.warn(`🚨 ALERT: ${type}`, data)
 
     // Store alert in metrics
     const alertKey = `alert:${type}:${Date.now()}`;

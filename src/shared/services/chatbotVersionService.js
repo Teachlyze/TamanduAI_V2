@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -42,10 +43,10 @@ export const ChatbotVersionService = {
 
       if (error) throw error;
 
-      console.log('Version created:', data);
+      logger.debug('Version created:', data)
       return data;
     } catch (error) {
-      console.error('Error creating version:', error);
+      logger.error('Error creating version:', error)
       throw error;
     }
   },
@@ -141,10 +142,10 @@ export const ChatbotVersionService = {
 
       if (error) throw error;
 
-      console.log('Rollback successful:', data);
+      logger.debug('Rollback successful:', data)
       return data;
     } catch (error) {
-      console.error('Error rolling back:', error);
+      logger.error('Error rolling back:', error)
       throw error;
     }
   },
@@ -249,7 +250,7 @@ export const ChatbotVersionService = {
 
       return data;
     } catch (error) {
-      console.error('Error updating with versioning:', error);
+      logger.error('Error updating with versioning:', error)
       throw error;
     }
   }

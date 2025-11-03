@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback, memo } from 'react';
 import { Menu } from 'lucide-react';
 import { SidebarPremium } from '@/shared/components/ui/SidebarPremium';
 import { Button } from '@/shared/components/ui/button';
+import { Toaster } from '@/shared/components/ui/toaster';
 
 // Memoizar header para evitar re-renders
 const MobileHeader = memo(({ onMenuClick }) => (
@@ -53,6 +54,9 @@ export const TeacherLayout = memo(({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Global Toaster */}
+      <Toaster />
     </div>
   );
 });

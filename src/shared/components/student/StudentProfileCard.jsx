@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Sun, Moon, Bell, User, Settings, BookOpen, Award, TrendingUp, FileText } from 'lucide-react';
@@ -69,7 +70,7 @@ export const StudentProfileCard = ({ className = '' }) => {
       
       setProfile(data);
     } catch (error) {
-      console.error('Error loading profile:', error);
+      logger.error('Error loading profile:', error)
     }
   };
 
@@ -132,7 +133,7 @@ export const StudentProfileCard = ({ className = '' }) => {
         });
       }
     } catch (error) {
-      console.error('Error loading stats:', error);
+      logger.error('Error loading stats:', error)
     }
   };
 

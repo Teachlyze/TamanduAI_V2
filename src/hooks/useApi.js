@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -45,7 +46,7 @@ export const useApi = (apiFunction, options = {}) => {
         
         return result;
       } catch (err) {
-        console.error('API Error:', err);
+        logger.error('API Error:', err)
         
         const errorMessageText = errorMessage || 
           err.message || 
@@ -97,7 +98,7 @@ export const useFetch = (fetchFunction, options = {}) => {
       setData(result);
       return result;
     } catch (err) {
-      console.error('Fetch Error:', err);
+      logger.error('Fetch Error:', err)
       setError(err);
       
       if (options.showErrorToast !== false) {

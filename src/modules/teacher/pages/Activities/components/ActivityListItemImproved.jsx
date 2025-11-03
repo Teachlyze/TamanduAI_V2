@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, MoreVertical, Edit, Copy, Eye, Download, Share2, Archive, Trash2, Users, FileText, CheckCircle } from 'lucide-react';
@@ -19,7 +20,9 @@ const ActivityListItemImproved = ({
   onDuplicate,
   onToggleFavorite,
   onArchive,
+  onUnarchive,
   onDelete,
+  onPreview,
   getTypeBadge
 }) => {
   const { toast } = useToast();
@@ -68,8 +71,8 @@ const ActivityListItemImproved = ({
             </h3>
             <button
               onClick={() => {
-                console.log('[ActivityListItem] ⭐ Botão Favorito clicado');
-                console.log('[ActivityListItem] Activity ID:', activity.id);
+                logger.debug('[ActivityListItem] ⭐ Botão Favorito clicado')
+                logger.debug('[ActivityListItem] Activity ID:', activity.id)
                 onToggleFavorite(activity.id);
               }}
               className="flex-shrink-0 text-gray-400 hover:text-yellow-500 transition-colors"
@@ -136,8 +139,8 @@ const ActivityListItemImproved = ({
           <Button
             size="sm"
             onClick={() => {
-              console.log('[ActivityListItem] ✏️ Botão Editar Principal clicado');
-              console.log('[ActivityListItem] Activity:', activity);
+              logger.debug('[ActivityListItem] ✏️ Botão Editar Principal clicado')
+              logger.debug('[ActivityListItem] Activity:', activity)
               onEdit(activity);
             }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 shadow-md hover:shadow-lg"
@@ -154,16 +157,16 @@ const ActivityListItemImproved = ({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => {
-                console.log('[ActivityListItem] ✏️ Dropdown "Editar" clicado');
-                console.log('[ActivityListItem] Activity:', activity);
+                logger.debug('[ActivityListItem] ✏️ Dropdown "Editar" clicado')
+                logger.debug('[ActivityListItem] Activity:', activity)
                 onEdit(activity);
               }}>
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
-                console.log('[ActivityListItem] 📋 Dropdown "Duplicar" clicado');
-                console.log('[ActivityListItem] Activity:', activity);
+                logger.debug('[ActivityListItem] 📋 Dropdown "Duplicar" clicado')
+                logger.debug('[ActivityListItem] Activity:', activity)
                 onDuplicate(activity);
               }}>
                 <Copy className="w-4 h-4 mr-2" />
@@ -177,28 +180,82 @@ const ActivityListItemImproved = ({
                 Ver Prévia
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => {
+              <DropdownMenuItem onClick={async (e) => {
                 e.stopPropagation();
-                toast({ title: 'Em breve', description: 'Função de exportação será implementada em breve.' });
-              }}>
-                <Download className="w-4 h-4 mr-2" />
-                Exportar
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                toast({ title: 'Em breve', description: 'Função de compartilhamento será implementada em breve.' });
+                try {
+                  const link = `${window.location.origin}/dashboard/activities/${activity.id}`;
+                  await navigator.clipboard.writeText(link);
+                  toast({ 
+                    title: ' Link copiado!',
+                    description: 'O link da atividade foi copiado para a área de transferência.' 
+                  });
+                } catch (error) {
+                  logger.error('Erro ao copiar:', error)
+                  toast({ 
+                    title: ' Erro',
+                    description: 'Não foi possível copiar o link.',
+                    variant: 'destructive'
+                  });
+                }
               }}>
                 <Share2 className="w-4 h-4 mr-2" />
                 Compartilhar
               </DropdownMenuItem>
+              {onPreview && (
+                <DropdownMenuItem onClick={() => onPreview(activity)}>
+                  <Eye className="w-4 h-4 mr-2" />
+                  Ver Prévia
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={(e) => {
+              <DropdownMenuItem onClick={async (e) => {
                 e.stopPropagation();
-                onArchive(activity.id);
+                try {
+                  // Exportar atividade como JSON
+                  const activityData = JSON.stringify(activity, null, 2);
+                  const blob = new Blob([activityData], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `atividade_${activity.title?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  URL.revokeObjectURL(url);
+                  toast({ 
+                    title: '✅ Atividade exportada!',
+                    description: 'Download iniciado.'
+                  });
+                } catch (error) {
+                  logger.error('Erro ao exportar:', error)
+                  toast({ 
+                    title: '❌ Erro',
+                    description: 'Não foi possível exportar a atividade.',
+                    variant: 'destructive'
+                  });
+                }
               }}>
-                <Archive className="w-4 h-4 mr-2" />
-                Arquivar
+                <Download className="w-4 h-4 mr-2" />
+                Exportar
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {activity.status === 'archived' ? (
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onUnarchive(activity.id);
+                }}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Desarquivar
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(activity.id);
+                }}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Arquivar
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem 
                 onClick={(e) => {
                   e.stopPropagation();

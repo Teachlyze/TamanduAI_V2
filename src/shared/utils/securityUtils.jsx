@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * Utilitários de segurança para proteção contra XSS e conteúdo malicioso
  */
@@ -474,7 +475,7 @@ export const createSafeHtmlConfig = (html, options = {}) => {
   if (requireValidation) {
     const validation = validateTextSafety(html);
     if (!validation.isSafe) {
-      console.warn('HTML inseguro bloqueado:', validation.reason);
+      logger.warn('HTML inseguro bloqueado:', validation.reason)
       return { __html: sanitizeHtml(html) };
     }
   }

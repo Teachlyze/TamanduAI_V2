@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/apiSupabaseWithCache.js
 import { supabase } from '@/lib/supabaseClient';
 
@@ -42,7 +43,7 @@ class CachedSupabaseService {
       if (error) throw error;
       return user;
     } catch (error) {
-      console.error('Error getting current user:', error);
+      logger.error('Error getting current user:', error)
       throw error;
     }
   }
@@ -68,7 +69,7 @@ class CachedSupabaseService {
 
       return data;
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      logger.error('Error fetching user profile:', error)
       throw error;
     }
   }
@@ -94,7 +95,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching user classes:', error);
+      logger.error('Error fetching user classes:', error)
       throw error;
     }
   }
@@ -120,7 +121,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching class activities:', error);
+      logger.error('Error fetching class activities:', error)
       throw error;
     }
   }
@@ -146,7 +147,7 @@ class CachedSupabaseService {
 
       return data;
     } catch (error) {
-      console.error('Error fetching activity template:', error);
+      logger.error('Error fetching activity template:', error)
       throw error;
     }
   }
@@ -172,7 +173,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching user meetings:', error);
+      logger.error('Error fetching user meetings:', error)
       throw error;
     }
   }
@@ -198,7 +199,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching class students:', error);
+      logger.error('Error fetching class students:', error)
       throw error;
     }
   }
@@ -224,7 +225,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error)
       throw error;
     }
   }
@@ -250,7 +251,7 @@ class CachedSupabaseService {
 
       return data || {};
     } catch (error) {
-      console.error('Error fetching class statistics:', error);
+      logger.error('Error fetching class statistics:', error)
       throw error;
     }
   }
@@ -276,7 +277,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching student performance:', error);
+      logger.error('Error fetching student performance:', error)
       throw error;
     }
   }
@@ -302,7 +303,7 @@ class CachedSupabaseService {
 
       return data || [];
     } catch (error) {
-      console.error('Error fetching activity submissions:', error);
+      logger.error('Error fetching activity submissions:', error)
       throw error;
     }
   }

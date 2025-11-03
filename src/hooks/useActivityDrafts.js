@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/hooks/useActivityDrafts.js
 import { useState, useEffect, useCallback } from 'react';
 
@@ -21,7 +22,7 @@ export const useActivityDrafts = (userId) => {
       // In a real implementation, you might want to sync with server
       setDrafts([]);
     } catch (err) {
-      console.error('Error loading drafts:', err);
+      logger.error('Error loading drafts:', err)
       setError(err.message);
     } finally {
       setLoading(false);
@@ -58,7 +59,7 @@ export const useActivityDrafts = (userId) => {
 
       return updatedDrafts;
     } catch (err) {
-      console.error('Error saving draft:', err);
+      logger.error('Error saving draft:', err)
       throw err;
     }
   }, [userId, drafts, cacheKey]);
@@ -81,7 +82,7 @@ export const useActivityDrafts = (userId) => {
 
       return updatedDrafts;
     } catch (err) {
-      console.error('Error deleting draft:', err);
+      logger.error('Error deleting draft:', err)
       throw err;
     }
   }, [userId, drafts, cacheKey]);
@@ -98,7 +99,7 @@ export const useActivityDrafts = (userId) => {
       localStorage.removeItem(cacheKey);
       setDrafts([]);
     } catch (err) {
-      console.error('Error clearing drafts:', err);
+      logger.error('Error clearing drafts:', err)
       throw err;
     }
   }, [userId, cacheKey]);
@@ -116,7 +117,7 @@ export const useActivityDrafts = (userId) => {
         }
       }
     } catch (err) {
-      console.error('Error loading drafts from localStorage:', err);
+      logger.error('Error loading drafts from localStorage:', err)
     } finally {
       setLoading(false);
     }

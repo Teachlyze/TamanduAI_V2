@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import axios from 'axios';
 import { supabase } from '@/shared/services/supabaseClient';
 
@@ -70,7 +71,7 @@ export const winstonAIPlagiarism = {
 
       return result;
     } catch (error) {
-      console.error('Erro ao verificar plágio:', error);
+      logger.error('Erro ao verificar plágio:', error)
       
       // Salvar erro no log
       await this.logError(submissionId, error);
@@ -108,7 +109,7 @@ export const winstonAIPlagiarism = {
         confidence: response.data.confidence
       };
     } catch (error) {
-      console.error('Erro ao verificar IA:', error);
+      logger.error('Erro ao verificar IA:', error)
       throw error;
     }
   },
@@ -132,7 +133,7 @@ export const winstonAIPlagiarism = {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erro ao salvar resultado:', error);
+      logger.error('Erro ao salvar resultado:', error)
       throw error;
     }
   },
@@ -184,7 +185,7 @@ export const winstonAIPlagiarism = {
 
       if (notifError) throw notifError;
     } catch (error) {
-      console.error('Erro ao notificar professor:', error);
+      logger.error('Erro ao notificar professor:', error)
     }
   },
 
@@ -212,7 +213,7 @@ export const winstonAIPlagiarism = {
         read: false
       });
     } catch (error) {
-      console.error('Erro ao notificar IA:', error);
+      logger.error('Erro ao notificar IA:', error)
     }
   },
 
@@ -230,7 +231,7 @@ export const winstonAIPlagiarism = {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('Erro ao buscar histórico:', error);
+      logger.error('Erro ao buscar histórico:', error)
       return [];
     }
   },
@@ -260,7 +261,7 @@ export const winstonAIPlagiarism = {
 
       return stats;
     } catch (error) {
-      console.error('Erro ao buscar estatísticas:', error);
+      logger.error('Erro ao buscar estatísticas:', error)
       return null;
     }
   },
@@ -277,7 +278,7 @@ export const winstonAIPlagiarism = {
         timestamp: new Date().toISOString()
       });
     } catch (logError) {
-      console.error('Erro ao registrar log:', logError);
+      logger.error('Erro ao registrar log:', logError)
     }
   }
 };

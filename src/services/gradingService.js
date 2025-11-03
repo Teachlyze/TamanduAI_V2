@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import { v4 as uuidv4 } from 'uuid';
 import gamificationService from './gamificationService';
@@ -121,9 +122,9 @@ export const autoGradeSubmission = async (submissionId) => {
     if (!needsReview && finalGrade !== null) {
       try {
         await gamificationService.trackGradeAssigned(submission.user_id, finalGrade);
-        console.log('[GradingService] XP awarded for grade:', finalGrade);
+        logger.debug('[GradingService] XP awarded for grade:', finalGrade)
       } catch (xpError) {
-        console.error('[GradingService] Error awarding XP:', xpError);
+        logger.error('[GradingService] Error awarding XP:', xpError)
         // Não bloquear o fluxo se gamificação falhar
       }
     }
@@ -167,7 +168,7 @@ export const autoGradeSubmission = async (submissionId) => {
       total_points_possible: totalPossible
     };
   } catch (error) {
-    console.error('Error auto-grading submission:', error);
+    logger.error('Error auto-grading submission:', error)
     throw error;
   }
 };
@@ -236,7 +237,7 @@ export const getClassGradingStats = async (classId) => {
       activities: activityStats
     };
   } catch (error) {
-    console.error('Error getting class grading stats:', error);
+    logger.error('Error getting class grading stats:', error)
     throw error;
   }
 };
@@ -328,7 +329,7 @@ export const getSubmissionsNeedingGrading = async (teacherId) => {
 
     return submissionsNeedingGrading;
   } catch (error) {
-    console.error('Error getting submissions needing grading:', error);
+    logger.error('Error getting submissions needing grading:', error)
     throw error;
   }
 };
@@ -372,9 +373,9 @@ export const provideFeedback = async (submissionId, feedbackData, userId) => {
     if (typeof grade !== 'undefined' && grade !== null) {
       try {
         await gamificationService.trackGradeAssigned(submission.user_id, grade);
-        console.log('[GradingService] XP awarded for manual grade:', grade);
+        logger.debug('[GradingService] XP awarded for manual grade:', grade)
       } catch (xpError) {
-        console.error('[GradingService] Error awarding XP:', xpError);
+        logger.error('[GradingService] Error awarding XP:', xpError)
         // Não bloquear o fluxo se gamificação falhar
       }
     }
@@ -413,7 +414,7 @@ export const provideFeedback = async (submissionId, feedbackData, userId) => {
 
     return submission;
   } catch (error) {
-    console.error('Error providing feedback:', error);
+    logger.error('Error providing feedback:', error)
     throw error;
   }
 };
@@ -455,7 +456,7 @@ export const getGradingQueue = async (teacherId, filters = {}) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting grading queue:', error);
+    logger.error('Error getting grading queue:', error)
     throw error;
   }
 };
@@ -487,13 +488,13 @@ export const gradeSubmission = async (submissionId, gradingData) => {
       try {
         await gamificationService.trackGradeAssigned(data.user_id, grade);
       } catch (xpError) {
-        console.error('Error awarding XP:', xpError);
+        logger.error('Error awarding XP:', xpError)
       }
     }
 
     return data;
   } catch (error) {
-    console.error('Error grading submission:', error);
+    logger.error('Error grading submission:', error)
     throw error;
   }
 };

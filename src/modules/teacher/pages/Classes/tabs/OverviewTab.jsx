@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, TrendingUp, CheckCircle, Clock, Calendar, Plus, FileText, AlertCircle, Megaphone, CheckSquare } from 'lucide-react';
@@ -54,53 +55,55 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
 
       // Usar cache Redis para estatísticas
       const cachedStats = await redisCache.getClassStats(classId, async () => {
-        // Executar todas as queries em paralelo para performance
-        const [
-          studentsResult,
-          activitiesResult,
-          submissionsResult
-        ] = await Promise.all([
-          // Total de alunos
-          supabase
-            .from('class_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('class_id', classId)
-            .eq('role', 'student'),
-          
-          // Atividades em aberto
-          supabase
-            .from('activity_class_assignments')
-            .select('*', { count: 'exact', head: true })
-            .eq('class_id', classId),
-          
-          // Submissões para calcular média (limitado para performance)
-          supabase
-            .from('submissions')
-            .select('grade, submitted_at', { count: 'exact' })
-            .not('grade', 'is', null)
-            .limit(1000)
-        ]);
+        // Buscar IDs das atividades desta turma
+        const { data: assignments } = await supabase
+          .from('activity_class_assignments')
+          .select('activity_id')
+          .eq('class_id', classId);
 
-        // Calcular nota média real
-        const grades = submissionsResult.data?.filter(s => s.grade) || [];
+        const activityIds = (assignments || []).map(a => a.activity_id);
+
+        // Total de alunos na turma
+        const { count: studentsCount } = await supabase
+          .from('class_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('class_id', classId)
+          .eq('role', 'student');
+
+        // Se não há atividades, retornar estatísticas zeradas
+        if (!activityIds || activityIds.length === 0) {
+          return {
+            totalStudents: studentsCount || 0,
+            avgGrade: 0,
+            onTimeRate: 0,
+            openActivities: 0,
+            timestamp: new Date().toISOString()
+          };
+        }
+
+        // Submissões somente das atividades desta turma
+        const { data: subs, count: subsCount } = await supabase
+          .from('submissions')
+          .select('grade, submitted_at', { count: 'exact' })
+          .in('activity_id', activityIds)
+          .not('grade', 'is', null)
+          .limit(1000);
+
+        const grades = subs?.filter(s => s.grade !== null) || [];
         const avgGrade = grades.length > 0
           ? grades.reduce((sum, s) => sum + parseFloat(s.grade), 0) / grades.length
           : 0;
 
-        // Calcular taxa de entrega no prazo (simplificado)
-        const onTimeSubmissions = submissionsResult.data?.filter(s => {
-          // Lógica simplificada - melhorar depois
-          return s.submitted_at;
-        }) || [];
-        const onTimeRate = submissionsResult.count > 0
-          ? (onTimeSubmissions.length / submissionsResult.count) * 100
+        const onTimeSubmissions = subs?.filter(s => !!s.submitted_at) || [];
+        const onTimeRate = subsCount > 0
+          ? Math.round((onTimeSubmissions.length / subsCount) * 100)
           : 0;
 
         return {
-          totalStudents: studentsResult.count || 0,
+          totalStudents: studentsCount || 0,
           avgGrade: Number(avgGrade.toFixed(1)),
-          onTimeRate: Math.round(onTimeRate),
-          openActivities: activitiesResult.count || 0,
+          onTimeRate,
+          openActivities: activityIds.length,
           timestamp: new Date().toISOString()
         };
       });
@@ -108,7 +111,7 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
       setStats(cachedStats);
 
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logger.error('Erro ao carregar estatísticas:', error)
       // Fallback para valores padrão em caso de erro
       setStats({
         totalStudents: 0,

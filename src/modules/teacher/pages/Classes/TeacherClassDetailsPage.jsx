@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -57,6 +58,10 @@ const TeacherClassDetailsPage = () => {
   const [studentCount, setStudentCount] = useState(0);
 
   useEffect(() => {
+    if (classId === 'new') {
+      navigate('/dashboard/classes', { replace: true });
+      return;
+    }
     if (classId && user) {
       loadClassData();
     }
@@ -119,7 +124,7 @@ const TeacherClassDetailsPage = () => {
       setStudentCount(count || 0);
 
     } catch (error) {
-      console.error('Erro ao carregar turma:', error);
+      logger.error('Erro ao carregar turma:', error)
       toast({
         title: 'Erro ao carregar turma',
         description: 'Não foi possível carregar os dados da turma.',
@@ -151,7 +156,7 @@ const TeacherClassDetailsPage = () => {
           description: 'O código de convite foi copiado para a área de transferência.'
         });
       } catch (error) {
-        console.error('Erro ao copiar:', error);
+        logger.error('Erro ao copiar:', error)
         toast({
           title: 'Erro ao copiar',
           description: 'Não foi possível copiar o código.',
@@ -174,7 +179,7 @@ const TeacherClassDetailsPage = () => {
           description: 'O link de convite foi copiado.'
         });
       } catch (error) {
-        console.error('Erro ao copiar:', error);
+        logger.error('Erro ao copiar:', error)
       }
     }
   };

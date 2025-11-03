@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Trophy, Star, Award } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
@@ -28,7 +29,7 @@ const StudentGamificationPage = () => {
       
       setGamification(data || { level: 1, xp_total: 0, xp_current: 0, xp_to_next_level: 100 });
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }

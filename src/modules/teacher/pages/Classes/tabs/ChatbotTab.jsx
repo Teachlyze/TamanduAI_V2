@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -43,7 +44,7 @@ const ChatbotTab = ({ classId, classData }) => {
     if (savedState !== null) {
       const chatbotEnabled = JSON.parse(savedState);
       setEnabled(chatbotEnabled);
-      console.log('🤖 Estado inicial do chatbot (localStorage):', chatbotEnabled);
+      logger.debug('🤖 Estado inicial do chatbot (localStorage):', chatbotEnabled);
     }
     
     // TODO: Depois de rodar SQL, carregar do banco:
@@ -51,7 +52,7 @@ const ChatbotTab = ({ classId, classData }) => {
     if (classData?.settings) {
       const chatbotEnabled = classData.settings.chatbot_enabled || false;
       setEnabled(chatbotEnabled);
-      console.log('🤖 Estado inicial do chatbot:', chatbotEnabled);
+      logger.debug('🤖 Estado inicial do chatbot:', chatbotEnabled)
     }
     */
   }, [classId]);
@@ -85,7 +86,7 @@ const ChatbotTab = ({ classId, classData }) => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar dados do chatbot:', error);
+      logger.error('Erro ao carregar dados do chatbot:', error)
       toast({
         title: 'Erro ao carregar chatbot',
         description: error.message,
@@ -121,14 +122,14 @@ const ChatbotTab = ({ classId, classData }) => {
           .eq('id', classId);
 
         if (error && !error.message.includes('settings')) {
-          console.warn('Erro ao salvar no banco (usando localStorage):', error);
+          logger.warn('Erro ao salvar no banco (usando localStorage):', error);
         }
       } catch (dbError) {
-        console.warn('Banco não suporta settings ainda, usando localStorage:', dbError);
+        logger.warn('Banco não suporta settings ainda, usando localStorage:', dbError)
       }
 
     } catch (error) {
-      console.error('Erro ao salvar configuração:', error);
+      logger.error('Erro ao salvar configuração:', error)
       setEnabled(!newState);
       toast({
         title: 'Erro ao salvar',

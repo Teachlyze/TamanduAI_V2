@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import NotificationOrchestrator from '@/services/notificationOrchestrator';
 
@@ -38,7 +39,7 @@ export const ClassService = {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching classes:', error);
+      logger.error('Error fetching classes:', error)
       throw error;
     }
 
@@ -72,7 +73,7 @@ export const ClassService = {
       .single();
 
     if (error) {
-      console.error(`Error fetching class ${classId}:`, error);
+      logger.error(`Error fetching class ${classId}:`, error)
       throw error;
     }
 
@@ -115,7 +116,7 @@ export const ClassService = {
 
     // If no profile exists, create one with minimal required fields
     if (!profile && !profileError) {
-      console.log('Profile not found for teacher, creating one...');
+      logger.debug('Profile not found for teacher, creating one...')
       
       const { error: createProfileError } = await supabase
         .from('profiles')
@@ -129,7 +130,7 @@ export const ClassService = {
         ]);
 
       if (createProfileError) {
-        console.error('Error creating teacher profile:', createProfileError);
+        logger.error('Error creating teacher profile:', createProfileError)
         // Não lançar erro se profile já existe (erro de unique constraint)
         if (createProfileError.code !== '23505') {
           throw new Error(`Erro ao criar perfil do professor: ${createProfileError.message}`);
@@ -162,7 +163,7 @@ export const ClassService = {
       is_active: true
     };
 
-    console.log('Creating class with data:', classData);
+    logger.debug('Creating class with data:', classData)
 
     const { data: newClass, error: classError } = await supabase
       .from('classes')
@@ -171,7 +172,7 @@ export const ClassService = {
       .single();
 
     if (classError) {
-      console.error('Error creating class:', classError);
+      logger.error('Error creating class:', classError)
       console.error('Error details:', {
         code: classError.code,
         message: classError.message,
@@ -181,7 +182,7 @@ export const ClassService = {
       throw new Error(`Erro ao criar turma: ${classError.message}. Detalhes: ${classError.hint || classError.details || 'Nenhum detalhe adicional'}`);
     }
 
-    console.log('Class created successfully:', newClass);
+    logger.debug('Class created successfully:', newClass)
 
     // Notificar professor: nova turma criada
     try {
@@ -192,7 +193,7 @@ export const ClassService = {
         metadata: { classId: newClass.id }
       });
     } catch (e) {
-      console.warn('Falha ao notificar criação de turma:', e);
+      logger.warn('Falha ao notificar criação de turma:', e)
     }
 
     // Adicionar professor como membro da turma
@@ -207,10 +208,10 @@ export const ClassService = {
         }]);
 
       if (memberError && memberError.code !== '23505') {
-        console.warn('Erro ao adicionar professor como membro:', memberError);
+        logger.warn('Erro ao adicionar professor como membro:', memberError)
       }
     } catch (e) {
-      console.warn('Falha ao adicionar professor como membro da turma:', e);
+      logger.warn('Falha ao adicionar professor como membro da turma:', e)
     }
 
     // Add students if any
@@ -218,7 +219,7 @@ export const ClassService = {
       try {
         await this.addStudentsToClass(newClass.id, studentIds);
       } catch (e) {
-        console.warn('Falha ao adicionar alunos:', e);
+        logger.warn('Falha ao adicionar alunos:', e)
       }
     }
 
@@ -237,12 +238,12 @@ export const ClassService = {
         }, { onConflict: 'class_id' });
 
       if (chatbotError) {
-        console.warn('Erro ao garantir configuração do chatbot:', chatbotError);
+        logger.warn('Erro ao garantir configuração do chatbot:', chatbotError)
       } else {
-        console.log('Chatbot configuration ensured for class:', newClass.id);
+        logger.debug('Chatbot configuration ensured for class:', newClass.id)
       }
     } catch (e) {
-      console.warn('Falha ao garantir chatbot para a turma:', e);
+      logger.warn('Falha ao garantir chatbot para a turma:', e)
     }
 
     return this.getClassById(newClass.id);
@@ -275,7 +276,7 @@ export const ClassService = {
       ;
 
     if (updateError) {
-      console.error(`Error updating class ${classId}:`, updateError);
+      logger.error(`Error updating class ${classId}:`, updateError)
       throw updateError;
     }
 
@@ -318,7 +319,7 @@ export const ClassService = {
       .eq('id', classId);
 
     if (error) {
-      console.error(`Error deleting class ${classId}:`, error);
+      logger.error(`Error deleting class ${classId}:`, error)
       throw error;
     }
     return true;
@@ -346,7 +347,7 @@ export const ClassService = {
       .select();
 
     if (error) {
-      console.error(`Error adding students to class ${classId}:`, error);
+      logger.error(`Error adding students to class ${classId}:`, error)
       throw error;
     }
 
@@ -368,7 +369,7 @@ export const ClassService = {
         }
       }
     } catch (e) {
-      console.warn('Falha ao notificar alunos adicionados:', e);
+      logger.warn('Falha ao notificar alunos adicionados:', e)
     }
 
     return data;
@@ -391,7 +392,7 @@ export const ClassService = {
       .eq('role', 'student');
 
     if (error) {
-      console.error(`Error removing students from class ${classId}:`, error);
+      logger.error(`Error removing students from class ${classId}:`, error)
       throw error;
     }
 
@@ -411,7 +412,7 @@ export const ClassService = {
         });
       }
     } catch (e) {
-      console.warn('Falha ao notificar alunos removidos:', e);
+      logger.warn('Falha ao notificar alunos removidos:', e)
     }
 
     return true;
@@ -437,7 +438,7 @@ export const ClassService = {
     const { data, error } = await queryBuilder;
     
     if (error) {
-      console.error('Error searching classes:', error);
+      logger.error('Error searching classes:', error)
       throw error;
     }
 
@@ -467,7 +468,7 @@ export const ClassService = {
       .single();
 
     if (error) {
-      console.error(`Error updating class schedule ${classId}:`, error);
+      logger.error(`Error updating class schedule ${classId}:`, error)
       throw error;
     }
 

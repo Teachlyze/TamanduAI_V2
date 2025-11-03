@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { createContext, useContext, useEffect, useMemo, useCallback, useReducer } from 'react';
 
 /**
@@ -317,7 +318,7 @@ export const GlobalStateProvider = ({ children }) => {
         dispatch({ type: ACTIONS.UI_SET_THEME, payload: { theme: uiData.theme } });
       }
     } catch (error) {
-      console.warn('Error loading persisted state:', error);
+      logger.warn('Error loading persisted state:', error)
     }
   }, []);
 
@@ -330,7 +331,7 @@ export const GlobalStateProvider = ({ children }) => {
         preferences: state.ui.preferences,
       }));
     } catch (error) {
-      console.warn('Error persisting state:', error);
+      logger.warn('Error persisting state:', error)
     }
   }, [state.auth, state.ui]);
 

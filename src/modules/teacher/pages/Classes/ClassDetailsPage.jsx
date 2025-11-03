@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -36,6 +37,12 @@ const ClassDetailsPage = () => {
   const [studentCount, setStudentCount] = useState(0);
 
   useEffect(() => {
+    // Guard: evitar UUID inválido (ex: 'new')
+    const isUUID = /^[0-9a-fA-F-]{36}$/.test(classId);
+    if (!isUUID) {
+      navigate('/dashboard/classes', { replace: true });
+      return;
+    }
     if (classId) {
       loadClassData();
     }
@@ -71,7 +78,7 @@ const ClassDetailsPage = () => {
       setStudentCount(count || 0);
 
     } catch (error) {
-      console.error('Erro ao carregar turma:', error);
+      logger.error('Erro ao carregar turma:', error)
       toast({
         title: 'Erro ao carregar turma',
         description: 'Não foi possível carregar os dados da turma.',

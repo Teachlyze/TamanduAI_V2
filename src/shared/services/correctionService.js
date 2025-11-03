@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from './supabaseClient';
 import { convertToDatabase } from '../utils/gradeConverter';
 
@@ -89,7 +90,7 @@ export const getSubmissionsForCorrection = async (filters = {}) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao buscar submissões:', error);
+    logger.error('Erro ao buscar submissões:', error)
     return { data: null, error };
   }
 };
@@ -147,7 +148,7 @@ export const getSubmissionDetails = async (submissionId) => {
 
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao buscar detalhes da submissão:', error);
+    logger.error('Erro ao buscar detalhes da submissão:', error)
     return { data: null, error };
   }
 };
@@ -206,9 +207,9 @@ export const saveCorrection = async (submissionId, correctionData) => {
     try {
       gradeNormalized = convertToDatabase(grade, gradingSystem);
       
-      console.log(`✅ Conversão: "${grade}" (${gradingSystem}) → ${gradeNormalized.toFixed(2)}/10`);
+      logger.debug(`✅ Conversão: "${grade}" (${gradingSystem}) → ${gradeNormalized.toFixed(2)}/10`);
     } catch (error) {
-      console.error('❌ Erro na conversão:', error);
+      logger.error('❌ Erro na conversão:', error)
       throw new Error(`Nota inválida para o sistema ${gradingSystem}: ${grade}`);
     }
     
@@ -233,7 +234,7 @@ export const saveCorrection = async (submissionId, correctionData) => {
       graded_at: new Date().toISOString()
     };
 
-    console.log('📤 Update payload:', updatePayload);
+    logger.debug('📤 Update payload:', updatePayload)
 
     const { data: submission, error: updateError } = await supabase
       .from('submissions')
@@ -243,11 +244,11 @@ export const saveCorrection = async (submissionId, correctionData) => {
       .single();
 
     if (updateError) {
-      console.error('❌ Erro no update:', updateError);
+      logger.error('❌ Erro no update:', updateError)
       throw updateError;
     }
     
-    console.log('✅ Correção salva com sucesso');
+    logger.debug('✅ Correção salva com sucesso')
 
     // Salvar scores de rubrica se houver
     if (rubricScores.length > 0) {
@@ -288,7 +289,7 @@ export const saveCorrection = async (submissionId, correctionData) => {
       maxScore: maxScore
     };
   } catch (error) {
-    console.error('Erro ao salvar correção:', error);
+    logger.error('Erro ao salvar correção:', error)
     return { data: null, error };
   }
 };
@@ -312,7 +313,7 @@ export const saveCorrectionDraft = async (submissionId, teacherId, draftData) =>
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao salvar rascunho:', error);
+    logger.error('Erro ao salvar rascunho:', error)
     return { data: null, error };
   }
 };
@@ -332,7 +333,7 @@ export const getCorrectionDraft = async (submissionId, teacherId) => {
     if (error && error.code !== 'PGRST116') throw error; // Ignorar "not found"
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao recuperar rascunho:', error);
+    logger.error('Erro ao recuperar rascunho:', error)
     return { data: null, error };
   }
 };
@@ -368,7 +369,7 @@ export const bulkCorrect = async (submissionIds, correctionData, teacherId) => {
       error: null
     };
   } catch (error) {
-    console.error('Erro na correção em lote:', error);
+    logger.error('Erro na correção em lote:', error)
     return { data: null, error };
   }
 };
@@ -388,7 +389,7 @@ export const getAttemptHistory = async (activityId, studentId) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao buscar histórico:', error);
+    logger.error('Erro ao buscar histórico:', error)
     return { data: null, error };
   }
 };
@@ -463,7 +464,7 @@ export const getCorrectionMetrics = async (teacherId, period = 'week') => {
       error: null
     };
   } catch (error) {
-    console.error('Erro ao buscar métricas:', error);
+    logger.error('Erro ao buscar métricas:', error)
     return { data: null, error };
   }
 };
@@ -509,7 +510,7 @@ export const updateCorrectionMetrics = async (teacherId, correctionTime, grade, 
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao atualizar métricas:', error);
+    logger.error('Erro ao atualizar métricas:', error)
     return { data: null, error };
   }
 };

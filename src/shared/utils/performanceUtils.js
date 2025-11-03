@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * Performance Utilities
  * Debounce, throttle, memoization helpers
@@ -110,11 +111,11 @@ export const measurePerformance = async (fn, label = 'Operation') => {
   try {
     const result = await fn();
     const end = performance.now();
-    console.log(`⚡ ${label} took ${(end - start).toFixed(2)}ms`);
+    logger.debug(`⚡ ${label} took ${(end - start).toFixed(2)}ms`);
     return result;
   } catch (error) {
     const end = performance.now();
-    console.error(`❌ ${label} failed after ${(end - start).toFixed(2)}ms`, error);
+    logger.error(`❌ ${label} failed after ${(end - start).toFixed(2)}ms`, error);
     throw error;
   }
 };

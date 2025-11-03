@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
@@ -59,7 +60,7 @@ const BulkCorrectionModal = ({ submissions, onClose, onCompleted }) => {
       onCompleted();
       onClose();
     } catch (error) {
-      console.error('Erro na correção em lote:', error);
+      logger.error('Erro na correção em lote:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível completar a correção em lote',

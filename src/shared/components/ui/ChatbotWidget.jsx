@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useRef, useState } from 'react';
 import { Bot, Send, X, Minimize2, Maximize2 } from 'lucide-react';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -61,7 +62,7 @@ const ChatbotWidget = ({ context = {} }) => {
 
       if (!response.ok) {
         // Fallback: resposta simulada se edge function falhar
-        console.warn('Edge function falhou, usando fallback');
+        logger.warn('Edge function falhou, usando fallback')
         const fallbackReply = getFallbackResponse(userMessage, context);
         setMessages((m) => [...m, { role: 'assistant', content: fallbackReply, timestamp: new Date() }]);
         return;
@@ -71,7 +72,7 @@ const ChatbotWidget = ({ context = {} }) => {
       const assistantMessage = data.response || data.reply || 'Desculpe, não consegui processar sua mensagem.';
       setMessages((m) => [...m, { role: 'assistant', content: assistantMessage, timestamp: new Date() }]);
     } catch (e) {
-      console.error('Erro ao enviar mensagem:', e);
+      logger.error('Erro ao enviar mensagem:', e)
       // Usar fallback ao invés de mensagem genérica de erro
       const fallbackReply = getFallbackResponse(userMessage, context);
       setMessages((m) => [...m, { role: 'assistant', content: fallbackReply, timestamp: new Date() }]);

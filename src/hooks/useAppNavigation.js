@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { navigateToHome } from '@/utils/roleNavigation';
@@ -57,7 +58,7 @@ export const useAppNavigation = () => {
       if (error) throw error;
       navigate(redirectPath);
     } catch (error) {
-      console.error('Error signing out:', error);
+      logger.error('Error signing out:', error)
     }
   };
 

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Save, Rocket, Bot } from 'lucide-react';
@@ -68,7 +69,7 @@ const ChatbotConfigPage = () => {
       setActivities(acts?.map(a => a.activity).filter(Boolean) || []);
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Trophy, Award } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
@@ -82,7 +83,7 @@ const TeacherRankingPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }

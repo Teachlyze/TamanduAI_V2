@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -79,7 +80,7 @@ const TeacherCorrectionsPage = () => {
       setStats(prev => ({ ...prev, totalPending: pending }));
 
     } catch (error) {
-      console.error('Erro ao carregar submissões:', error);
+      logger.error('Erro ao carregar submissões:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar as submissões.',
@@ -105,7 +106,7 @@ const TeacherCorrectionsPage = () => {
         }));
       }
     } catch (error) {
-      console.error('Erro ao carregar métricas:', error);
+      logger.error('Erro ao carregar métricas:', error)
     }
   };
 
@@ -306,7 +307,7 @@ const TeacherCorrectionsPage = () => {
         <div className="mb-6">
           <AdvancedFilters
             onApply={(filters) => {
-              console.log('Aplicar filtros avançados:', filters);
+              logger.debug('Aplicar filtros avançados:', filters)
               toast({ title: 'Filtros aplicados' });
             }}
             onClear={() => {

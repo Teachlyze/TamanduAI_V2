@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -34,6 +35,7 @@ const AnnouncementsTab = ({ classId }) => {
   const [announcements, setAnnouncements] = useState([]);
   const [filterUrgency, setFilterUrgency] = useState('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, title: '' });
   const [stats, setStats] = useState({
     total: 0,
@@ -75,7 +77,7 @@ const AnnouncementsTab = ({ classId }) => {
       setAnnouncements(items);
 
     } catch (error) {
-      console.error('Erro ao carregar comunicados:', error);
+      logger.error('Erro ao carregar comunicados:', error)
       toast({
         title: 'Erro ao carregar comunicados',
         description: error.message,
@@ -119,25 +121,67 @@ const AnnouncementsTab = ({ classId }) => {
     }
   };
 
-  const handleViewReads = (announcement) => {
-    toast({
-      title: 'Em desenvolvimento',
-      description: 'Visualização de leituras será implementada em breve'
-    });
+  const handleViewReads = async (announcement) => {
+    try {
+      // Buscar membros da turma
+      const { data: members, error: membersError } = await supabase
+        .from('class_members')
+        .select('user_id, profiles!user_id(full_name)')
+        .eq('class_id', classId)
+        .eq('role', 'student');
+
+      if (membersError) throw membersError;
+
+      // TODO: Implementar tabela de leituras (announcement_reads)
+      // Por enquanto mostramos apenas os membros
+      const totalStudents = members?.length || 0;
+      
+      toast({
+        title: `📊 ${totalStudents} aluno(s)`,
+        description: 'Sistema de tracking de leituras será implementado em breve.'
+      });
+    } catch (error) {
+      logger.error('Erro:', error)
+      toast({
+        title: '❌ Erro',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleEditAnnouncement = (announcement) => {
-    toast({
-      title: 'Em desenvolvimento',
-      description: 'Edição de comunicados será implementada em breve'
-    });
+    setEditingAnnouncement(announcement);
+    setShowCreateModal(true);
   };
 
-  const handlePinAnnouncement = (announcement) => {
-    toast({
-      title: 'Em desenvolvimento',
-      description: 'Fixar comunicados será implementado em breve'
-    });
+  const handlePinAnnouncement = async (announcement) => {
+    try {
+      const newPinnedStatus = !announcement.is_pinned;
+      
+      const { error } = await supabase
+        .from('announcements')
+        .update({ is_pinned: newPinnedStatus })
+        .eq('id', announcement.id);
+
+      if (error) throw error;
+
+      toast({
+        title: newPinnedStatus ? '✅ Comunicado fixado!' : '✅ Comunicado desafixado!',
+        description: newPinnedStatus 
+          ? 'Este comunicado agora aparece no topo.' 
+          : 'Este comunicado foi removido do topo.'
+      });
+
+      loadAnnouncements();
+    } catch (error) {
+      logger.error('Erro ao fixar/desafixar:', error)
+      toast({
+        title: '❌ Erro',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleDeleteAnnouncement = (id, title) => {
@@ -162,7 +206,7 @@ const AnnouncementsTab = ({ classId }) => {
 
       loadAnnouncements();
     } catch (error) {
-      console.error('Erro ao deletar comunicado:', error);
+      logger.error('Erro ao deletar comunicado:', error)
       toast({
         title: '❌ Erro ao deletar comunicado',
         description: error.message,
@@ -389,8 +433,12 @@ const AnnouncementsTab = ({ classId }) => {
       {/* Modal de Criar Comunicado */}
       <CreateAnnouncementModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setEditingAnnouncement(null);
+        }}
         classId={classId}
+        editingAnnouncement={editingAnnouncement}
         onSuccess={loadAnnouncements}
       />
 

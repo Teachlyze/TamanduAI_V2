@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -78,7 +79,7 @@ const StudentDashboard = () => {
         .order('start_time', { ascending: true });
 
       if (calendarError) {
-        console.error('[Events] Erro ao buscar eventos:', calendarError);
+        logger.error('[Events] Erro ao buscar eventos:', calendarError)
       }
 
       // 2. Buscar reuniões
@@ -98,7 +99,7 @@ const StudentDashboard = () => {
         .order('start_time', { ascending: true });
 
       if (meetingError) {
-        console.error('[Events] Erro ao buscar reuniões:', meetingError);
+        logger.error('[Events] Erro ao buscar reuniões:', meetingError)
       }
 
       // 3. Buscar turmas do aluno para prazos de atividades
@@ -130,7 +131,7 @@ const StudentDashboard = () => {
           .in('class_id', classIds);
 
         if (activitiesError) {
-          console.error('[Events] Erro ao buscar atividades:', activitiesError);
+          logger.error('[Events] Erro ao buscar atividades:', activitiesError)
         }
 
         activitiesData = (activityAssignments || [])
@@ -184,7 +185,7 @@ const StudentDashboard = () => {
       // Limitar aos 5 primeiros eventos
       setEvents(normalized.slice(0, 5));
     } catch (error) {
-      console.error('[StudentDashboard] Erro ao carregar eventos:', error);
+      logger.error('[StudentDashboard] Erro ao carregar eventos:', error)
       setEvents([]);
     }
   }, [user?.id]);
@@ -209,10 +210,10 @@ const StudentDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      console.log('[StudentDashboard] Carregando dados...');
+      logger.debug('[StudentDashboard] Carregando dados...')
       
       if (!user?.id) {
-        console.log('[StudentDashboard] Usuário não autenticado');
+        logger.debug('[StudentDashboard] Usuário não autenticado')
         setLoading(false);
         return;
       }
@@ -222,7 +223,7 @@ const StudentDashboard = () => {
       let classIds = [];
       
       try {
-        console.log('[StudentDashboard] 🔍 Buscando turmas para user:', user.id);
+        logger.debug('[StudentDashboard] 🔍 Buscando turmas para user:', user.id)
         
         // Primeira query: Buscar apenas os IDs (rápido, sem JOIN)
         const { data: memberships, error: membershipError } = await supabase
@@ -232,18 +233,18 @@ const StudentDashboard = () => {
           .eq('role', 'student');
 
         if (membershipError) {
-          console.error('[StudentDashboard] ❌ Erro ao buscar memberships:', membershipError);
+          logger.error('[StudentDashboard] ❌ Erro ao buscar memberships:', membershipError)
           throw membershipError;
         }
 
         classIds = memberships?.map(m => m.class_id) || [];
-        console.log('[StudentDashboard] 📊 Memberships encontrados:', memberships);
-        console.log('[StudentDashboard] 📋 IDs extraídos:', classIds);
+        logger.debug('[StudentDashboard] 📊 Memberships encontrados:', memberships)
+        logger.debug('[StudentDashboard] 📋 IDs extraídos:', classIds)
         
         if (classIds.length === 0) {
-          console.log('[StudentDashboard] ⚠️ Nenhuma turma encontrada para este usuário');
+          logger.debug('[StudentDashboard] ⚠️ Nenhuma turma encontrada para este usuário')
         } else {
-          console.log('[StudentDashboard] ✅ IDs de turmas encontrados:', classIds.length);
+          logger.debug('[StudentDashboard] ✅ IDs de turmas encontrados:', classIds.length)
           
           // Segunda query: Buscar detalhes das turmas (rápido, query direta)
           const classesPromise = supabase
@@ -258,15 +259,15 @@ const StudentDashboard = () => {
           const { data: classesData, error: classesError } = await Promise.race([classesPromise, timeout2]);
           
           if (classesError) {
-            console.error('[StudentDashboard] ❌ Erro ao buscar classes:', classesError);
+            logger.error('[StudentDashboard] ❌ Erro ao buscar classes:', classesError)
             throw classesError;
           }
           
           classes = classesData || [];
-          console.log('[StudentDashboard] ✅ Turmas carregadas:', classes);
+          logger.debug('[StudentDashboard] ✅ Turmas carregadas:', classes)
         }
       } catch (err) {
-        console.error('[StudentDashboard] ❌ Erro ao buscar turmas:', err);
+        logger.error('[StudentDashboard] ❌ Erro ao buscar turmas:', err)
         // Continua com arrays vazios
       }
 
@@ -325,7 +326,7 @@ const StudentDashboard = () => {
           .in('class_id', classIds);
 
         if (activitiesError) {
-          console.error('[StudentDashboard] ❌ Erro ao buscar atividades:', activitiesError);
+          logger.error('[StudentDashboard] ❌ Erro ao buscar atividades:', activitiesError)
           throw activitiesError;
         }
 
@@ -358,9 +359,9 @@ const StudentDashboard = () => {
           activity.is_published && activity.status === 'active'
         );
         
-        console.log('[StudentDashboard] Atividades carregadas:', publishedActivities.length);
+        logger.debug('[StudentDashboard] Atividades carregadas:', publishedActivities.length)
       } catch (err) {
-        console.error('[StudentDashboard] Timeout ou erro ao buscar atividades:', err.message);
+        logger.error('[StudentDashboard] Timeout ou erro ao buscar atividades:', err.message)
       }
 
       // 3. Buscar submissões do aluno com timeout
@@ -378,9 +379,9 @@ const StudentDashboard = () => {
 
         const { data } = await Promise.race([submissionsPromise, timeout]);
         submissions = data || [];
-        console.log('[StudentDashboard] Submissões carregadas:', submissions.length);
+        logger.debug('[StudentDashboard] Submissões carregadas:', submissions.length)
       } catch (err) {
-        console.error('[StudentDashboard] Timeout ou erro ao buscar submissões:', err.message);
+        logger.error('[StudentDashboard] Timeout ou erro ao buscar submissões:', err.message)
       }
 
       const submissionsMap = new Map(
@@ -538,13 +539,13 @@ const StudentDashboard = () => {
         action: ''
       }]);
 
-      console.log('[StudentDashboard] Dados carregados com sucesso');
+      logger.debug('[StudentDashboard] Dados carregados com sucesso')
     } catch (error) {
-      console.error('[StudentDashboard] Erro ao carregar dashboard:', error);
+      logger.error('[StudentDashboard] Erro ao carregar dashboard:', error)
       // Manter valores padrão em caso de erro
     } finally {
       setLoading(false);
-      console.log('[StudentDashboard] Loading finalizado');
+      logger.debug('[StudentDashboard] Loading finalizado')
     }
   };
 

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -161,7 +162,7 @@ const MetricsTab = ({ classId }) => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar métricas:', error);
+      logger.error('Erro ao carregar métricas:', error)
       toast({
         title: 'Erro ao carregar métricas',
         description: error.message,

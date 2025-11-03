@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -21,7 +22,7 @@ export const getClassOverview = async (classId) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting class overview:', error);
+    logger.error('Error getting class overview:', error)
     throw error;
   }
 };
@@ -42,7 +43,7 @@ export const getDailyActivity = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting daily activity:', error);
+    logger.error('Error getting daily activity:', error)
     throw error;
   }
 };
@@ -70,7 +71,7 @@ export const getStudentRanking = async (classId, limit = null) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting student ranking:', error);
+    logger.error('Error getting student ranking:', error)
     throw error;
   }
 };
@@ -91,7 +92,7 @@ export const getActivityPerformance = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting activity performance:', error);
+    logger.error('Error getting activity performance:', error)
     throw error;
   }
 };
@@ -109,7 +110,7 @@ export const getClassInsights = async (classId) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting class insights:', error);
+    logger.error('Error getting class insights:', error)
     throw error;
   }
 };
@@ -127,7 +128,7 @@ export const compareClasses = async (teacherId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error comparing classes:', error);
+    logger.error('Error comparing classes:', error)
     throw error;
   }
 };
@@ -188,7 +189,7 @@ export const getPerformanceTrend = async (classId) => {
       },
     };
   } catch (error) {
-    console.error('Error getting performance trend:', error);
+    logger.error('Error getting performance trend:', error)
     throw error;
   }
 };
@@ -229,7 +230,7 @@ export const getGradeDistribution = async (classId) => {
       },
     };
   } catch (error) {
-    console.error('Error getting grade distribution:', error);
+    logger.error('Error getting grade distribution:', error)
     throw error;
   }
 };
@@ -261,7 +262,7 @@ export const getEngagementMetrics = async (classId) => {
       avg_comments_per_student: (overview.total_comments || 0) / totalStudents,
     };
   } catch (error) {
-    console.error('Error getting engagement metrics:', error);
+    logger.error('Error getting engagement metrics:', error)
     throw error;
   }
 };
@@ -307,7 +308,7 @@ export const exportAnalyticsToCSV = async (classId) => {
 
     return csv;
   } catch (error) {
-    console.error('Error exporting analytics:', error);
+    logger.error('Error exporting analytics:', error)
     throw error;
   }
 };
@@ -332,7 +333,7 @@ export const downloadAnalyticsCSV = async (classId, className) => {
     link.click();
     document.body.removeChild(link);
   } catch (error) {
-    console.error('Error downloading CSV:', error);
+    logger.error('Error downloading CSV:', error)
     throw error;
   }
 };

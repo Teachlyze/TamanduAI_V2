@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
@@ -55,40 +56,63 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
 
       for (const activity of activities) {
         for (const classId of selectedClasses) {
-          // Atualizar atividade com configurações
-          const { error: updateError } = await supabase
-            .from('activities')
-            .update({
-              due_date: dueDate,
-              max_score: maxScore,
-              weight: weight,
-              instructions: additionalInstructions || activity.instructions,
-              plagiarism_enabled: enablePlagiarism,
-              status: 'published'
-            })
-            .eq('id', activity.id);
-
-          if (updateError) throw updateError;
-
-          // Verificar se já existe assignment
-          const { data: existingAssignment } = await supabase
+          // Verificar se atividade já está vinculada a alguma turma
+          const { data: existingAssignments } = await supabase
             .from('activity_class_assignments')
             .select('id')
-            .eq('activity_id', activity.id)
-            .eq('class_id', classId)
-            .single();
+            .eq('activity_id', activity.id);
 
-          // Criar assignment apenas se não existir
-          if (!existingAssignment) {
-            const { error: assignError } = await supabase
-              .from('activity_class_assignments')
+          let activityIdToUse = activity.id;
+
+          // Se já existe assignment, criar uma CÓPIA da atividade para esta turma
+          if (existingAssignments && existingAssignments.length > 0) {
+            const { data: newActivity, error: copyError } = await supabase
+              .from('activities')
               .insert({
-                activity_id: activity.id,
-                class_id: classId
-              });
+                title: activity.title,
+                description: activity.description,
+                content: activity.content,
+                type: activity.type,
+                max_score: maxScore,
+                due_date: dueDate,
+                weight: weight,
+                instructions: additionalInstructions || activity.instructions,
+                plagiarism_enabled: enablePlagiarism,
+                status: 'published',
+                created_by: activity.created_by,
+                teacher_id: activity.teacher_id
+              })
+              .select()
+              .single();
 
-            if (assignError) throw assignError;
+            if (copyError) throw copyError;
+            activityIdToUse = newActivity.id;
+          } else {
+            // Se é a primeira vez postando, apenas atualizar
+            const { error: updateError } = await supabase
+              .from('activities')
+              .update({
+                due_date: dueDate,
+                max_score: maxScore,
+                weight: weight,
+                instructions: additionalInstructions || activity.instructions,
+                plagiarism_enabled: enablePlagiarism,
+                status: 'published'
+              })
+              .eq('id', activity.id);
+
+            if (updateError) throw updateError;
           }
+
+          // Criar assignment com o activity_id correto
+          const { error: assignError } = await supabase
+            .from('activity_class_assignments')
+            .insert({
+              activity_id: activityIdToUse,
+              class_id: classId
+            });
+
+          if (assignError) throw assignError;
 
           // Notificar alunos se marcado
           if (notifyStudents) {
@@ -124,7 +148,7 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
 
       onSuccess();
     } catch (error) {
-      console.error('Erro ao postar atividade:', error);
+      logger.error('Erro ao postar atividade:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível postar a atividade.',

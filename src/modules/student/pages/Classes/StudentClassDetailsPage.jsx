@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { logger } from '@/shared/utils/logger';
+import React, { useEffect, useMemo, useState, useCallback, startTransition } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, FileText, Users, MessageSquare, BookOpen, Megaphone, RefreshCw, Clock, Badge as BadgeIcon } from 'lucide-react';
+import { ArrowLeft, FileText, Users, MessageSquare, BookOpen, Megaphone, RefreshCw, Clock, Badge as BadgeIcon, Archive } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
@@ -9,6 +10,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import ActivityCard from '@/shared/components/ui/ActivityCard';
+import MaterialCard from '@/shared/components/ui/MaterialCard';
+import ArchiveClassModal from '@/modules/student/components/ArchiveClassModal';
+import useArchiveClass from '@/modules/student/hooks/useArchiveClass';
 
 // Importar tabs separados
 import FeedTab from './tabs/FeedTab';
@@ -30,6 +35,8 @@ const StudentClassDetailsPage = () => {
   const [members, setMembers] = useState([]);
   const [activeTab, setActiveTab] = useState('feed');
   const [useEdgeFunction, setUseEdgeFunction] = useState(true); // Toggle para usar edge function
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const { archiveClass, loading: archivingClass } = useArchiveClass();
 
   const loadData = useCallback(async (showRefresh = false) => {
     try {
@@ -45,7 +52,7 @@ const StudentClassDetailsPage = () => {
         const token = sessionData?.session?.access_token;
 
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-class-data`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-class-data-optimized`,
           {
             method: 'POST',
             headers: {
@@ -85,7 +92,7 @@ const StudentClassDetailsPage = () => {
           }))
         ];
 
-        console.log('[StudentClassDetailsPage] 📝 Posts combinados (materials + discussions):', allPosts.length);
+        logger.debug('[StudentClassDetailsPage] 📝 Posts combinados (materials + discussions):', allPosts.length);
 
         // Filtrar apenas atividades publicadas para alunos
         const publishedActivities = (data.activities || []).filter(act => act.status === 'published');
@@ -140,7 +147,7 @@ const StudentClassDetailsPage = () => {
         setMembers(memberData.data || []);
       }
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
+      logger.error('Erro ao carregar dados:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os dados da turma',
@@ -205,6 +212,15 @@ const StudentClassDetailsPage = () => {
                 className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
               >
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowArchiveModal(true)}
+                disabled={archivingClass}
+                className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105"
+              >
+                <Archive className="w-4 h-4 mr-2" />
+                Arquivar
               </Button>
             </div>
             
@@ -331,72 +347,20 @@ const StudentClassDetailsPage = () => {
             <LibraryTab materials={library} loading={loading} />
           </TabsContent>
 
-        {/* Activities Tab */}
+        {/* Activities Tab - REDESENHADO */}
         <TabsContent value="activities">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activities.map((activity, index) => (
-              <motion.div
+            {activities.map((activity) => (
+              <ActivityCard
                 key={activity.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card
-                  onClick={() => navigate(`/students/activities/${activity.id}`)}
-                  className="group relative p-6 cursor-pointer hover:shadow-2xl transition-all duration-300 border-2 border-slate-200 dark:border-slate-800 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 hover:scale-105 overflow-hidden rounded-2xl"
-                >
-                  {/* Decoração de fundo */}
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/20 dark:to-purple-900/20 rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity" />
-                  
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-xl ${
-                        activity.status === 'published' 
-                          ? 'bg-gradient-to-br from-green-500 to-emerald-500' 
-                          : 'bg-gradient-to-br from-slate-400 to-slate-500'
-                      } shadow-lg group-hover:scale-110 transition-transform`}>
-                        <FileText className="w-6 h-6 text-white" />
-                      </div>
-                      <Badge className={
-                        activity.status === 'published'
-                          ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0'
-                          : activity.status === 'archived'
-                          ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white border-0'
-                          : 'bg-gradient-to-r from-slate-400 to-slate-500 text-white border-0'
-                      }>
-                        {activity.status === 'published' ? '✓ Publicada' :
-                         activity.status === 'archived' ? '✕ Arquivada' : 
-                         activity.status === 'draft' ? '📝 Rascunho' : activity.status}
-                      </Badge>
-                    </div>
-                    
-                    <h3 className="font-bold text-lg mb-2 text-slate-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {activity.title}
-                    </h3>
-                    
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-2">
-                      {activity.description || 'Sem descrição'}
-                    </p>
-                    
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-700">
-                      <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                          📅
-                        </div>
-                        <span className="font-medium">
-                          {activity.due_date 
-                            ? new Date(activity.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
-                            : 'Sem prazo'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-full shadow-md">
-                        <span>{activity.max_score}</span>
-                        <span className="text-xs">pts</span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
+                activity={{
+                  ...activity,
+                  status: 'pending', // TODO: calcular baseado em submission
+                  grade: null,
+                  max_grade: activity.max_score || 100
+                }}
+                onClick={() => startTransition(() => navigate(`/students/activities/${activity.id}`))}
+              />
             ))}
             {activities.length === 0 && (
               <motion.div
@@ -479,6 +443,21 @@ const StudentClassDetailsPage = () => {
         </TabsContent>
         </Tabs>
       </div>
+
+      {/* Modal de Arquivar Turma */}
+      <ArchiveClassModal
+        isOpen={showArchiveModal}
+        onClose={() => setShowArchiveModal(false)}
+        onConfirm={async () => {
+          const { data: { user } } = await supabase.auth.getUser();
+          const result = await archiveClass(classId, user.id);
+          if (result.success) {
+            setShowArchiveModal(false);
+            navigate('/students/classes');
+          }
+        }}
+        loading={archivingClass}
+      />
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -171,7 +172,7 @@ const StudentCalendarPage = () => {
 
       setEvents(allEvents);
     } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
+      logger.error('Erro ao carregar eventos:', error)
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -44,16 +45,40 @@ const TeacherChatbotPage = () => {
         .eq('created_by', user.id)
         .eq('is_active', true);
 
-      // Mock chatbot configs
-      const classesWithBots = (teacherClasses || []).map((cls, idx) => ({
-        ...cls,
-        chatbot: {
-          status: idx === 0 ? 'active' : idx === 1 ? 'paused' : 'not_configured',
-          activitiesTrained: idx === 0 ? 8 : idx === 1 ? 5 : 0,
-          conversations: idx === 0 ? 145 : idx === 1 ? 67 : 0,
-          satisfaction: idx === 0 ? 92 : idx === 1 ? 88 : 0
-        }
-      }));
+      // Buscar dados reais do chatbot para cada turma
+      const classesWithBots = await Promise.all(
+        (teacherClasses || []).map(async (cls) => {
+          // Buscar config do chatbot da turma
+          const { data: classData } = await supabase
+            .from('classes')
+            .select('settings')
+            .eq('id', cls.id)
+            .single();
+
+          const chatbotEnabled = classData?.settings?.chatbot_enabled || false;
+          const chatbotPaused = classData?.settings?.chatbot_paused || false;
+          
+          // Buscar fontes de treinamento
+          const { data: sources } = await supabase
+            .from('rag_training_sources')
+            .select('id')
+            .eq('class_id', cls.id);
+          
+          // TODO: Quando tiver tabela de conversões, buscar aqui
+          // Por enquanto retorna dados baseados na existência de fontes
+          const activitiesTrained = sources?.length || 0;
+          
+          return {
+            ...cls,
+            chatbot: {
+              status: !chatbotEnabled ? 'not_configured' : chatbotPaused ? 'paused' : 'active',
+              activitiesTrained,
+              conversations: 0, // TODO: Implementar quando tiver tabela
+              satisfaction: 0 // TODO: Implementar quando tiver tabela
+            }
+          };
+        })
+      );
 
       setClasses(classesWithBots);
 
@@ -69,7 +94,7 @@ const TeacherChatbotPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }
@@ -94,12 +119,12 @@ const TeacherChatbotPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
-      <DashboardHeader
-        title="Assistente IA para Turmas"
-        subtitle="Configure chatbots inteligentes para auxiliar seus alunos"
-        role="teacher"
-        gradient="from-blue-500 via-cyan-500 to-blue-600"
-      />
+      <div className="mb-8">
+        <div className="rounded-xl bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-600 p-8 text-white shadow-lg">
+          <h1 className="text-3xl font-bold mb-2">Assistente IA para Turmas</h1>
+          <p className="text-blue-50 text-lg">Configure chatbots inteligentes para auxiliar seus alunos</p>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

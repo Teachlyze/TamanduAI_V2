@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/components/ui/AdvancedThemeSystem.jsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
@@ -214,7 +215,7 @@ export const AdvancedThemeProvider = ({
         setCustomColors(JSON.parse(savedCustomColors));
       }
     } catch (error) {
-      console.warn('Failed to load theme preferences:', error);
+      logger.warn('Failed to load theme preferences:', error)
     }
   }, []);
 
@@ -224,7 +225,7 @@ export const AdvancedThemeProvider = ({
     try {
       localStorage.setItem('tamanduai-advanced-theme', themeId);
     } catch (error) {
-      console.warn('Failed to save theme:', error);
+      logger.warn('Failed to save theme:', error)
     }
   };
 
@@ -234,7 +235,7 @@ export const AdvancedThemeProvider = ({
     try {
       localStorage.setItem('tamanduai-custom-colors', JSON.stringify(colors));
     } catch (error) {
-      console.warn('Failed to save custom colors:', error);
+      logger.warn('Failed to save custom colors:', error)
     }
   };
 

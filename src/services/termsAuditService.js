@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -35,7 +36,7 @@ export const TermsAuditService = {
 
       return data;
     } catch (error) {
-      console.error('Error logging terms acceptance:', error);
+      logger.error('Error logging terms acceptance:', error)
       throw error;
     }
   },
@@ -57,7 +58,7 @@ export const TermsAuditService = {
 
       return data || [];
     } catch (error) {
-      console.error('Error getting acceptance history:', error);
+      logger.error('Error getting acceptance history:', error)
       return [];
     }
   },
@@ -86,7 +87,7 @@ export const TermsAuditService = {
 
       return !!data;
     } catch (error) {
-      console.error('Error checking acceptance versions:', error);
+      logger.error('Error checking acceptance versions:', error)
       return false;
     }
   },
@@ -112,7 +113,7 @@ export const TermsAuditService = {
 
       return data || null;
     } catch (error) {
-      console.error('Error getting latest acceptance:', error);
+      logger.error('Error getting latest acceptance:', error)
       return null;
     }
   },
@@ -169,7 +170,7 @@ export const TermsAuditService = {
 
       return stats;
     } catch (error) {
-      console.error('Error getting acceptance stats:', error);
+      logger.error('Error getting acceptance stats:', error)
       return {
         total: 0,
         byTermsVersion: {},
@@ -218,7 +219,7 @@ export const TermsAuditService = {
         latest_acceptance: data?.find(r => r.ip_address === ip)?.accepted_at,
       }));
     } catch (error) {
-      console.error('Error getting unique IP addresses:', error);
+      logger.error('Error getting unique IP addresses:', error)
       return [];
     }
   },
@@ -268,7 +269,7 @@ export const TermsAuditService = {
         currentPrivacyVersion: requiredPrivacyVersion,
       };
     } catch (error) {
-      console.error('Error validating acceptance:', error);
+      logger.error('Error validating acceptance:', error)
       return {
         valid: false,
         requiresAcceptance: true,

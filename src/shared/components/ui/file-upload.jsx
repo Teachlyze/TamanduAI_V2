@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useCallback, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { cn } from '@/shared/utils/cn';
@@ -139,7 +140,7 @@ const FileUpload = ({
             path: result.path
           };
         } catch (err) {
-          console.error(`Erro ao fazer upload de ${fileData.name}:`, err);
+          logger.error(`Erro ao fazer upload de ${fileData.name}:`, err)
           return {
             ...fileData,
             status: 'error',
@@ -164,7 +165,7 @@ const FileUpload = ({
       });
       
     } catch (err) {
-      console.error('Erro durante o upload:', err);
+      logger.error('Erro durante o upload:', err)
       setError(err.message);
       
       if (onUploadError) {

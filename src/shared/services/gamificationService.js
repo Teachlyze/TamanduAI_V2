@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -187,7 +188,7 @@ class GamificationService {
         xp_for_next_level: getXPForNextLevel(newTotalXP),
       };
     } catch (error) {
-      console.error('[GamificationService] Error adding XP:', error);
+      logger.error('[GamificationService] Error adding XP:', error)
       throw error;
     }
   }
@@ -232,7 +233,7 @@ class GamificationService {
         }
       }
     } catch (error) {
-      console.error('[GamificationService] Error checking badges:', error);
+      logger.error('[GamificationService] Error checking badges:', error)
     }
   }
 
@@ -272,13 +273,13 @@ class GamificationService {
             }
           });
         } catch (notifError) {
-          console.warn('[GamificationService] Badge notification error:', notifError);
+          logger.warn('[GamificationService] Badge notification error:', notifError)
         }
       }
 
       return { success: true };
     } catch (error) {
-      console.error('[GamificationService] Error granting badge:', error);
+      logger.error('[GamificationService] Error granting badge:', error)
       throw error;
     }
   }
@@ -352,7 +353,7 @@ class GamificationService {
 
       return { current_streak: newStreak, longest_streak: longestStreak };
     } catch (error) {
-      console.error('[GamificationService] Error updating streak:', error);
+      logger.error('[GamificationService] Error updating streak:', error)
       throw error;
     }
   }
@@ -469,7 +470,7 @@ class GamificationService {
       // Se não existe snapshot, gerar na hora (fallback)
       return await this.generateClassRanking(classId, period);
     } catch (error) {
-      console.error('[GamificationService] Error getting class ranking:', error);
+      logger.error('[GamificationService] Error getting class ranking:', error)
       throw error;
     }
   }
@@ -537,7 +538,7 @@ class GamificationService {
 
       return ranking;
     } catch (error) {
-      console.error('[GamificationService] Error generating ranking:', error);
+      logger.error('[GamificationService] Error generating ranking:', error)
       throw error;
     }
   }

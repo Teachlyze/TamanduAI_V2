@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import { checkTextForPlagiarism, invokeEdgeCheck } from './plagiarismService';
 import NotificationOrchestrator from '@/shared/services/notificationOrchestrator';
@@ -81,7 +82,7 @@ export const createSubmission = async (submissionData, submit = false) => {
           });
         }
       } catch (e) {
-        console.warn('Falha ao notificar submissão de atividade:', e);
+        logger.warn('Falha ao notificar submissão de atividade:', e)
       }
 
       // Check plagiarism only if enabled at the activity level
@@ -111,18 +112,18 @@ export const createSubmission = async (submissionData, submit = false) => {
             });
             if (!res) {
               // Best-effort fallback, still non-blocking
-              try { await checkTextForPlagiarism(textAnswers); } catch (e) { console.warn('checkTextForPlagiarism fallback failed:', e); }
+              try { await checkTextForPlagiarism(textAnswers); } catch (e) { logger.warn('checkTextForPlagiarism fallback failed:', e) }
             }
           }
         }
       } catch (plagErr) {
-        console.warn('Plagiarism check skipped (non-blocking):', plagErr);
+        logger.warn('Plagiarism check skipped (non-blocking):', plagErr);
       }
     }
 
     return submission;
   } catch (error) {
-    console.error('Error creating submission:', error);
+    logger.error('Error creating submission:', error)
     throw error;
   }
 };
@@ -153,7 +154,7 @@ export const getSubmission = async (submissionId, userId = null) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting submission:', error);
+    logger.error('Error getting submission:', error)
     throw error;
   }
 };
@@ -192,7 +193,7 @@ export const getSubmissionsForActivity = async (activityId, options = {}) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting submissions:', error);
+    logger.error('Error getting submissions:', error)
     throw error;
   }
 };
@@ -302,12 +303,12 @@ export const gradeSubmission = async (submissionId, gradingData) => {
         });
       }
     } catch (e) {
-      console.warn('Falha ao notificar correção/feedback:', e);
+      logger.warn('Falha ao notificar correção/feedback:', e)
     }
 
     return submission;
   } catch (error) {
-    console.error('Error grading submission:', error);
+    logger.error('Error grading submission:', error)
     throw error;
   }
 };
@@ -383,7 +384,7 @@ export const getSubmissionStats = async (activityId) => {
 
     return stats;
   } catch (error) {
-    console.error('Error getting submission stats:', error);
+    logger.error('Error getting submission stats:', error)
     throw error;
   }
 };
@@ -453,16 +454,16 @@ export const submitDraft = async (submissionId) => {
             text: textContent,
             rephrased: true,
           });
-          if (!res) { try { await checkTextForPlagiarism(textContent); } catch (e) { console.warn('checkTextForPlagiarism fallback failed:', e); } }
+          if (!res) { try { await checkTextForPlagiarism(textContent); } catch (e) { logger.warn('checkTextForPlagiarism fallback failed:', e) } }
         }
       }
     } catch (plagErr) {
-      console.warn('Plagiarism check skipped (non-blocking):', plagErr);
+      logger.warn('Plagiarism check skipped (non-blocking):', plagErr);
     }
 
     return updatedSubmission;
   } catch (error) {
-    console.error('Error submitting draft:', error);
+    logger.error('Error submitting draft:', error)
     throw error;
   }
 };

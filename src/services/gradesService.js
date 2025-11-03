@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -21,7 +22,7 @@ export const getStudentGrades = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting student grades:', error);
+    logger.error('Error getting student grades:', error)
     throw error;
   }
 };
@@ -42,7 +43,7 @@ export const getActivityGrades = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting activity grades:', error);
+    logger.error('Error getting activity grades:', error)
     throw error;
   }
 };
@@ -64,7 +65,7 @@ export const getGradeMatrix = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting grade matrix:', error);
+    logger.error('Error getting grade matrix:', error)
     throw error;
   }
 };
@@ -82,7 +83,7 @@ export const getClassGradeStats = async (classId) => {
     if (error) throw error;
     return data?.[0] || {};
   } catch (error) {
-    console.error('Error getting class stats:', error);
+    logger.error('Error getting class stats:', error)
     throw error;
   }
 };
@@ -116,7 +117,7 @@ export const updateGrade = async (submissionId, grade, feedback = null) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error updating grade:', error);
+    logger.error('Error updating grade:', error)
     throw error;
   }
 };
@@ -134,7 +135,7 @@ export const getGradesExportData = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting export data:', error);
+    logger.error('Error getting export data:', error)
     throw error;
   }
 };

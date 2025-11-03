@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 🏦 BANCO DE QUESTÕES SERVICE
  * Sistema completo de gestão de questões colaborativas
@@ -39,7 +40,7 @@ export const createQuestion = async (questionData) => {
     if (error) throw error;
     return { success: true, data };
   } catch (error) {
-    console.error('Erro ao criar questão:', error);
+    logger.error('Erro ao criar questão:', error)
     return { success: false, error: error.message };
   }
 };
@@ -95,7 +96,7 @@ export const searchQuestions = async (filters = {}) => {
     if (error) throw error;
     return { success: true, data: data || [] };
   } catch (error) {
-    console.error('Erro ao buscar questões:', error);
+    logger.error('Erro ao buscar questões:', error)
     return { success: false, error: error.message, data: [] };
   }
 };
@@ -123,7 +124,7 @@ export const approveQuestion = async (questionId, moderatorNotes = null) => {
 
     return { success: true, data };
   } catch (error) {
-    console.error('Erro ao aprovar questão:', error);
+    logger.error('Erro ao aprovar questão:', error)
     return { success: false, error: error.message };
   }
 };
@@ -146,7 +147,7 @@ export const rejectQuestion = async (questionId, reason) => {
     if (error) throw error;
     return { success: true, data };
   } catch (error) {
-    console.error('Erro ao rejeitar questão:', error);
+    logger.error('Erro ao rejeitar questão:', error)
     return { success: false, error: error.message };
   }
 };
@@ -177,7 +178,7 @@ const incrementAuthorContributions = async (authorId) => {
 
     return count;
   } catch (error) {
-    console.error('Erro ao incrementar contribuições:', error);
+    logger.error('Erro ao incrementar contribuições:', error)
     return 0;
   }
 };
@@ -205,7 +206,7 @@ export const getAuthorStats = async (authorId) => {
 
     return stats;
   } catch (error) {
-    console.error('Erro ao buscar stats do autor:', error);
+    logger.error('Erro ao buscar stats do autor:', error)
     return null;
   }
 };
@@ -236,7 +237,7 @@ export const recordQuestionUse = async (questionId) => {
 
     return { success: true };
   } catch (error) {
-    console.error('Erro ao registrar uso:', error);
+    logger.error('Erro ao registrar uso:', error)
     return { success: false };
   }
 };
@@ -264,7 +265,7 @@ export const submitQuestionFeedback = async (questionId, feedback) => {
     if (error) throw error;
     return { success: true, data };
   } catch (error) {
-    console.error('Erro ao enviar feedback:', error);
+    logger.error('Erro ao enviar feedback:', error)
     return { success: false, error: error.message };
   }
 };
@@ -297,7 +298,7 @@ export const getQuestionStats = async (questionId) => {
       totalFeedbacks: feedbacks?.length || 0
     };
   } catch (error) {
-    console.error('Erro ao buscar stats da questão:', error);
+    logger.error('Erro ao buscar stats da questão:', error)
     return null;
   }
 };
@@ -346,7 +347,7 @@ export const getAdaptiveQuestions = async (userId, filters = {}) => {
       recommendation: targetDifficulty > 3 ? 'Desafiante' : targetDifficulty < 3 ? 'Revisão' : 'Adequado'
     };
   } catch (error) {
-    console.error('Erro ao buscar questões adaptativas:', error);
+    logger.error('Erro ao buscar questões adaptativas:', error)
     return { success: false, questions: [] };
   }
 };
@@ -382,7 +383,7 @@ export const generateRandomQuiz = async (params) => {
       totalAvailable: allQuestions.length
     };
   } catch (error) {
-    console.error('Erro ao gerar quiz:', error);
+    logger.error('Erro ao gerar quiz:', error)
     return { success: false, message: 'Erro ao gerar quiz' };
   }
 };

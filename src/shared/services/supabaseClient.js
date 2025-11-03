@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -5,14 +6,14 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('❌ Supabase URL ou Key não configurados. Verifique suas variáveis de ambiente.');
-  console.error('URL:', supabaseUrl);
-  console.error('Publishable Key:', import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ? '✅ Configurada' : '❌ Faltando');
-  console.error('Anon Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ Faltando');
+  logger.error('❌ Supabase URL ou Key não configurados. Verifique suas variáveis de ambiente.')
+  logger.error('URL:', supabaseUrl)
+  logger.error('Publishable Key:', import.meta.env.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY ? '✅ Configurada' : '❌ Faltando')
+  logger.error('Anon Key:', import.meta.env.VITE_SUPABASE_ANON_KEY ? '✅ Configurada' : '❌ Faltando')
   throw new Error('Supabase credentials missing');
 }
 
-console.log('✅ Supabase client initialized with URL:', supabaseUrl.substring(0, 30) + '...');
+logger.debug('✅ Supabase client initialized with URL:', supabaseUrl.substring(0, 30) + '...');
 
 // ✅ Criar cliente Supabase com configurações otimizadas
 export const supabase = createClient(supabaseUrl, supabaseKey, {

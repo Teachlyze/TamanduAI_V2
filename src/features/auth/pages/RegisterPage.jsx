@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -263,7 +264,7 @@ const RegisterPage = () => {
         }, 2000);
       }
     } catch (err) {
-      console.error('Register error:', err);
+      logger.error('Register error:', err)
       setError('Erro ao criar conta. Tente novamente.');
     } finally {
       setLoading(false);

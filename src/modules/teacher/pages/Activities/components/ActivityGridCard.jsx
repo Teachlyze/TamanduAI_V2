@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, MoreVertical, Edit, Copy, Eye, Users, TrendingUp } from 'lucide-react';
+import { Star, MoreVertical, Edit, Copy, Eye, Users, TrendingUp, Share2, Archive } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/shared/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 
-const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, getTypeBadge, navigate }) => {
+const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, onArchive, onUnarchive, getTypeBadge, navigate }) => {
   const { toast } = useToast();
   const getTypeBadgeColor = (type) => {
     const types = {
@@ -61,6 +61,35 @@ const ActivityGridCard = ({ activity, onEdit, onToggleFavorite, onDuplicate, get
                   <Eye className="w-4 h-4 mr-2" />
                   Prévia
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  const shareUrl = `${window.location.origin}/dashboard/activities/${activity.id}`;
+                  navigator.clipboard.writeText(shareUrl);
+                  toast({ 
+                    title: 'Link copiado!', 
+                    description: 'O link da atividade foi copiado para a área de transferência.' 
+                  });
+                }}>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Compartilhar
+                </DropdownMenuItem>
+                {activity.status === 'archived' ? (
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    onUnarchive && onUnarchive(activity.id);
+                  }}>
+                    <Archive className="w-4 h-4 mr-2" />
+                    Desarquivar
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive && onArchive(activity.id);
+                  }}>
+                    <Archive className="w-4 h-4 mr-2" />
+                    Arquivar
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

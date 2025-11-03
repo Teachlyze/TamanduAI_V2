@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from './supabaseClient';
 
 /**
@@ -18,7 +19,7 @@ export const getFeedbackTemplates = async (teacherId) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao buscar templates:', error);
+    logger.error('Erro ao buscar templates:', error)
     return { data: null, error };
   }
 };
@@ -42,7 +43,7 @@ export const createFeedbackTemplate = async (teacherId, templateData) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao criar template:', error);
+    logger.error('Erro ao criar template:', error)
     return { data: null, error };
   }
 };
@@ -65,7 +66,7 @@ export const updateFeedbackTemplate = async (templateId, templateData) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao atualizar template:', error);
+    logger.error('Erro ao atualizar template:', error)
     return { data: null, error };
   }
 };
@@ -83,7 +84,7 @@ export const deleteFeedbackTemplate = async (templateId) => {
     if (error) throw error;
     return { error: null };
   } catch (error) {
-    console.error('Erro ao deletar template:', error);
+    logger.error('Erro ao deletar template:', error)
     return { error };
   }
 };
@@ -100,7 +101,7 @@ export const useFeedbackTemplate = async (templateId) => {
     return { data, error: null };
   } catch (error) {
     // Fallback se a function não existir
-    console.warn('RPC não disponível, usando UPDATE:', error);
+    logger.warn('RPC não disponível, usando UPDATE:', error)
     
     const { data: template } = await supabase
       .from('feedback_templates')
@@ -155,7 +156,7 @@ export const suggestFeedbackWithAI = async (submissionData) => {
       error: null
     };
   } catch (error) {
-    console.error('Erro ao gerar sugestão com IA:', error);
+    logger.error('Erro ao gerar sugestão com IA:', error)
     
     // Fallback para sugestão genérica
     const { grade, maxScore = 10 } = submissionData;

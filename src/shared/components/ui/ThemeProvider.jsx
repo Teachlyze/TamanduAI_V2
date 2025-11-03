@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/components/ui/ThemeProvider.jsx
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
@@ -62,7 +63,7 @@ export const TamanduAIThemeProvider = ({ children, defaultTheme = 'auto' }) => {
         setTheme(savedTheme);
       }
     } catch (error) {
-      console.warn('Failed to load saved theme:', error);
+      logger.warn('Failed to load saved theme:', error)
     }
   }, []);
 
@@ -72,7 +73,7 @@ export const TamanduAIThemeProvider = ({ children, defaultTheme = 'auto' }) => {
     try {
       localStorage.setItem('tamanduai-theme', newTheme);
     } catch (error) {
-      console.warn('Failed to save theme:', error);
+      logger.warn('Failed to save theme:', error)
     }
   };
 

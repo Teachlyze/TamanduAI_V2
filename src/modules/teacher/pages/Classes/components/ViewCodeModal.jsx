@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useRef } from 'react';
 import { X, Copy, Download, Share2 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -63,7 +64,7 @@ const ViewCodeModal = ({ isOpen, onClose, classData }) => {
         });
       } catch (error) {
         if (error.name !== 'AbortError') {
-          console.error('Erro ao compartilhar:', error);
+          logger.error('Erro ao compartilhar:', error)
         }
       }
     } else {

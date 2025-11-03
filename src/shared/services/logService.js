@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -42,13 +43,13 @@ class LogService {
 
       if (dbError) {
         // Fallback para console se falhar
-        console.error('[LogService] Erro ao gravar log no banco:', dbError);
+        logger.error('[LogService] Erro ao gravar log no banco:', dbError)
         this._fallbackToConsole(level, message, metadata, error);
       }
     } catch (err) {
       // Fallback para console em caso de erro crítico
       this._fallbackToConsole(level, message, metadata, error);
-      console.error('[LogService] Erro crítico:', err);
+      logger.error('[LogService] Erro crítico:', err)
     }
   }
 
@@ -61,19 +62,19 @@ class LogService {
     
     switch (level) {
       case 'error':
-        console.error(prefix, message, metadata, error);
+        logger.error(prefix, message, metadata, error)
         break;
       case 'warn':
-        console.warn(prefix, message, metadata);
+        logger.warn(prefix, message, metadata)
         break;
       case 'info':
-        console.info(prefix, message, metadata);
+        logger.debug(prefix, message, metadata)
         break;
       case 'debug':
-        console.debug(prefix, message, metadata);
+        logger.debug(prefix, message, metadata)
         break;
       default:
-        console.log(prefix, message, metadata);
+        logger.debug(prefix, message, metadata)
     }
   }
 
@@ -141,7 +142,7 @@ class LogService {
       if (error) throw error;
       return data || [];
     } catch (error) {
-      console.error('[LogService] Erro ao buscar logs:', error);
+      logger.error('[LogService] Erro ao buscar logs:', error)
       return [];
     }
   }

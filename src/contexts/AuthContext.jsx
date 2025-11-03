@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useEffect, useCallback, useContext, createContext, useRef } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
 
@@ -19,20 +20,20 @@ export const AuthProvider = ({ children }) => {
     let timeoutId = null;
     
     const bootstrap = async () => {
-      console.log('[AuthContext] Starting bootstrap...');
+      logger.debug('[AuthContext] Starting bootstrap...')
       const startTime = performance.now();
 
       // Safety timeout - force loading to false after 15 seconds
       timeoutId = setTimeout(() => {
         if (mounted) {
-          console.warn('[AuthContext] Bootstrap timeout - forcing loading to false');
+          logger.warn('[AuthContext] Bootstrap timeout - forcing loading to false')
           setLoading(false);
           setUser(null);
         }
       }, 15000);
 
       try {
-        console.log('[AuthContext] Calling supabase.auth.getSession()...');
+        logger.debug('[AuthContext] Calling supabase.auth.getSession()...');
         
         // Add timeout to getSession call
         const sessionPromise = supabase.auth.getSession();
@@ -55,24 +56,24 @@ export const AuthProvider = ({ children }) => {
         if (!mounted) return;
 
         if (sessionError) {
-          console.error('[AuthContext] Session error:', sessionError);
+          logger.error('[AuthContext] Session error:', sessionError)
           // If token is invalid or refresh failed, force sign out
           try { await supabase.auth.signOut(); } catch (_) {}
           return;
         }
 
         if (!session) {
-          console.log('[AuthContext] No session found');
+          logger.debug('[AuthContext] No session found')
           setUser(null);
           setLoading(false);
           return;
         }
 
         // Get user from session instead of making another API call
-        console.log('[AuthContext] User from session:', session.user?.email);
+        logger.debug('[AuthContext] User from session:', session.user?.email)
         setUser(session.user ?? null);
       } catch (err) {
-        console.error('[AuthContext] Bootstrap auth error:', err);
+        logger.error('[AuthContext] Bootstrap auth error:', err)
         if (mounted) {
           setError(err?.message || String(err));
           setUser(null);
@@ -81,7 +82,7 @@ export const AuthProvider = ({ children }) => {
         if (timeoutId) clearTimeout(timeoutId);
         if (mounted) {
           const totalTime = performance.now() - startTime;
-          console.log('[AuthContext] Bootstrap complete, setting loading to false (total time:', totalTime.toFixed(2), 'ms)');
+          logger.debug('[AuthContext] Bootstrap complete, setting loading to false (total time:', totalTime.toFixed(2), 'ms)');
           setLoading(false);
         }
       }
@@ -91,38 +92,38 @@ export const AuthProvider = ({ children }) => {
     
     // Update on auth state change
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      // console.log('[AuthContext] Auth state changed:', _event, 'Session:', !!session);
+      // logger.debug('[AuthContext] Auth state changed:', _event, 'Session:', !!session)
       
       if (!mounted) {
-        // console.log('[AuthContext] Component unmounted, skipping auth state change');
+        // logger.debug('[AuthContext] Component unmounted, skipping auth state change')
         return;
       }
       
       // For SIGNED_IN events during active login, skip to avoid race condition
       // The signIn function will handle setting the user
       if (_event === 'SIGNED_IN') {
-        // console.log('[AuthContext] SIGNED_IN event - user will be set by signIn function');
+        // logger.debug('[AuthContext] SIGNED_IN event - user will be set by signIn function')
         return;
       }
       
       try {
         if (!session) {
-          // console.log('[AuthContext] No session, clearing user');
+          // logger.debug('[AuthContext] No session, clearing user')
           setUser(null);
           return;
         }
         
         // Only fetch user for other events (TOKEN_REFRESHED, etc.)
-        // console.log('[AuthContext] Fetching user from auth state change...');
+        // logger.debug('[AuthContext] Fetching user from auth state change...')
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         
         if (mounted) {
-          // console.log('[AuthContext] User updated from auth state change:', userData?.user?.email);
+          // logger.debug('[AuthContext] User updated from auth state change:', userData?.user?.email)
           setUser(userData?.user ?? null);
         }
       } catch (err) {
-        console.error('[AuthContext] Auth state refresh error:', err);
+        logger.error('[AuthContext] Auth state refresh error:', err)
         if (mounted) {
           setUser(null);
         }
@@ -176,12 +177,12 @@ export const AuthProvider = ({ children }) => {
         throw error;
       }
       
-      // console.log('[AuthContext] Sign-in successful, session created');
+      // logger.debug('[AuthContext] Sign-in successful, session created')
       
       // The onAuthStateChange handler will update the user automatically
       // We just need to get the user from the response data
       const meUser = data?.user ?? null;
-      // console.log('[AuthContext] User from sign-in response:', meUser?.email);
+      // logger.debug('[AuthContext] User from sign-in response:', meUser?.email)
       
       // Set user immediately from the response (don't wait for onAuthStateChange)
       setUser(meUser);
@@ -192,13 +193,13 @@ export const AuthProvider = ({ children }) => {
         meUser?.user_metadata?.privacy_accepted
       );
       
-      // console.log('[AuthContext] Sign-in complete, needsOnboarding:', needsOnboarding);
-      // console.log('[AuthContext] Setting loading to false');
+      // logger.debug('[AuthContext] Sign-in complete, needsOnboarding:', needsOnboarding)
+      // logger.debug('[AuthContext] Setting loading to false')
       setLoading(false); // Set loading to false after setting user
       
       return { user: meUser, needsOnboarding };
     } catch (error) {
-      console.error('Sign-in error:', error);
+      logger.error('Sign-in error:', error)
       const errorMessage = error.message || 'Erro ao fazer login';
       setError(errorMessage);
       setLoading(false); // Set loading to false on error
@@ -233,7 +234,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signUp(signUpOptions);
       if (error) throw error;
       
-      // console.log('[AuthContext] User registered successfully:', data.user?.email);
+      // logger.debug('[AuthContext] User registered successfully:', data.user?.email)
       return { user: data.user, success: true };
     } catch (error) {
       setError(error.message);
@@ -247,7 +248,7 @@ export const AuthProvider = ({ children }) => {
   const completeOnboarding = async (concluded = true) => {
     try {
       setLoading(true);
-      // console.log('[AuthContext] Completing onboarding...');
+      // logger.debug('[AuthContext] Completing onboarding...')
       
       const { data: { user: currentUser }, error } = await supabase.auth.getUser();
       if (error) throw error;
@@ -263,7 +264,7 @@ export const AuthProvider = ({ children }) => {
       
       if (updateError) throw updateError;
       
-      // console.log('[AuthContext] Onboarding completed');
+      // logger.debug('[AuthContext] Onboarding completed')
       setUser(updatedData?.user ?? currentUser);
       return { user: updatedData?.user ?? currentUser };
     } catch (err) {

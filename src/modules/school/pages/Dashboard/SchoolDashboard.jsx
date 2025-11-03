@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -76,7 +77,7 @@ const SchoolDashboard = () => {
         { month: 'Jun', students: 250 }
       ]);
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+      logger.error('Erro ao carregar dashboard:', error)
     } finally {
       setLoading(false);
     }

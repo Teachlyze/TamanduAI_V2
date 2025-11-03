@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -67,15 +68,15 @@ export const XPProvider = ({ children }) => {
               })
               .eq('user_id', user.id);
           } catch (updateError) {
-            console.debug('gamification_profiles update failed:', updateError?.message);
+            logger.debug('gamification_profiles update failed:', updateError?.message)
           }
         }
       } catch (gamificationError) {
         // Silently ignore gamification_profiles errors (400, 404, RLS, etc.)
-        console.debug('gamification_profiles query failed:', gamificationError?.message);
+        logger.debug('gamification_profiles query failed:', gamificationError?.message)
       }
     } catch (error) {
-      console.error('Erro ao carregar XP:', error);
+      logger.error('Erro ao carregar XP:', error)
       setXpData(prev => ({ ...prev, loading: false }));
     }
   }, [user?.id]);
@@ -115,7 +116,7 @@ export const XPProvider = ({ children }) => {
           created_at: new Date().toISOString()
         });
 
-      if (notifError) console.error('Erro ao criar notificação:', notifError);
+      if (notifError) logger.error('Erro ao criar notificação:', notifError)
 
       // Atualizar estado local
       const newTotalXP = xpData.totalXP + amount;
@@ -186,7 +187,7 @@ export const XPProvider = ({ children }) => {
       }
 
     } catch (error) {
-      console.error('Erro ao adicionar XP:', error);
+      logger.error('Erro ao adicionar XP:', error)
       toast.error('Erro ao registrar XP');
     }
   };

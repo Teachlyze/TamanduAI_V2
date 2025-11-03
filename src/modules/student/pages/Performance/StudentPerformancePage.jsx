@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Award, Lightbulb, AlertTriangle, Target, BookOpen, Sparkles, TrendingDown, Users, Trophy } from 'lucide-react';
@@ -89,7 +90,7 @@ const StudentPerformancePage = () => {
       setPerformanceData(submissions);
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }
@@ -147,7 +148,7 @@ const StudentPerformancePage = () => {
 
       setClassComparison(comparisons);
     } catch (error) {
-      console.error('Erro ao calcular comparação:', error);
+      logger.error('Erro ao calcular comparação:', error)
     }
   };
 
@@ -160,7 +161,7 @@ const StudentPerformancePage = () => {
       setStudySuggestions(suggestions || []);
       setAttentionAreas(areas || []);
     } catch (error) {
-      console.error('Analytics ML não disponível:', error);
+      logger.error('Analytics ML não disponível:', error)
       // Fallback: implementar lógica simples
       setStudySuggestions([
         { text: 'Continue praticando regularmente', icon: Target },
@@ -261,8 +262,8 @@ const StudentPerformancePage = () => {
         .limit(5);
 
       // Debug: ver estrutura das submissions
-      console.log('🔍 Total de Submissions encontradas:', detailedSubmissions?.length);
-      console.log('🔍 Detailed Submissions:', JSON.stringify(detailedSubmissions, null, 2));
+      logger.debug('🔍 Total de Submissions encontradas:', detailedSubmissions?.length)
+      logger.debug('🔍 Detailed Submissions:', JSON.stringify(detailedSubmissions, null, 2));
 
       // Processar submissões com questões detalhadas
       const recentGradesWithDetails = (detailedSubmissions || []).map((submission, idx) => {
@@ -328,18 +329,18 @@ const StudentPerformancePage = () => {
       };
 
       // Debug: verificar se questões estão sendo enviadas
-      console.log('📊 Performance Summary:', JSON.stringify(performanceSummary, null, 2));
-      console.log('❓ Total de questões encontradas:', recentGradesWithDetails.reduce((sum, g) => sum + (g.questions?.length || 0), 0));
+      logger.debug('📊 Performance Summary:', JSON.stringify(performanceSummary, null, 2));
+      logger.debug('❓ Total de questões encontradas:', recentGradesWithDetails.reduce((sum, g) => sum + (g.questions?.length || 0), 0));
 
       // Chamar Edge Function da OpenAI
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError) {
-        console.error('Erro ao obter sessão:', sessionError);
+        logger.error('Erro ao obter sessão:', sessionError)
         throw new Error('Erro de autenticação');
       }
 
-      console.log('Session token:', session?.access_token ? 'Token presente' : 'Token ausente');
+      logger.debug('Session token:', session?.access_token ? 'Token presente' : 'Token ausente')
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-study-recommendations`, {
         method: 'POST',
@@ -355,7 +356,7 @@ const StudentPerformancePage = () => {
 
       if (!response.ok) {
         const errorData = await response.text();
-        console.error('Erro da API:', response.status, errorData);
+        logger.error('Erro da API:', response.status, errorData)
         
         // Verificar se é erro de limite diário
         if (response.status === 429) {
@@ -408,7 +409,7 @@ const StudentPerformancePage = () => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar recomendações:', error);
+      logger.error('Erro ao carregar recomendações:', error)
       toast({
         title: 'Erro ao carregar recomendações',
         description: 'Tente novamente mais tarde.',

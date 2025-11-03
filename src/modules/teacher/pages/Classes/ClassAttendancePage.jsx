@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, CheckCircle, XCircle } from 'lucide-react';
@@ -59,7 +60,7 @@ const ClassAttendancePage = () => {
       setStats(mockStats);
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }
@@ -87,13 +88,13 @@ const ClassAttendancePage = () => {
         }))
       };
 
-      console.log('Salvando frequência:', attendanceData);
+      logger.debug('Salvando frequência:', attendanceData)
 
       alert('Frequência salva com sucesso!');
       navigate(`/dashboard/classes/${classId}`);
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
       alert('Erro ao salvar frequência.');
     } finally {
       setSaving(false);

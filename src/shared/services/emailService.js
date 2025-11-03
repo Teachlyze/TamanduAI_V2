@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -25,7 +26,7 @@ const EmailService = {
     });
 
     if (error) {
-      console.error('EmailService.sendEmail error:', error);
+      logger.error('EmailService.sendEmail error:', error)
       return { success: false, error: error.message || 'invoke failed' };
     }
 

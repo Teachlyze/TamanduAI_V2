@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { X, Upload, FileText, Video, Image, Link as LinkIcon, Folder } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -107,7 +108,7 @@ const AddMaterialModal = ({ isOpen, onClose, classId, onSuccess }) => {
       onClose();
       
     } catch (error) {
-      console.error('Erro ao adicionar material:', error);
+      logger.error('Erro ao adicionar material:', error)
       toast({
         title: 'Erro ao adicionar material',
         description: error.message,

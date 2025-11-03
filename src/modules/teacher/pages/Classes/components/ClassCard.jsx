@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -38,7 +39,7 @@ const ClassCard = ({ classData, index, onUpdate }) => {
 
       onUpdate();
     } catch (error) {
-      console.error('Erro ao arquivar turma:', error);
+      logger.error('Erro ao arquivar turma:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível arquivar a turma.',
@@ -72,7 +73,7 @@ const ClassCard = ({ classData, index, onUpdate }) => {
 
       onUpdate();
     } catch (error) {
-      console.error('Erro ao excluir turma:', error);
+      logger.error('Erro ao excluir turma:', error)
       toast({
         title: 'Erro ao excluir',
         description: 'Não foi possível excluir a turma.',

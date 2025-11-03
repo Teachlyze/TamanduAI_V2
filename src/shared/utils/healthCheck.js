@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/utils/healthCheck.js
 /**
  * Sistema de Health Checks para monitoramento da aplicação
@@ -244,7 +245,7 @@ export const useHealthCheck = () => {
         setHealthStatus(currentMetrics.overall_status);
       } catch (error) {
         setHealthStatus('error');
-        console.error('Health check error:', error);
+        logger.error('Health check error:', error)
       }
     };
 

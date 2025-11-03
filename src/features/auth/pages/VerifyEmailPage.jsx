@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -39,7 +40,7 @@ const VerifyEmailPage = () => {
 
       setMessage('Email de verificação reenviado com sucesso! Verifique sua caixa de entrada.');
     } catch (error) {
-      console.error('Erro ao reenviar email:', error);
+      logger.error('Erro ao reenviar email:', error)
       setMessage('Erro ao reenviar email. Tente novamente mais tarde.');
     } finally {
       setLoading(false);

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import monitoringService from '@/services/monitoring';
 
@@ -286,7 +287,7 @@ export class EnhancedNotificationService {
    */
   async sendEmailNotification(notification) {
     // This would integrate with your email service (SendGrid, SES, etc.)
-    console.log('Sending email notification:', notification.title);
+    logger.debug('Sending email notification:', notification.title)
 
     // For now, just mark as sent in metadata
     await supabase

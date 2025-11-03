@@ -1,5 +1,6 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   BookOpen,
@@ -39,8 +40,11 @@ import { ptBR } from 'date-fns/locale';
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [eventFilter, setEventFilter] = useState(7); // dias: 1, 3, 7
+  const [activityFilter, setActivityFilter] = useState('all'); // 'all', 'open', 'closed', 'archived'
   const [stats, setStats] = useState({
     totalClasses: 0,
     totalStudents: 0,
@@ -71,7 +75,7 @@ const TeacherDashboard = () => {
       setLoading(true);
       setError(null);
 
-      console.log('[TeacherDashboard] Carregando dados...');
+      logger.debug('[TeacherDashboard] Carregando dados...')
 
       // 1. Buscar turmas do professor
       const { data: classes, error: classesError } = await supabase
@@ -158,42 +162,42 @@ const TeacherDashboard = () => {
 
       if (todayError) throw todayError;
 
-      // 6. Buscar eventos próximos
-      const sevenDaysFromNow = addDays(new Date(), 7);
+      // 6. Buscar eventos próximos (com filtro de dias)
+      const eventEndDate = addDays(new Date(), eventFilter);
       const { data: events, error: eventsError } = await supabase
         .from('calendar_events')
         .select('*')
         .eq('created_by', user.id)
         .gte('start_time', new Date().toISOString())
-        .lte('start_time', sevenDaysFromNow.toISOString())
+        .lte('start_time', eventEndDate.toISOString())
         .order('start_time', { ascending: true })
-        .limit(5);
+        .limit(4);
 
       if (!eventsError && events) {
         setUpcomingEvents(events);
         setTodayEvents(events.filter(e => isToday(new Date(e.start_time))));
       }
 
-      // 7. Buscar reuniões
+      // 7. Buscar reuniões (com filtro de dias)
       const { data: meetings, error: meetingsError } = await supabase
         .from('meetings')
         .select('*')
         .eq('created_by', user.id)
         .gte('start_time', new Date().toISOString())
-        .lte('start_time', sevenDaysFromNow.toISOString())
+        .lte('start_time', eventEndDate.toISOString())
         .order('start_time', { ascending: true })
-        .limit(5);
+        .limit(4);
 
       if (!meetingsError && meetings) {
         const meetingsAsEvents = meetings.map(m => ({
           ...m,
           title: m.title,
           start_time: m.start_time,
-          event_type: 'meeting'
+          type: 'meeting'
         }));
         setUpcomingEvents(prev => [...prev, ...meetingsAsEvents].sort((a, b) => 
           new Date(a.start_time) - new Date(b.start_time)
-        ).slice(0, 5));
+        ).slice(0, 4));
       }
 
       // 8. Identificar alunos em alerta
@@ -262,9 +266,9 @@ const TeacherDashboard = () => {
       setRecentActivities(activitiesWithClass.slice(0, 5));
       setPendingSubmissions(submissionsFormatted);
       
-      console.log('[TeacherDashboard] Dados carregados com sucesso');
+      logger.debug('[TeacherDashboard] Dados carregados com sucesso')
     } catch (error) {
-      console.error('Erro ao carregar dashboard:', error);
+      logger.error('Erro ao carregar dashboard:', error)
       setError('Erro ao carregar dados do dashboard. Tente novamente.');
     } finally {
       setLoading(false);
@@ -363,11 +367,42 @@ const TeacherDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Próximos Eventos */}
         <Card className="p-6 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2 mb-6">
-            <Calendar className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Próximos Eventos (7 dias)
-            </h2>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                Próximos Eventos
+              </h2>
+            </div>
+            <Link to="/dashboard/calendar">
+              <Button variant="ghost" size="sm" className="whitespace-nowrap inline-flex items-center gap-2">
+                <span>Ver Todos</span>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+          <div className="flex gap-2 mb-4">
+            <Button
+              size="sm"
+              variant={eventFilter === 1 ? 'default' : 'outline'}
+              onClick={() => { setEventFilter(1); loadDashboardData(); }}
+            >
+              Hoje
+            </Button>
+            <Button
+              size="sm"
+              variant={eventFilter === 3 ? 'default' : 'outline'}
+              onClick={() => { setEventFilter(3); loadDashboardData(); }}
+            >
+              3 dias
+            </Button>
+            <Button
+              size="sm"
+              variant={eventFilter === 7 ? 'default' : 'outline'}
+              onClick={() => { setEventFilter(7); loadDashboardData(); }}
+            >
+              7 dias
+            </Button>
           </div>
           <div className="space-y-3">
             {upcomingEvents.length > 0 ? (
@@ -395,11 +430,15 @@ const TeacherDashboard = () => {
                       {format(new Date(event.start_time), "HH:mm")}
                     </p>
                     <Badge className={`mt-1 ${
-                      event.event_type === 'meeting' ? 'bg-purple-100 text-purple-700' :
-                      event.event_type === 'exam' ? 'bg-red-100 text-red-700' :
+                      event.type === 'meeting' ? 'bg-purple-100 text-purple-700' :
+                      event.type === 'activity' ? 'bg-orange-100 text-orange-700' :
+                      event.type === 'deadline' ? 'bg-red-100 text-red-700' :
                       'bg-blue-100 text-blue-700'
                     }`}>
-                      {event.event_type || 'evento'}
+                      {event.type === 'event' ? 'Aula' :
+                       event.type === 'activity' ? 'Atividade' :
+                       event.type === 'meeting' ? 'Reunião' :
+                       event.type === 'deadline' ? 'Prazo' : 'Evento'}
                     </Badge>
                   </div>
                 </motion.div>
@@ -578,10 +617,14 @@ const TeacherDashboard = () => {
                       </div>
                     </div>
                     <Badge
-                      variant={activity.status === 'active' ? 'default' : 'secondary'}
+                      variant={
+                        activity.status === 'archived' ? 'secondary' :
+                        new Date(activity.due_date) < new Date() ? 'destructive' : 'default'
+                      }
                       className="whitespace-nowrap"
                     >
-                      {activity.status === 'active' ? 'Ativa' : 'Encerrada'}
+                      {activity.status === 'archived' ? 'Arquivada' :
+                       new Date(activity.due_date) < new Date() ? 'Encerrada' : 'Aberta'}
                     </Badge>
                   </div>
                 </motion.div>

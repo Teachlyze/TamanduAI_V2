@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -91,7 +92,7 @@ const StudentClassesPage = () => {
       setClasses(classesWithStats.filter(Boolean));
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }
@@ -123,12 +124,12 @@ const StudentClassesPage = () => {
         .maybeSingle();
 
       if (searchError || !classData) {
-        console.error('Erro ao buscar turma:', searchError);
+        logger.error('Erro ao buscar turma:', searchError)
         setError('Código inválido! Verifique se digitou corretamente.');
         return;
       }
 
-      console.log('✅ Turma encontrada:', classData);
+      logger.debug('✅ Turma encontrada:', classData)
 
       // Verificar se já é membro
       const { data: existingMembership } = await supabase
@@ -160,7 +161,7 @@ const StudentClassesPage = () => {
         throw new Error('Falha ao adicionar você à turma');
       }
 
-      console.log('✅ Você entrou na turma:', inserted[0]);
+      logger.debug('✅ Você entrou na turma:', inserted[0])
 
       // Sucesso!
       setShowJoinModal(false);
@@ -173,7 +174,7 @@ const StudentClassesPage = () => {
       // Mostrar notificação de sucesso
       alert(`🎉 Você entrou na turma "${classData.name}" com sucesso!\n\nA turma já aparece na sua lista.`);
     } catch (error) {
-      console.error('Erro ao entrar na turma:', error);
+      logger.error('Erro ao entrar na turma:', error)
       setError('Erro ao entrar na turma. Tente novamente.');
     } finally {
       setJoiningClass(false);

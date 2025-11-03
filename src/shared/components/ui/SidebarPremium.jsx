@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import { logger } from '@/shared/utils/logger';
+import React, { useEffect, useState, useMemo, useCallback, startTransition } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +21,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import { StudentProfileCard } from '@/shared/components/student/StudentProfileCard';
 
-  const teacherNavigation = [
+const teacherNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Turmas', href: '/dashboard/classes', icon: Users },
   { name: 'Atividades', href: '/dashboard/activities', icon: BookOpen },
@@ -57,7 +58,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
   const [userRole, setUserRole] = useState('teacher'); // Default to teacher
   const [navigation, setNavigation] = useState(teacherNavigation);
 
-  const handleSignOut = React.useCallback(async () => {
+  const handleSignOut = useCallback(async () => {
     await signOut();
     navigate('/login');
   }, [signOut, navigate]);
@@ -91,7 +92,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
           );
         }
       } catch (error) {
-        console.error('Error fetching user role:', error);
+        logger.error('Error fetching user role:', error)
         // Keep default teacher navigation
       }
     };
@@ -101,30 +102,35 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
 
   // Route-driven role override to keep sidebar in sync when switching context
   useEffect(() => {
-    if (location.pathname.startsWith('/school')) {
-      setUserRole('school');
-      setNavigation(schoolNavigation);
-      return;
-    }
-    if (location.pathname.startsWith('/students')) {
-      setUserRole('student');
-      setNavigation(studentNavigation);
-      return;
-    }
-    if (location.pathname.startsWith('/dashboard')) {
-      setUserRole('teacher');
-      setNavigation(teacherNavigation);
-    }
+    startTransition(() => {
+      if (location.pathname.startsWith('/school')) {
+        setUserRole('school');
+        setNavigation(schoolNavigation);
+        return;
+      }
+      if (location.pathname.startsWith('/students')) {
+        setUserRole('student');
+        setNavigation(studentNavigation);
+        return;
+      }
+      if (location.pathname.startsWith('/dashboard')) {
+        setUserRole('teacher');
+        setNavigation(teacherNavigation);
+      }
+    });
   }, [location.pathname]);
 
-  const isActive = (href) => {
+  const isActive = useCallback((href) => {
     // Verificação exata para dashboards (evitar que fiquem sempre ativos)
     if (href === '/dashboard' || href === '/students' || href === '/school') {
       return location.pathname === href;
     }
     // Para outras rotas, usa startsWith
     return location.pathname.startsWith(href);
-  };
+  }, [location.pathname]);
+
+  // Memoizar items do menu para evitar recriação
+  const memoizedNavigation = useMemo(() => navigation, [navigation]);
   return (
     <>
       {/* Mobile backdrop */}
@@ -216,7 +222,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
           aria-label="Menu principal"
         >
           <div className="space-y-1">
-            {navigation.map((item) => {
+            {memoizedNavigation.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);
               return (

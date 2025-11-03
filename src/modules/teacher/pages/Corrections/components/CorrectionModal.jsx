@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { X, Save, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent } from '@/shared/components/ui/dialog';
@@ -159,13 +160,13 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
           maxScore: maxScore
         });
       } catch (notifError) {
-        console.error('Erro ao enviar notificação:', notifError);
+        logger.error('Erro ao enviar notificação:', notifError)
         // Não falhar a correção se notificação falhar
       }
 
       onSaved();
     } catch (error) {
-      console.error('Erro ao salvar correção:', error);
+      logger.error('Erro ao salvar correção:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível salvar a correção',

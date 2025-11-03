@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 🔒 EDGE FUNCTION WRAPPER - PLAGIARISM CHECK
  * 
@@ -28,13 +29,13 @@ export const checkPlagiarismEdge = async (text, submissionId) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function plagiarism-check-v2:', error);
+      logger.error('Erro na Edge Function plagiarism-check-v2:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao chamar Edge Function de plágio:', error);
+    logger.error('Erro ao chamar Edge Function de plágio:', error)
     throw error;
   }
 };
@@ -51,13 +52,13 @@ export const getCachedPlagiarismCheck = async (submissionId) => {
     });
 
     if (error) {
-      console.error('Erro ao buscar cache:', error);
+      logger.error('Erro ao buscar cache:', error)
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao buscar cache de plágio:', error);
+    logger.error('Erro ao buscar cache de plágio:', error)
     return null;
   }
 };
@@ -74,13 +75,13 @@ export const processPlagiarismBatch = async (submissions) => {
     });
 
     if (error) {
-      console.error('Erro no processamento em lote:', error);
+      logger.error('Erro no processamento em lote:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao processar lote de plágio:', error);
+    logger.error('Erro ao processar lote de plágio:', error)
     throw error;
   }
 };
@@ -107,13 +108,13 @@ export const savePlagiarismResult = async (submissionId, result) => {
       .single();
 
     if (error) {
-      console.error('Erro ao salvar resultado:', error);
+      logger.error('Erro ao salvar resultado:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao salvar resultado de plágio:', error);
+    logger.error('Erro ao salvar resultado de plágio:', error)
     throw error;
   }
 };
@@ -132,13 +133,13 @@ export const getPlagiarismHistory = async (submissionId) => {
       .order('checked_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao buscar histórico:', error);
+      logger.error('Erro ao buscar histórico:', error)
       throw error;
     }
 
     return data || [];
   } catch (error) {
-    console.error('Erro ao buscar histórico de plágio:', error);
+    logger.error('Erro ao buscar histórico de plágio:', error)
     return [];
   }
 };

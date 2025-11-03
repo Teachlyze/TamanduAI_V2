@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -88,7 +89,7 @@ const ActivitiesListPage = () => {
       setClasses(Array.from(uniqueClasses.values()));
 
     } catch (error) {
-      console.error('Erro ao carregar atividades:', error);
+      logger.error('Erro ao carregar atividades:', error)
     } finally {
       setLoading(false);
     }

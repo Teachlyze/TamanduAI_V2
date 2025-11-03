@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Trash2, Archive } from 'lucide-react';
@@ -43,7 +44,7 @@ const EditClassPage = () => {
         color: data.color || '#3B82F6'
       });
     } catch (error) {
-      console.error('Erro ao carregar turma:', error);
+      logger.error('Erro ao carregar turma:', error)
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ const EditClassPage = () => {
       alert('Turma atualizada com sucesso!');
       navigate(`/dashboard/classes/${classId}`);
     } catch (error) {
-      console.error('Erro ao salvar:', error);
+      logger.error('Erro ao salvar:', error)
       alert('Erro ao salvar. Tente novamente.');
     } finally {
       setSaving(false);
@@ -71,7 +72,7 @@ const EditClassPage = () => {
       alert('Turma arquivada!');
       navigate('/dashboard/classes');
     } catch (error) {
-      console.error('Erro ao arquivar:', error);
+      logger.error('Erro ao arquivar:', error)
       alert('Erro ao arquivar. Tente novamente.');
     }
   };
@@ -84,7 +85,7 @@ const EditClassPage = () => {
       alert('Turma deletada!');
       navigate('/dashboard/classes');
     } catch (error) {
-      console.error('Erro ao deletar:', error);
+      logger.error('Erro ao deletar:', error)
       alert('Erro ao deletar. Tente novamente.');
     }
   };
@@ -95,7 +96,7 @@ const EditClassPage = () => {
       setClassData(prev => ({ ...prev, invite_code: newCode }));
       alert('Novo código gerado!');
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
       alert('Erro ao gerar código.');
     }
   };

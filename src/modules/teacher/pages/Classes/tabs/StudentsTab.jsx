@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -166,7 +167,7 @@ const StudentsTab = ({ classId, classData }) => {
       setStats(statsData);
 
     } catch (error) {
-      console.error('Erro ao carregar alunos:', error);
+      logger.error('Erro ao carregar alunos:', error)
       toast({
         title: 'Erro ao carregar alunos',
         description: error.message,
@@ -294,7 +295,7 @@ const StudentsTab = ({ classId, classData }) => {
 
       loadStudents();
     } catch (error) {
-      console.error('Erro ao remover aluno:', error);
+      logger.error('Erro ao remover aluno:', error)
       toast({
         title: '❌ Erro ao remover aluno',
         description: error.message,

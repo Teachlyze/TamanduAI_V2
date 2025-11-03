@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 
@@ -57,10 +58,10 @@ export const lazyLoad = (importFunc, options = {}) => {
     try {
       return await importFunc();
     } catch (error) {
-      console.error(`Error loading component ${chunkName || 'unknown'}:`, error);
+      logger.error(`Error loading component ${chunkName || 'unknown'}:`, error)
 
       if (retries > 0) {
-        console.log(`Retrying... (${retries} attempts left)`);
+        logger.debug(`Retrying... (${retries} attempts left)`);
         await new Promise(resolve => setTimeout(resolve, 1000));
         return lazyLoad(importFunc, { ...options, retries: retries - 1 })();
       }
@@ -72,7 +73,7 @@ export const lazyLoad = (importFunc, options = {}) => {
   // Preload the component if requested
   if (preload) {
     importFunc().catch(error => {
-      console.warn('Preload failed for component:', error);
+      logger.warn('Preload failed for component:', error)
     });
   }
 
@@ -84,7 +85,7 @@ export const lazyLoad = (importFunc, options = {}) => {
  */
 export const preloadComponent = (importFunc) => {
   return importFunc().catch(error => {
-    console.warn('Preload failed:', error);
+    logger.warn('Preload failed:', error)
     return null;
   });
 };

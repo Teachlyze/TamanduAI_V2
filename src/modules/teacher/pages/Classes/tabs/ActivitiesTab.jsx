@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -117,11 +118,25 @@ const ActivitiesTab = ({ classId }) => {
             };
           }
 
-          // Buscar submissões
-          const { data: submissions } = await supabase
-            .from('submissions')
-            .select('id, status, grade')
-            .eq('activity_id', activityId);
+          // Buscar IDs dos alunos DESTA turma
+          const { data: classStudents } = await supabase
+            .from('class_members')
+            .select('user_id')
+            .eq('class_id', classId)
+            .eq('role', 'student');
+
+          const studentIds = classStudents?.map(s => s.user_id) || [];
+
+          // Buscar submissões APENAS dos alunos DESTA turma
+          let submissions = [];
+          if (studentIds.length > 0) {
+            const { data } = await supabase
+              .from('submissions')
+              .select('id, status, grade')
+              .eq('activity_id', activityId)
+              .in('student_id', studentIds);
+            submissions = data || [];
+          }
 
           const totalSubmissions = submissions?.length || 0;
           const pendingCorrections = submissions?.filter(s => s.status === 'submitted').length || 0;
@@ -165,7 +180,7 @@ const ActivitiesTab = ({ classId }) => {
       setStats(statsData);
 
     } catch (error) {
-      console.error('Erro ao carregar atividades:', error);
+      logger.error('Erro ao carregar atividades:', error)
       toast({
         title: 'Erro ao carregar atividades',
         description: error.message,
@@ -271,18 +286,88 @@ const ActivitiesTab = ({ classId }) => {
     return formatDistanceToNow(date, { locale: ptBR, addSuffix: true });
   };
 
-  const handleExportGrades = (activity) => {
-    toast({
-      title: '📊 Exportar Notas',
-      description: 'Função de exportação será implementada em breve'
-    });
+  const handleExportGrades = async (activity) => {
+    try {
+      // Buscar submissões da atividade
+      const { data: submissions, error } = await supabase
+        .from('submissions')
+        .select(`
+          *,
+          student:profiles!student_id(full_name, email)
+        `)
+        .eq('activity_id', activity.id)
+        .not('grade', 'is', null);
+
+      if (error) throw error;
+
+      if (!submissions || submissions.length === 0) {
+        toast({
+          title: 'Sem notas',
+          description: 'Esta atividade ainda não possui notas lançadas.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      // Gerar CSV
+      const csvContent = [
+        ['Aluno', 'Email', 'Nota', 'Data de Envio', 'Data de Correção'],
+        ...submissions.map(sub => [
+          sub.student?.full_name || 'Sem nome',
+          sub.student?.email || '',
+          sub.grade || '0',
+          sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString('pt-BR') : '-',
+          sub.graded_at ? new Date(sub.graded_at).toLocaleDateString('pt-BR') : '-'
+        ])
+      ].map(row => row.join(',')).join('\n');
+
+      // Download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `notas_${activity.title.replace(/[^a-z0-9]/gi, '_')}.csv`;
+      link.click();
+
+      toast({
+        title: '✅ Notas exportadas!',
+        description: `${submissions.length} nota(s) exportada(s) em CSV.`
+      });
+    } catch (error) {
+      logger.error('Erro ao exportar notas:', error)
+      toast({
+        title: '❌ Erro ao exportar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
-  const handleArchiveActivity = (activity) => {
-    toast({
-      title: '📦 Arquivar Atividade',
-      description: 'Função de arquivar será implementada em breve'
-    });
+  const handleArchiveActivity = async (activity) => {
+    try {
+      const { error } = await supabase
+        .from('activities')
+        .update({ 
+          status: 'archived',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', activity.id);
+
+      if (error) throw error;
+
+      toast({
+        title: '✅ Atividade arquivada!',
+        description: 'A atividade foi movida para arquivados.'
+      });
+
+      loadActivities();
+    } catch (error) {
+      logger.error('Erro ao arquivar atividade:', error)
+      toast({
+        title: '❌ Erro ao arquivar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleDeleteActivity = (id, title) => {
@@ -292,28 +377,41 @@ const ActivitiesTab = ({ classId }) => {
   const confirmDelete = async () => {
     const { id, title } = deleteConfirm;
     
+    if (!id) {
+      toast({
+        title: '❌ Erro',
+        description: 'ID da atividade não encontrado.',
+        variant: 'destructive'
+      });
+      setDeleteConfirm({ isOpen: false, id: null, title: '' });
+      return;
+    }
+    
     try {
-      const { error } = await supabase
+      // Primeiro, remover o assignment da turma
+      const { error: assignError } = await supabase
         .from('activity_class_assignments')
         .delete()
         .eq('activity_id', id)
         .eq('class_id', classId);
 
-      if (error) throw error;
+      if (assignError) throw assignError;
 
       toast({
         title: '✅ Atividade removida',
         description: `"${title}" foi removida da turma com sucesso.`
       });
 
+      setDeleteConfirm({ isOpen: false, id: null, title: '' });
       loadActivities();
     } catch (error) {
-      console.error('Erro ao deletar atividade:', error);
+      logger.error('Erro ao deletar atividade:', error)
       toast({
         title: '❌ Erro ao deletar atividade',
         description: error.message,
         variant: 'destructive'
       });
+      setDeleteConfirm({ isOpen: false, id: null, title: '' });
     }
   };
 
@@ -613,7 +711,12 @@ const ActivitiesTab = ({ classId }) => {
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             className="text-red-600 dark:text-red-400"
-                            onClick={() => handleDeleteActivity(activity?.activity?.id, activity?.activity?.title)}
+                            onClick={() => {
+                              const activityId = assignment?.activity?.id;
+                              const activityTitle = assignment?.activity?.title || 'Atividade';
+                              logger.debug('[ActivitiesTab] Delete clicked:', { activityId, activityTitle, fullAssignment: assignment })
+                              handleDeleteActivity(activityId, activityTitle);
+                            }}
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Deletar

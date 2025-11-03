@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * Utilitário para conversão de notas entre diferentes escalas
  * O banco SEMPRE armazena em escala 0-10 (constraint CHECK)
@@ -49,7 +50,7 @@ export function convertToDatabase(displayGrade, gradingSystem = '0-10') {
   const system = GRADING_SYSTEMS[gradingSystem];
   
   if (!system) {
-    console.warn(`Sistema de notas desconhecido: ${gradingSystem}, usando 0-10`);
+    logger.warn(`Sistema de notas desconhecido: ${gradingSystem}, usando 0-10`)
     return parseFloat(displayGrade);
   }
 

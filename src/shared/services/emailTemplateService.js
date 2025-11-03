@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -52,7 +53,7 @@ class EmailTemplateService {
       });
 
       if (error) {
-        console.error('EmailTemplateService.send error:', error);
+        logger.error('EmailTemplateService.send error:', error)
         return { success: false, error: error.message || 'Failed to send email' };
       }
 
@@ -63,7 +64,7 @@ class EmailTemplateService {
         error: data?.error
       };
     } catch (err) {
-      console.error('EmailTemplateService.send exception:', err);
+      logger.error('EmailTemplateService.send exception:', err)
       return { success: false, error: err.message || 'Unexpected error' };
     }
   }
@@ -301,7 +302,7 @@ class EmailTemplateService {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Failed to fetch email logs:', error);
+      logger.error('Failed to fetch email logs:', error)
       return { success: false, error: error.message };
     }
 
@@ -321,7 +322,7 @@ class EmailTemplateService {
 
       return { success: true, data };
     } catch (err) {
-      console.error('Failed to fetch email statistics:', err);
+      logger.error('Failed to fetch email statistics:', err)
       return { success: false, error: err.message };
     }
   }

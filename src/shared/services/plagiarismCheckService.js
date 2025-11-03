@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from './supabaseClient';
 
 /**
@@ -32,7 +33,7 @@ export const checkPlagiarism = async (submissionId, text) => {
     const data = await response.json();
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao verificar plágio:', error);
+    logger.error('Erro ao verificar plágio:', error)
     return { data: null, error };
   }
 };
@@ -53,7 +54,7 @@ export const getPlagiarismReport = async (submissionId) => {
     if (error && error.code !== 'PGRST116') throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao buscar relatório:', error);
+    logger.error('Erro ao buscar relatório:', error)
     return { data: null, error };
   }
 };
@@ -85,7 +86,7 @@ export const compareSubmissions = async (text1, text2) => {
       error: null
     };
   } catch (error) {
-    console.error('Erro ao comparar submissões:', error);
+    logger.error('Erro ao comparar submissões:', error)
     return { data: null, error };
   }
 };

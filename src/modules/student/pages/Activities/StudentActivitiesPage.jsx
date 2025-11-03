@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, Clock, CheckCircle, AlertCircle, AlertTriangle, PlayCircle, Eye, Filter, ArrowUpDown } from 'lucide-react';
@@ -131,7 +132,7 @@ const StudentActivitiesPage = () => {
       setStats({ pending, completed, late });
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }

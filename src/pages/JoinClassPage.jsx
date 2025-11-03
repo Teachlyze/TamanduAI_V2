@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Users, BookOpen } from 'lucide-react';
@@ -72,7 +73,7 @@ const JoinClassPage = () => {
         // Redirecionar para a turma após 2 segundos
         setTimeout(() => {
           if (profile.role === 'student') {
-            navigate(`/students/classes/${classInfo.id}`);
+            navigate(`/student/classes/${classInfo.id}`);
           } else {
             navigate(`/dashboard/classes/${classInfo.id}`);
           }
@@ -82,7 +83,7 @@ const JoinClassPage = () => {
 
       setClassData(classInfo);
     } catch (err) {
-      console.error('Erro ao carregar turma:', err);
+      logger.error('Erro ao carregar turma:', err)
       setError('Erro ao processar convite');
     } finally {
       setLoading(false);
@@ -113,14 +114,14 @@ const JoinClassPage = () => {
       // Redirecionar após 1.5 segundos
       setTimeout(() => {
         if (profile.role === 'student') {
-          navigate(`/students/classes/${classData.id}`);
+          navigate(`/student/classes/${classData.id}`);
         } else {
           navigate(`/dashboard/classes/${classData.id}`);
         }
       }, 1500);
 
     } catch (err) {
-      console.error('Erro ao entrar na turma:', err);
+      logger.error('Erro ao entrar na turma:', err)
       setError('Erro ao entrar na turma. Tente novamente.');
     } finally {
       setJoining(false);
@@ -183,7 +184,7 @@ const JoinClassPage = () => {
             <Button
               onClick={() => {
                 if (profile?.role === 'student') {
-                  navigate('/students/classes');
+                  navigate('/student/classes');
                 } else {
                   navigate('/dashboard');
                 }

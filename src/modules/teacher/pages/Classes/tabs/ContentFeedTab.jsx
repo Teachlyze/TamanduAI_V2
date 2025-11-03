@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -47,6 +48,7 @@ const ContentFeedTab = ({ classId }) => {
   const [posts, setPosts] = useState([]);
   const [filterType, setFilterType] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, title: '' });
+  const [editingPost, setEditingPost] = useState(null);
 
   useEffect(() => {
     loadPosts();
@@ -66,6 +68,7 @@ const ContentFeedTab = ({ classId }) => {
           creator:profiles!class_materials_created_by_fkey(id, full_name, avatar_url)
         `)
         .eq('class_id', classId)
+        .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -73,7 +76,7 @@ const ContentFeedTab = ({ classId }) => {
       setPosts(data || []);
 
     } catch (error) {
-      console.error('Erro ao carregar posts:', error);
+      logger.error('Erro ao carregar posts:', error)
       toast({
         title: 'Erro ao carregar posts',
         description: error.message,
@@ -86,6 +89,7 @@ const ContentFeedTab = ({ classId }) => {
 
   const handlePostCreated = () => {
     setShowCreateModal(false);
+    setEditingPost(null);
     loadPosts();
   };
 
@@ -104,17 +108,37 @@ const ContentFeedTab = ({ classId }) => {
   };
 
   const handleEditPost = (post) => {
-    toast({
-      title: 'Em desenvolvimento',
-      description: 'Função de edição será implementada em breve'
-    });
+    setEditingPost(post);
+    setShowCreateModal(true);
   };
 
-  const handlePinPost = (post) => {
-    toast({
-      title: 'Em desenvolvimento',
-      description: 'Função de fixar será implementada em breve'
-    });
+  const handlePinPost = async (post) => {
+    try {
+      const newPinnedStatus = !post.is_pinned;
+      
+      const { error } = await supabase
+        .from('class_materials')
+        .update({ is_pinned: newPinnedStatus })
+        .eq('id', post.id);
+
+      if (error) throw error;
+
+      toast({
+        title: newPinnedStatus ? '✅ Post fixado!' : '✅ Post desafixado!',
+        description: newPinnedStatus 
+          ? 'Este post agora aparece no topo do mural.' 
+          : 'Este post foi removido do topo.'
+      });
+
+      loadPosts();
+    } catch (error) {
+      logger.error('Erro ao fixar/desafixar post:', error)
+      toast({
+        title: '❌ Erro',
+        description: 'Não foi possível alterar o status do post.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleDownloadFile = (post) => {
@@ -150,7 +174,7 @@ const ContentFeedTab = ({ classId }) => {
 
       loadPosts();
     } catch (error) {
-      console.error('Erro ao deletar post:', error);
+      logger.error('Erro ao deletar post:', error)
       toast({
         title: '❌ Erro ao deletar post',
         description: error.message,
@@ -283,7 +307,11 @@ const ContentFeedTab = ({ classId }) => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
               >
-                <Card className="p-6 hover:shadow-lg transition-all">
+                <Card className={`p-6 hover:shadow-lg transition-all ${
+                  post.is_pinned 
+                    ? 'border-2 border-amber-400 bg-amber-50/50 dark:bg-amber-950/20' 
+                    : ''
+                }`}>
                   {/* Header do Post */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-start gap-4 flex-1">
@@ -300,6 +328,12 @@ const ContentFeedTab = ({ classId }) => {
                           <span className="font-semibold">
                             {post.creator?.full_name || 'Professor'}
                           </span>
+                          {post.is_pinned && (
+                            <Badge className="bg-amber-500 text-white text-xs">
+                              <Pin className="w-3 h-3 mr-1" />
+                              Fixado
+                            </Badge>
+                          )}
                           <span className="text-sm text-slate-500">•</span>
                           <span className="text-sm text-slate-500">
                             {formatDistanceToNow(new Date(post.created_at), { locale: ptBR, addSuffix: true })}
@@ -342,7 +376,7 @@ const ContentFeedTab = ({ classId }) => {
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handlePinPost(post)}>
                           <Pin className="w-4 h-4 mr-2" />
-                          Fixar no Topo
+                          {post.is_pinned ? 'Desafixar' : 'Fixar no Topo'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -458,9 +492,13 @@ const ContentFeedTab = ({ classId }) => {
       {/* Modal de Criação */}
       <CreatePostModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setEditingPost(null);
+        }}
         classId={classId}
         onSuccess={handlePostCreated}
+        editingPost={editingPost}
       />
 
       {/* Dialog de Confirmação de Exclusão */}

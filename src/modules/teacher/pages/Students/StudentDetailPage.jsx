@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Mail, Calendar, TrendingUp, Award, CheckCircle2, Clock } from 'lucide-react';
@@ -55,8 +56,14 @@ const StudentDetailPage = () => {
         .from('submissions')
         .select(`
           *,
-          activity:activities(id, title, max_score),
-          class_assignment:activity_class_assignments(class:classes(name))
+          activity:activities(
+            id, 
+            title, 
+            max_score,
+            assignments:activity_class_assignments(
+              class:classes(name)
+            )
+          )
         `)
         .eq('student_id', studentId)
         .order('submitted_at', { ascending: false });
@@ -79,6 +86,7 @@ const StudentDetailPage = () => {
 
       setStudent({
         ...profile,
+        name: profile?.full_name || profile?.name || profile?.email || 'Aluno',
         classes: memberClasses?.map(m => m.class).filter(Boolean) || []
       });
 
@@ -92,7 +100,7 @@ const StudentDetailPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro:', error);
+      logger.error('Erro:', error)
     } finally {
       setLoading(false);
     }
@@ -107,7 +115,7 @@ const StudentDetailPage = () => {
     {
       key: 'class',
       label: 'Turma',
-      render: (_, row) => row.class_assignment?.class?.name || '-'
+      render: (_, row) => row.activity?.assignments?.[0]?.class?.name || '-'
     },
     {
       key: 'submitted_at',

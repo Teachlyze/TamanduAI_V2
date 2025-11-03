@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
@@ -32,17 +33,57 @@ const TeacherProfilePage = () => {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [photoUploading, setPhotoUploading] = useState(false);
-  
+
+  // Função de validação de CPF
+  const validateCPF = (cpf) => {
+    cpf = cpf.replace(/[^\d]/g, '');
+    if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
+    
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += parseInt(cpf.charAt(i)) * (10 - i);
+    let rev = 11 - (sum % 11);
+    if (rev === 10 || rev === 11) rev = 0;
+    if (rev !== parseInt(cpf.charAt(9))) return false;
+    
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += parseInt(cpf.charAt(i)) * (11 - i);
+    rev = 11 - (sum % 11);
+    if (rev === 10 || rev === 11) rev = 0;
+    if (rev !== parseInt(cpf.charAt(10))) return false;
+    
+    return true;
+  };
+
+  // Função de máscara de telefone
+  const phoneMask = (value) => {
+    if (!value) return '';
+    value = String(value).replace(/\D/g, '');
+    if (value.length <= 10) {
+      value = value.replace(/(\d{2})(\d)/, '($1) $2');
+      value = value.replace(/(\d{4})(\d)/, '$1-$2');
+    } else {
+      value = value.replace(/(\d{2})(\d)/, '($1) $2');
+      value = value.replace(/(\d{5})(\d)/, '$1-$2');
+    }
+    return value;
+  };
+
+  // Função de máscara de CPF
+  const cpfMask = (value) => {
+    if (!value) return '';
+    value = String(value).replace(/\D/g, '');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    return value;
+  };
+
   const [profileData, setProfileData] = useState({
     full_name: '',
     email: '',
     phone: '',
     cpf: '',
-    date_of_birth: '',
-    specializations: [],
-    education: '',
-    institution: '',
-    avatar_url: ''
+    institution: ''
   });
 
   const [preferences, setPreferences] = useState({
@@ -96,13 +137,9 @@ const TeacherProfilePage = () => {
         setProfileData({
           full_name: data.full_name || '',
           email: data.email || '',
-          phone: data.phone || '',
-          cpf: data.cpf || '',
-          date_of_birth: data.date_of_birth || '',
-          specializations: data.specializations || [],
-          education: data.education || '',
-          institution: data.institution || '',
-          avatar_url: data.avatar_url || ''
+          phone: phoneMask(data.phone || ''),
+          cpf: cpfMask(data.cpf || ''),
+          institution: data.institution || ''
         });
 
         if (data.preferences) {
@@ -113,7 +150,7 @@ const TeacherProfilePage = () => {
         }
       }
     } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
+      logger.error('Erro ao carregar perfil:', error)
       toast({
         title: 'Erro ao carregar perfil',
         description: 'Não foi possível carregar seus dados.',
@@ -162,10 +199,14 @@ const TeacherProfilePage = () => {
         description: 'Sua foto de perfil foi atualizada com sucesso.'
       });
     } catch (error) {
-      console.error('Erro ao fazer upload:', error);
+      logger.error('Erro ao fazer upload:', error)
+      const errorMsg = error.message?.includes('Bucket not found') 
+        ? 'Bucket de avatars não configurado. Entre em contato com o administrador.'
+        : 'Não foi possível atualizar sua foto. Tente novamente.';
+      
       toast({
         title: 'Erro ao fazer upload',
-        description: 'Não foi possível atualizar sua foto.',
+        description: errorMsg,
         variant: 'destructive'
       });
     } finally {
@@ -187,15 +228,29 @@ const TeacherProfilePage = () => {
     try {
       setSaving(true);
 
-      const { error } = await teacherService.updateTeacherProfile(user.id, {
-        full_name: profileData.full_name,
-        phone: profileData.phone,
-        cpf: profileData.cpf,
-        date_of_birth: profileData.date_of_birth,
-        specializations: profileData.specializations,
-        education: profileData.education,
-        institution: profileData.institution
-      });
+      // Validar CPF
+      if (profileData.cpf && !validateCPF(profileData.cpf)) {
+        toast({
+          title: 'CPF inválido',
+          description: 'Por favor, insira um CPF válido.',
+          variant: 'destructive'
+        });
+        setSaving(false);
+        return;
+      }
+
+      // Remover máscaras antes de enviar
+      const cleanPhone = profileData.phone.replace(/\D/g, '');
+      const cleanCPF = profileData.cpf.replace(/\D/g, '');
+
+      // Montar objeto apenas com campos preenchidos
+      const updateData = {};
+      if (profileData.full_name?.trim()) updateData.full_name = profileData.full_name.trim();
+      if (cleanPhone) updateData.phone = cleanPhone;
+      if (cleanCPF) updateData.cpf = cleanCPF;
+      if (profileData.institution?.trim()) updateData.institution = profileData.institution.trim();
+
+      const { error } = await teacherService.updateTeacherProfile(user.id, updateData);
 
       if (error) throw error;
 
@@ -204,7 +259,7 @@ const TeacherProfilePage = () => {
         description: 'Suas informações foram salvas com sucesso.'
       });
     } catch (error) {
-      console.error('Erro ao salvar perfil:', error);
+      logger.error('Erro ao salvar perfil:', error)
       toast({
         title: 'Erro ao salvar',
         description: 'Não foi possível salvar suas alterações.',
@@ -231,7 +286,7 @@ const TeacherProfilePage = () => {
       // Aplicar tema imediatamente
       applyTheme(preferences.interface.theme);
     } catch (error) {
-      console.error('Erro ao salvar preferências:', error);
+      logger.error('Erro ao salvar preferências:', error)
       toast({
         title: 'Erro ao salvar',
         description: 'Não foi possível salvar suas preferências.',
@@ -402,7 +457,7 @@ const TeacherProfilePage = () => {
                     <input
                       type="tel"
                       value={profileData.phone}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, phone: phoneMask(e.target.value) }))}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
                       placeholder="(00) 00000-0000"
                     />
@@ -415,7 +470,7 @@ const TeacherProfilePage = () => {
                     <input
                       type="text"
                       value={profileData.cpf}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, cpf: e.target.value }))}
+                      onChange={(e) => setProfileData(prev => ({ ...prev, cpf: cpfMask(e.target.value) }))}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
                       placeholder="000.000.000-00"
                     />

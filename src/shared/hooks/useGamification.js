@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useCallback } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import gamificationService from '@/shared/services/gamificationService';
@@ -95,7 +96,7 @@ export const useGamification = () => {
             }
           });
         } catch (notifError) {
-          console.warn('[useGamification] Notification error:', notifError);
+          logger.warn('[useGamification] Notification error:', notifError)
         }
       }
 
@@ -112,7 +113,7 @@ export const useGamification = () => {
 
       return { success: true, xp_earned: xp };
     } catch (error) {
-      console.error('[useGamification] Error tracking submission:', error);
+      logger.error('[useGamification] Error tracking submission:', error)
       return { success: false, error };
     }
   }, [user?.id]);
@@ -143,7 +144,7 @@ export const useGamification = () => {
 
       return { success: true, xp_earned: xp };
     } catch (error) {
-      console.error('[useGamification] Error tracking quiz:', error);
+      logger.error('[useGamification] Error tracking quiz:', error)
       return { success: false, error };
     }
   }, [user?.id]);
@@ -229,7 +230,7 @@ export const useGamification = () => {
             }
           });
         } catch (notifError) {
-          console.warn('[useGamification] Notification error:', notifError);
+          logger.warn('[useGamification] Notification error:', notifError)
         }
       }
 
@@ -240,7 +241,7 @@ export const useGamification = () => {
         bonus_reason: bonusReason 
       };
     } catch (error) {
-      console.error('[useGamification] Error tracking grade:', error);
+      logger.error('[useGamification] Error tracking grade:', error)
       return { success: false, error };
     }
   }, [user?.id]);
@@ -256,7 +257,7 @@ export const useGamification = () => {
       await missionsService.initializeMissions(user.id);
       return { success: true };
     } catch (error) {
-      console.error('[useGamification] Error initializing profile:', error);
+      logger.error('[useGamification] Error initializing profile:', error)
       return { success: false, error };
     }
   }, [user?.id]);

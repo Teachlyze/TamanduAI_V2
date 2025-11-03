@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import redisCache from '@/services/redis';
 import monitoringService from '@/services/monitoring';
@@ -251,7 +252,7 @@ export class EnhancedSmartCache {
       // In a real implementation, you would:
       // 1. Get all keys matching the pattern
       // 2. Delete them in batch
-      console.log(`Invalidating Redis cache pattern: ${pattern}`);
+      logger.debug(`Invalidating Redis cache pattern: ${pattern}`)
     } catch (error) {
       monitoringService.recordError(error, { context: 'redis_pattern_invalidation' });
     }

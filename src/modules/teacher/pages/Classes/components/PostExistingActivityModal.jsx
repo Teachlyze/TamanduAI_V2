@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { X, Search, Calendar, CheckCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -54,7 +55,7 @@ const PostExistingActivityModal = ({ isOpen, onClose, classId, onSuccess }) => {
       setActivities(availableActivities);
 
     } catch (error) {
-      console.error('Erro ao carregar atividades:', error);
+      logger.error('Erro ao carregar atividades:', error)
       toast({
         title: 'Erro ao carregar',
         description: error.message,
@@ -98,7 +99,7 @@ const PostExistingActivityModal = ({ isOpen, onClose, classId, onSuccess }) => {
       onClose();
 
     } catch (error) {
-      console.error('Erro ao postar atividade:', error);
+      logger.error('Erro ao postar atividade:', error)
       toast({
         title: 'Erro ao postar',
         description: error.message,

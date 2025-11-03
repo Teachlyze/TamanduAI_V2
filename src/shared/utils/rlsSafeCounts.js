@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -19,7 +20,7 @@ export async function countClassStudents(classId) {
     if (error) throw error;
     return data || 0;
   } catch (error) {
-    console.error('[rlsSafeCounts] Error counting class students:', error);
+    logger.error('[rlsSafeCounts] Error counting class students:', error)
     return 0;
   }
 }
@@ -45,7 +46,7 @@ export async function countClassStudentsBatch(classIds) {
       return acc;
     }, {});
   } catch (error) {
-    console.error('[rlsSafeCounts] Error counting students batch:', error);
+    logger.error('[rlsSafeCounts] Error counting students batch:', error)
     return {};
   }
 }
@@ -64,7 +65,7 @@ export async function countClassMembers(classId) {
     if (error) throw error;
     return data || 0;
   } catch (error) {
-    console.error('[rlsSafeCounts] Error counting class members:', error);
+    logger.error('[rlsSafeCounts] Error counting class members:', error)
     return 0;
   }
 }
@@ -93,7 +94,7 @@ export async function getClassStats(classId) {
       total_submissions: 0,
     };
   } catch (error) {
-    console.error('[rlsSafeCounts] Error getting class stats:', error);
+    logger.error('[rlsSafeCounts] Error getting class stats:', error)
     return {
       total_students: 0,
       total_teachers: 0,
@@ -119,7 +120,7 @@ export async function isClassMember(classId, userId = null) {
     if (error) throw error;
     return data === true;
   } catch (error) {
-    console.error('[rlsSafeCounts] Error checking class membership:', error);
+    logger.error('[rlsSafeCounts] Error checking class membership:', error)
     return false;
   }
 }
@@ -140,7 +141,7 @@ export async function isClassTeacher(classId, userId = null) {
     if (error) throw error;
     return data === true;
   } catch (error) {
-    console.error('[rlsSafeCounts] Error checking teacher status:', error);
+    logger.error('[rlsSafeCounts] Error checking teacher status:', error)
     return false;
   }
 }
@@ -159,7 +160,7 @@ export async function countSchoolStudents(schoolId) {
     if (error) throw error;
     return data || 0;
   } catch (error) {
-    console.error('[rlsSafeCounts] Error counting school students:', error);
+    logger.error('[rlsSafeCounts] Error counting school students:', error)
     return 0;
   }
 }

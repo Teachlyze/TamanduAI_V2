@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { createContext } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -197,7 +198,7 @@ const fetchUserProfile = async (userId) => {
 
     return data?.user || null;
   } catch (error) {
-    console.error('Erro ao buscar perfil do usuário:', error);
+    logger.error('Erro ao buscar perfil do usuário:', error)
     throw error;
   }
 };
@@ -229,7 +230,7 @@ const fetchUserPermissions = async (userId) => {
 
     return rolePermissions[user.role] || ['read'];
   } catch (error) {
-    console.error('Erro ao buscar permissões do usuário:', error);
+    logger.error('Erro ao buscar permissões do usuário:', error)
     throw error;
   }
 };
@@ -253,7 +254,7 @@ const fetchAppSettings = async () => {
       enable_notifications: true,
     };
   } catch (error) {
-    console.error('Erro ao buscar configurações da aplicação:', error);
+    logger.error('Erro ao buscar configurações da aplicação:', error)
     // Retornar configurações padrão em caso de erro
     return {
       theme: 'light',

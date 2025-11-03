@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -140,7 +141,7 @@ const TeacherAnalyticsPage = () => {
         ]);
       }
     } catch (error) {
-      console.error('Erro ao carregar analytics:', error);
+      logger.error('Erro ao carregar analytics:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar os dados de analytics',
@@ -505,12 +506,122 @@ const TeacherAnalyticsPage = () => {
     });
   };
 
-  const handleExportDashboard = () => {
-    toast({ title: 'Em desenvolvimento', description: 'Exportação de dashboard será implementada em breve' });
+  const handleExportDashboard = async () => {
+    try {
+      // Criar conteúdo CSV
+      const csvRows = [];
+      
+      // Cabeçalho
+      csvRows.push('TamanduAI - Analytics Dashboard');
+      csvRows.push(`Período: Últimos ${period} dias`);
+      csvRows.push(`Data de Exportação: ${new Date().toLocaleString('pt-BR')}`);
+      csvRows.push('');
+      
+      // KPIs
+      csvRows.push('KPIs Principais');
+      csvRows.push('Indicador,Valor');
+      csvRows.push(`Total de Alunos,${kpis.totalStudents}`);
+      csvRows.push(`Total de Atividades,${kpis.totalActivities}`);
+      csvRows.push(`Correções Pendentes,${kpis.pendingCorrections}`);
+      csvRows.push(`Média Geral,${kpis.avgGrade.toFixed(2)}`);
+      csvRows.push(`Taxa de Entrega no Prazo,${kpis.onTimeRate.toFixed(1)}%`);
+      csvRows.push('');
+      
+      // Evolução de Notas
+      csvRows.push('Evolução de Notas');
+      csvRows.push('Período,Média');
+      gradeEvolution.forEach(row => {
+        csvRows.push(`${row.period},${row.avg}`);
+      });
+      csvRows.push('');
+      
+      // Comparação de Turmas
+      csvRows.push('Comparação de Turmas');
+      csvRows.push('Turma,Média');
+      classComparison.forEach(row => {
+        csvRows.push(`${row.name},${row.avg}`);
+      });
+      csvRows.push('');
+      
+      // Top Alunos
+      csvRows.push('Top 10 Alunos');
+      csvRows.push('Posição,Nome,Média,Atividades');
+      topStudents.forEach((student, idx) => {
+        csvRows.push(`${idx + 1},${student.name},${student.avg},${student.count}`);
+      });
+      
+      // Criar arquivo CSV
+      const csvContent = csvRows.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      // Download
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `analytics-dashboard-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: '✅ Dashboard exportado!',
+        description: 'Arquivo CSV baixado com sucesso'
+      });
+    } catch (error) {
+      logger.error('Erro ao exportar:', error)
+      toast({
+        title: '❌ Erro ao exportar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   const handleConfigureAlerts = () => {
-    toast({ title: 'Em desenvolvimento', description: 'Configuração de alertas será implementada em breve' });
+    // Exemplo de configuração de alertas automáticos
+    const alertsConfig = [
+      {
+        name: 'Média Baixa',
+        condition: 'avgGrade < 6.0',
+        action: 'Notificar quando média da turma cair abaixo de 6.0'
+      },
+      {
+        name: 'Correções Pendentes',
+        condition: 'pendingCorrections > 10',
+        action: 'Alertar quando houver mais de 10 correções pendentes'
+      },
+      {
+        name: 'Baixa Taxa de Entrega',
+        condition: 'onTimeRate < 70%',
+        action: 'Notificar quando taxa de entrega no prazo cair abaixo de 70%'
+      }
+    ];
+    
+    // Verificar condições
+    const activeAlerts = [];
+    
+    if (kpis.avgGrade < 6.0) {
+      activeAlerts.push('⚠️ Média da turma está abaixo de 6.0');
+    }
+    if (kpis.pendingCorrections > 10) {
+      activeAlerts.push(`⚠️ ${kpis.pendingCorrections} correções pendentes`);
+    }
+    if (kpis.onTimeRate < 70) {
+      activeAlerts.push(`⚠️ Taxa de entrega no prazo está em ${kpis.onTimeRate.toFixed(1)}%`);
+    }
+    
+    if (activeAlerts.length > 0) {
+      toast({
+        title: '🔔 Alertas Ativos',
+        description: activeAlerts.join(' • '),
+        duration: 5000
+      });
+    } else {
+      toast({
+        title: '✅ Tudo certo!',
+        description: 'Nenhum alerta ativo no momento'
+      });
+    }
   };
 
   const applyFilters = () => {

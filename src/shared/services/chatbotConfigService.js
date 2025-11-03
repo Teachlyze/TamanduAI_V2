@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import { 
   trainChatbot as trainChatbotEdge,
@@ -33,7 +34,7 @@ class ChatbotConfigService {
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Erro ao configurar chatbot:', error);
+      logger.error('Erro ao configurar chatbot:', error)
       throw error;
     }
   }
@@ -114,7 +115,7 @@ class ChatbotConfigService {
 
       return materials;
     } catch (error) {
-      console.error('Erro ao coletar materiais:', error);
+      logger.error('Erro ao coletar materiais:', error)
       throw error;
     }
   }
@@ -130,7 +131,7 @@ class ChatbotConfigService {
       const trainingData = await this.processMaterials(materials);
 
       // Usar Edge Function para treinamento (RAG com embeddings)
-      console.log('🤖 Usando Edge Function para treinamento do chatbot...');
+      logger.debug('🤖 Usando Edge Function para treinamento do chatbot...')
       const result = await trainChatbotEdge(classId, trainingData, {
         chunkSize: 1000,
         chunkOverlap: 200
@@ -151,7 +152,7 @@ class ChatbotConfigService {
 
       return result;
     } catch (error) {
-      console.error('Erro ao treinar chatbot:', error);
+      logger.error('Erro ao treinar chatbot:', error)
       throw error;
     }
   }
@@ -189,7 +190,7 @@ class ChatbotConfigService {
             });
           }
         } catch (error) {
-          console.error(`Erro ao processar arquivo ${material.name}:`, error);
+          logger.error(`Erro ao processar arquivo ${material.name}:`, error)
         }
       }
     }
@@ -216,7 +217,7 @@ class ChatbotConfigService {
       // Implementar parsers específicos conforme necessário
       return null;
     } catch (error) {
-      console.error('Erro ao extrair texto:', error);
+      logger.error('Erro ao extrair texto:', error)
       return null;
     }
   }
@@ -252,7 +253,7 @@ class ChatbotConfigService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erro ao registrar interação:', error);
+      logger.error('Erro ao registrar interação:', error)
     }
   }
 
@@ -283,7 +284,7 @@ class ChatbotConfigService {
 
       return data;
     } catch (error) {
-      console.error('Erro ao buscar histórico:', error);
+      logger.error('Erro ao buscar histórico:', error)
       return [];
     }
   }
@@ -300,7 +301,7 @@ class ChatbotConfigService {
 
       if (error) throw error;
     } catch (error) {
-      console.error('Erro ao atualizar restrições:', error);
+      logger.error('Erro ao atualizar restrições:', error)
       throw error;
     }
   }
@@ -333,7 +334,7 @@ class ChatbotConfigService {
         reason: hasKeywords || hasTheme ? null : 'Pergunta fora do escopo definido pelo professor'
       };
     } catch (error) {
-      console.error('Erro ao validar pergunta:', error);
+      logger.error('Erro ao validar pergunta:', error)
       return { allowed: false, reason: 'Erro ao validar pergunta' };
     }
   }
@@ -363,7 +364,7 @@ class ChatbotConfigService {
         interactions
       };
     } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
+      logger.error('Erro ao gerar relatório:', error)
       return null;
     }
   }

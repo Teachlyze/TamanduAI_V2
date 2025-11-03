@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -43,7 +44,7 @@ const ForgotPasswordPage = () => {
 
       setSuccess(true);
     } catch (err) {
-      console.error('Reset password error:', err);
+      logger.error('Reset password error:', err)
       setError('Erro ao enviar e-mail. Tente novamente.');
     } finally {
       setLoading(false);

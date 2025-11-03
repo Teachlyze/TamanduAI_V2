@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/hooks/useAccessibilityAdvanced.js
 import { useState, useEffect, useCallback } from 'react';
 import { useAccessibility } from './useAccessibility';
@@ -27,7 +28,7 @@ export const useAccessibilityAdvanced = () => {
         setAdvancedPreferences(prev => ({ ...prev, ...JSON.parse(saved) }));
       }
     } catch (error) {
-      console.warn('Failed to load advanced accessibility preferences:', error);
+      logger.warn('Failed to load advanced accessibility preferences:', error)
     }
   }, []);
 
@@ -131,7 +132,7 @@ export const useAccessibilityAdvanced = () => {
       localStorage.setItem('accessibility_advanced_preferences', JSON.stringify(updated));
       applyAdvancedSettings(updated);
     } catch (error) {
-      console.warn('Failed to save advanced accessibility preferences:', error);
+      logger.warn('Failed to save advanced accessibility preferences:', error)
     }
   }, [advancedPreferences, applyAdvancedSettings]);
 
@@ -431,7 +432,7 @@ export const useWCAGValidator = () => {
       setViolations(issues);
       return issues;
     } catch (error) {
-      console.error('WCAG validation error:', error);
+      logger.error('WCAG validation error:', error)
       return [];
     } finally {
       setIsValidating(false);

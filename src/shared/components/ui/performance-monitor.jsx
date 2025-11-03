@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useMemo, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { Activity, Zap, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
@@ -192,7 +193,7 @@ export const useWebVitals = (enabled = false) => {
     try {
       observer.observe({ entryTypes: ['measure', 'navigation'] });
     } catch (error) {
-      console.warn('Performance Observer not supported:', error);
+      logger.warn('Performance Observer not supported:', error)
     }
   return () => {
       observer.disconnect();

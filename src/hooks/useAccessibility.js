@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/hooks/useAccessibility.js
 import { useState, useEffect, useCallback } from 'react';
 
@@ -58,7 +59,7 @@ export const useAccessibility = () => {
         setPreferences(JSON.parse(saved));
       }
     } catch (error) {
-      console.warn('Failed to load accessibility preferences:', error);
+      logger.warn('Failed to load accessibility preferences:', error)
     }
   }, []);
 
@@ -85,7 +86,7 @@ export const useAccessibility = () => {
       // Aplicar mudanças imediatamente
       applyAccessibilitySettings(updated);
     } catch (error) {
-      console.warn('Failed to save accessibility preferences:', error);
+      logger.warn('Failed to save accessibility preferences:', error)
     }
   }, [preferences, applyAccessibilitySettings]);
 

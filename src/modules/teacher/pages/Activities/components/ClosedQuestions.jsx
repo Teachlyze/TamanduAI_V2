@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
@@ -97,7 +98,7 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
   };
 
   const setCorrectAlternative = (questionId, altId) => {
-    console.log('[ClosedQuestions] ✅ Marcando alternativa como correta:', { questionId, altId });
+    logger.debug('[ClosedQuestions] ✅ Marcando alternativa como correta:', { questionId, altId })
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
         const updatedQuestion = {
@@ -107,7 +108,7 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
             isCorrect: alt.id === altId
           }))
         };
-        console.log('[ClosedQuestions] Questão atualizada:', updatedQuestion);
+        logger.debug('[ClosedQuestions] Questão atualizada:', updatedQuestion)
         return updatedQuestion;
       }
       return q;

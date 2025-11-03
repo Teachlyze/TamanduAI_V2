@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -78,7 +79,7 @@ const ActivitySubmissionsPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar submissões:', error);
+      logger.error('Erro ao carregar submissões:', error)
       toast({ 
         title: 'Erro ao carregar submissões',
         description: error?.message || 'Tente novamente.',

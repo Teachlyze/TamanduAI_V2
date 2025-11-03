@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import gamificationService from './gamificationService';
 
@@ -52,7 +53,7 @@ class FocusService {
         config: POMODORO_CONFIGS[technique],
       };
     } catch (error) {
-      console.error('[FocusService] Error starting session:', error);
+      logger.error('[FocusService] Error starting session:', error)
       throw error;
     }
   }
@@ -123,7 +124,7 @@ class FocusService {
         completed: durationMin >= config.work,
       };
     } catch (error) {
-      console.error('[FocusService] Error ending session:', error);
+      logger.error('[FocusService] Error ending session:', error)
       throw error;
     }
   }
@@ -148,7 +149,7 @@ class FocusService {
       const total = data?.reduce((sum, log) => sum + log.xp, 0) || 0;
       return total;
     } catch (error) {
-      console.error('[FocusService] Error getting daily focus XP:', error);
+      logger.error('[FocusService] Error getting daily focus XP:', error)
       return 0;
     }
   }
@@ -202,7 +203,7 @@ class FocusService {
         daily_xp_limit: DAILY_XP_LIMIT,
       };
     } catch (error) {
-      console.error('[FocusService] Error getting stats:', error);
+      logger.error('[FocusService] Error getting stats:', error)
       throw error;
     }
   }
@@ -232,7 +233,7 @@ class FocusService {
 
       return null;
     } catch (error) {
-      console.error('[FocusService] Error getting active session:', error);
+      logger.error('[FocusService] Error getting active session:', error)
       return null;
     }
   }
@@ -252,7 +253,7 @@ class FocusService {
 
       return { success: true };
     } catch (error) {
-      console.error('[FocusService] Error canceling session:', error);
+      logger.error('[FocusService] Error canceling session:', error)
       throw error;
     }
   }

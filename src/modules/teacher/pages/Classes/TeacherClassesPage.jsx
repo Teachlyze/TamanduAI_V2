@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, BookOpen, Users, TrendingUp, Archive, Search, Filter, Sparkles } from 'lucide-react';
@@ -106,7 +107,7 @@ const TeacherClassesPage = () => {
 
       setClasses(cachedClasses);
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error);
+      logger.error('Erro ao carregar turmas:', error)
       toast({
         title: 'Erro ao carregar turmas',
         description: 'Não foi possível carregar suas turmas.',
@@ -116,6 +117,19 @@ const TeacherClassesPage = () => {
       setLoading(false);
     }
   }, [user?.id]);
+
+  const refreshClasses = useCallback(async () => {
+    try {
+      if (user?.id) {
+        await redisCache.delete(`teacher:${user.id}:classes`);
+      }
+    } catch (e) {
+      logger.warn('Falha ao invalidar cache de turmas:', e)
+    } finally {
+      await loadClasses();
+      await loadStats();
+    }
+  }, [user?.id, loadClasses]);
 
   const loadStats = async () => {
     try {
@@ -165,7 +179,7 @@ const TeacherClassesPage = () => {
         totalArchived: archivedClasses.length
       });
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
+      logger.error('Erro ao carregar estatísticas:', error)
     }
   };
 
@@ -186,11 +200,11 @@ const TeacherClassesPage = () => {
       filtered = filtered.filter(c => c.subject === filters.subject);
     }
 
-    // Filtro de status
-    if (filters.status === 'active') {
+    // Filtro de status (usar showArchived ao invés de filters.status)
+    if (showArchived) {
+      filtered = filtered.filter(c => c.is_active !== true);
+    } else {
       filtered = filtered.filter(c => c.is_active !== false);
-    } else if (filters.status === 'archived') {
-      filtered = filtered.filter(c => c.is_active === false);
     }
 
     // Ordenação
@@ -401,7 +415,7 @@ const TeacherClassesPage = () => {
               key={classItem.id}
               classData={classItem}
               index={idx}
-              onUpdate={loadClasses}
+              onUpdate={refreshClasses}
             />
           ))}
         </div>
@@ -412,10 +426,7 @@ const TeacherClassesPage = () => {
         <CreateClassModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            loadClasses();
-            loadStats();
-          }}
+          onSuccess={refreshClasses}
           teacherId={user?.id}
         />
       )}

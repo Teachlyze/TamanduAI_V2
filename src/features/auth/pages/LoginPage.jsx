@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
@@ -43,21 +44,21 @@ const LoginPage = () => {
     });
     
     if (user && profile && !authLoading) {
-      console.log('[LoginPage] ✅ All conditions met, redirecting to:', profile.role);
+      logger.debug('[LoginPage] ✅ All conditions met, redirecting to:', profile.role)
       
       const userRole = profile.role;
       
       if (userRole === 'student') {
-        console.log('[LoginPage] Navigating to /students/dashboard');
+        logger.debug('[LoginPage] Navigating to /students/dashboard')
         navigate('/students/dashboard');
       } else if (userRole === 'teacher') {
-        console.log('[LoginPage] Navigating to /dashboard');
+        logger.debug('[LoginPage] Navigating to /dashboard')
         navigate('/dashboard');
       } else if (userRole === 'school') {
-        console.log('[LoginPage] Navigating to /school');
+        logger.debug('[LoginPage] Navigating to /school')
         navigate('/school');
       } else {
-        console.log('[LoginPage] Fallback: Navigating to /dashboard');
+        logger.debug('[LoginPage] Fallback: Navigating to /dashboard')
         navigate('/dashboard');
       }
     }
@@ -108,7 +109,7 @@ const LoginPage = () => {
         // O redirecionamento será feito pelo useEffect quando profile estiver pronto
       }
     } catch (err) {
-      console.error('Login error:', err);
+      logger.error('Login error:', err)
       setError('Erro ao fazer login. Tente novamente.');
     } finally {
       setLoading(false);

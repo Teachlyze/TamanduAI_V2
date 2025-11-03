@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
@@ -79,7 +80,7 @@ const LibraryTab = ({ classId }) => {
       setMaterials(items);
 
     } catch (error) {
-      console.error('Erro ao carregar materiais:', error);
+      logger.error('Erro ao carregar materiais:', error)
       toast({
         title: 'Erro ao carregar materiais',
         description: error.message,
@@ -131,7 +132,7 @@ const LibraryTab = ({ classId }) => {
 
       loadMaterials();
     } catch (error) {
-      console.error('Erro ao deletar material:', error);
+      logger.error('Erro ao deletar material:', error)
       toast({
         title: '❌ Erro ao deletar material',
         description: error.message,

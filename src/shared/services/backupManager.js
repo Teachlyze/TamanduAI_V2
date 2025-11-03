@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/backupManager.js
 /**
  * Sistema avançado de backup e recuperação para produção
@@ -26,7 +27,7 @@ export class BackupManager {
       this.createFullBackup();
     }, this.config.backupInterval);
 
-    // console.log('🔄 Auto backup started');
+    // logger.debug('🔄 Auto backup started')
   }
 
   /**
@@ -52,7 +53,7 @@ export class BackupManager {
     const startTime = Date.now();
 
     try {
-      // console.log('🚀 Starting full backup...');
+      // logger.debug('🚀 Starting full backup...')
 
       const backupData = {
         id: backupId,
@@ -91,11 +92,11 @@ export class BackupManager {
       await this.cleanupOldBackups();
 
       const duration = Date.now() - startTime;
-      // console.log(`✅ Full backup completed in ${duration}ms`);
+      // logger.debug(`✅ Full backup completed in ${duration}ms`)
 
       return backupId;
     } catch (error) {
-      console.error('❌ Backup failed:', error);
+      logger.error('❌ Backup failed:', error)
       throw error;
     } finally {
       this.isRunning = false;
@@ -126,7 +127,7 @@ export class BackupManager {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error('Database backup error:', error);
+      logger.error('Database backup error:', error)
       throw error;
     }
   }
@@ -155,7 +156,7 @@ export class BackupManager {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error('Files backup error:', error);
+      logger.error('Files backup error:', error)
       throw error;
     }
   }
@@ -184,7 +185,7 @@ export class BackupManager {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error('Redis backup error:', error);
+      logger.error('Redis backup error:', error)
       throw error;
     }
   }
@@ -294,9 +295,9 @@ export class BackupManager {
         created_at: new Date().toISOString(),
       });
 
-      // console.log(`💾 Backup saved: ${fileName}`);
+      // logger.debug(`💾 Backup saved: ${fileName}`)
     } catch (error) {
-      console.error('Failed to save backup:', error);
+      logger.error('Failed to save backup:', error)
       throw error;
     }
   }
@@ -322,7 +323,7 @@ export class BackupManager {
 
       return data || [];
     } catch (error) {
-      console.error('Failed to list backups:', error);
+      logger.error('Failed to list backups:', error)
       return [];
     }
   }
@@ -332,7 +333,7 @@ export class BackupManager {
    */
   async restoreBackup(backupId) {
     try {
-      // console.log(`🔄 Restoring backup: ${backupId}`);
+      // logger.debug(`🔄 Restoring backup: ${backupId}`)
 
       const { createClient } = await import('@supabase/supabase-js');
       const supabase = createClient(
@@ -381,10 +382,10 @@ export class BackupManager {
         restored_at: new Date().toISOString(),
       });
 
-      // console.log(`✅ Backup restored: ${backupId}`);
+      // logger.debug(`✅ Backup restored: ${backupId}`)
       return restoreResults;
     } catch (error) {
-      console.error('Failed to restore backup:', error);
+      logger.error('Failed to restore backup:', error)
       throw error;
     }
   }
@@ -408,7 +409,7 @@ export class BackupManager {
 
       return await response.json();
     } catch (error) {
-      console.error('Database restore error:', error);
+      logger.error('Database restore error:', error)
       throw error;
     }
   }
@@ -432,7 +433,7 @@ export class BackupManager {
 
       return await response.json();
     } catch (error) {
-      console.error('Files restore error:', error);
+      logger.error('Files restore error:', error)
       throw error;
     }
   }
@@ -456,7 +457,7 @@ export class BackupManager {
 
       return await response.json();
     } catch (error) {
-      console.error('Redis restore error:', error);
+      logger.error('Redis restore error:', error)
       throw error;
     }
   }
@@ -493,10 +494,10 @@ export class BackupManager {
             .remove([`backups/backup-${backup.id}.json`]);
         }
 
-        // console.log(`🗑️ Cleaned up ${oldBackups.length} old backups`);
+        // logger.debug(`🗑️ Cleaned up ${oldBackups.length} old backups`)
       }
     } catch (error) {
-      console.error('Failed to cleanup old backups:', error);
+      logger.error('Failed to cleanup old backups:', error)
     }
   }
 
@@ -535,7 +536,7 @@ export class BackupManager {
 
       return { valid: true, backup: record };
     } catch (error) {
-      console.error('Backup verification error:', error);
+      logger.error('Backup verification error:', error)
       return { valid: false, error: error.message };
     }
   }
@@ -579,7 +580,7 @@ export class BackupManager {
 
       return stats;
     } catch (error) {
-      console.error('Failed to get backup stats:', error);
+      logger.error('Failed to get backup stats:', error)
       return null;
     }
   }
@@ -601,7 +602,7 @@ export const useBackupManager = () => {
         const backupList = await manager.listBackups();
         setBackups(backupList);
       } catch (error) {
-        console.error('Failed to load backups:', error);
+        logger.error('Failed to load backups:', error)
       }
     };
 
@@ -622,7 +623,7 @@ export const useBackupManager = () => {
       setBackups(backupList);
       return backupId;
     } catch (error) {
-      console.error('Failed to create backup:', error);
+      logger.error('Failed to create backup:', error)
       throw error;
     } finally {
       setIsLoading(false);
@@ -635,7 +636,7 @@ export const useBackupManager = () => {
       const result = await manager.restoreBackup(backupId);
       return result;
     } catch (error) {
-      console.error('Failed to restore backup:', error);
+      logger.error('Failed to restore backup:', error)
       throw error;
     } finally {
       setIsLoading(false);
@@ -647,7 +648,7 @@ export const useBackupManager = () => {
       const backupStats = await manager.getBackupStats();
       setStats(backupStats);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      logger.error('Failed to load stats:', error)
     }
   }, [manager]);
 

@@ -1,9 +1,10 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Save, Eye, FileText, CheckSquare, Grid, AlertCircle,
-  Plus, Settings, BookOpen, Clock
+  Plus, Settings, BookOpen, Clock, Paperclip, Trash2
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
@@ -31,6 +32,7 @@ import MixedQuestions from './components/MixedQuestions';
 import AdvancedSettings from './components/AdvancedSettings';
 import ActivityPreview from './components/ActivityPreview';
 import ValidationChecklist from './components/ValidationChecklist';
+import useActivityFiles from '@/shared/hooks/useActivityFiles';
 
 const TeacherActivityCreatePage = () => {
   const navigate = useNavigate();
@@ -57,6 +59,8 @@ const TeacherActivityCreatePage = () => {
 
   // Questões
   const [questions, setQuestions] = useState([]);
+  // Anexos (arquivos de apoio da atividade)
+  const [attachments, setAttachments] = useState([]);
 
   // Configurações avançadas
   const [advancedSettings, setAdvancedSettings] = useState({
@@ -79,10 +83,20 @@ const TeacherActivityCreatePage = () => {
   });
 
   // Estados de UI
-  const [currentSection, setCurrentSection] = useState('basics');
+  const [currentSection, setCurrentSection] = useState(isEditMode ? 'basics' : 'type'); // Edit mode pula tipo
   const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
   const [validationWarnings, setValidationWarnings] = useState([]);
+
+  // Upload de arquivos (usa drafts quando não há id ainda)
+  const {
+    isUploading: isUploadingFiles,
+    uploadProgress,
+    uploadActivityFile,
+    removeActivityFile,
+    publishActivityFiles,
+    resetError: resetUploadError,
+  } = useActivityFiles(id || 'temp', user?.id, !isEditMode);
 
   // Auto-save
   useEffect(() => {
@@ -95,12 +109,56 @@ const TeacherActivityCreatePage = () => {
     return () => clearInterval(autoSaveInterval);
   }, [activityType, title, description, questions, advancedSettings]);
 
-  // Carregar atividade existente
+  // Carregar atividade existente ou dados importados
   useEffect(() => {
     if (isEditMode) {
       loadActivity();
+    } else {
+      // Verificar se há dados importados
+      loadImportedData();
     }
   }, [id]);
+
+  const loadImportedData = () => {
+    try {
+      const importedData = sessionStorage.getItem('importedActivity');
+      if (importedData) {
+        const data = JSON.parse(importedData);
+        
+        // Preencher campos com dados importados
+        setTitle(data.title || '');
+        setDescription(data.description || '');
+        
+        // Determinar tipo de atividade baseado no conteúdo
+        // Por padrão, usar 'open' (questões abertas) para conteúdo importado
+        setActivityType('open');
+        
+        // Criar uma questão aberta inicial com o conteúdo importado
+        if (data.content) {
+          setQuestions([{
+            id: Date.now().toString(),
+            type: 'open',
+            prompt: data.content,
+            maxScore: 10,
+            rubric: ''
+          }]);
+        }
+        
+        toast({
+          title: '📥 Atividade importada',
+          description: `Conteúdo de "${data.importedFrom}" carregado. Revise e edite conforme necessário.`
+        });
+        
+        // Limpar sessionStorage após carregar
+        sessionStorage.removeItem('importedActivity');
+        
+        // Ir direto para a seção de questões
+        setCurrentSection('questions');
+      }
+    } catch (error) {
+      logger.error('Erro ao carregar dados importados:', error)
+    }
+  };
 
   const loadActivity = async () => {
     try {
@@ -123,6 +181,7 @@ const TeacherActivityCreatePage = () => {
       setEstimatedTime(data.content?.estimated_time || '');
       setMaxScore(data.max_score || 10);
       setQuestions(data.content?.questions || []);
+      setAttachments(data.content?.attachments || []);
       
       if (data.content?.advanced_settings) {
         setAdvancedSettings(data.content.advanced_settings);
@@ -133,7 +192,7 @@ const TeacherActivityCreatePage = () => {
         description: 'Você pode editar e salvar as alterações.'
       });
     } catch (error) {
-      console.error('Erro ao carregar atividade:', error);
+      logger.error('Erro ao carregar atividade:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível carregar a atividade.',
@@ -161,6 +220,7 @@ const TeacherActivityCreatePage = () => {
           difficulty,
           estimated_time: estimatedTime,
           questions,
+          attachments,
           advanced_settings: advancedSettings
         },
         created_by: user.id,
@@ -181,7 +241,7 @@ const TeacherActivityCreatePage = () => {
 
       setLastSaved(new Date());
     } catch (error) {
-      console.error('Erro no auto-save:', error);
+      logger.error('Erro no auto-save:', error)
     }
   };
 
@@ -249,12 +309,31 @@ const TeacherActivityCreatePage = () => {
   };
 
   const handleSaveDraft = async () => {
+    // Validação mínima para rascunho
+    if (!title || title.trim().length < 3) {
+      toast({
+        title: 'Título obrigatório',
+        description: 'Defina um título para salvar o rascunho.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!activityType) {
+      toast({
+        title: 'Tipo obrigatório',
+        description: 'Selecione o tipo de atividade.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       setSaving(true);
 
       const activityData = {
-        title,
-        description,
+        title: title.trim(),
+        description: description?.trim() || '',
         type: activityType,
         max_score: maxScore,
         status: 'draft',
@@ -264,6 +343,7 @@ const TeacherActivityCreatePage = () => {
           difficulty,
           estimated_time: estimatedTime,
           questions,
+          attachments,
           advanced_settings: advancedSettings
         },
         created_by: user.id,
@@ -299,16 +379,17 @@ const TeacherActivityCreatePage = () => {
         if (error) throw error;
 
         toast({
-          title: 'Rascunho salvo',
-          description: 'Você pode continuar editando depois.'
+          title: '✅ Rascunho salvo!',
+          description: 'Atividade salva como rascunho. Aparecerá na sua lista de atividades.'
         });
 
+        // Navegar para tela de edição
         navigate(`/teacher/activities/${data.id}/edit`, { replace: true });
       }
 
       setLastSaved(new Date());
     } catch (error) {
-      console.error('Erro ao salvar rascunho:', error);
+      logger.error('Erro ao salvar rascunho:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível salvar o rascunho.',
@@ -341,7 +422,7 @@ const TeacherActivityCreatePage = () => {
     try {
       setSaving(true);
 
-      const activityData = {
+      let activityData = {
         title,
         description,
         type: activityType,
@@ -354,6 +435,7 @@ const TeacherActivityCreatePage = () => {
           difficulty,
           estimated_time: estimatedTime,
           questions,
+          attachments,
           advanced_settings: advancedSettings
         },
         created_by: user.id,
@@ -375,6 +457,31 @@ const TeacherActivityCreatePage = () => {
           .single();
 
         if (error) throw error;
+
+        // mover arquivos do draft -> activities usando novo id
+        try {
+          const moved = await publishActivityFiles(data.id);
+          if (moved && moved.length > 0) {
+            const newAttachments = moved.map(m => ({
+              name: m.name,
+              url: m.url,
+              path: m.newPath,
+              size: m.size,
+              type: m.type,
+            }));
+            activityData = {
+              ...activityData,
+              content: {
+                ...activityData.content,
+                attachments: newAttachments,
+              }
+            };
+            await supabase.from('activities').update(activityData).eq('id', data.id);
+            setAttachments(newAttachments);
+          }
+        } catch (moveErr) {
+          logger.warn('Falha ao mover anexos de rascunho ao publicar:', moveErr)
+        }
       }
 
       toast({
@@ -384,7 +491,7 @@ const TeacherActivityCreatePage = () => {
 
       navigate('/dashboard/activities');
     } catch (error) {
-      console.error('Erro ao publicar:', error);
+      logger.error('Erro ao publicar:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível publicar a atividade.',
@@ -448,10 +555,10 @@ const TeacherActivityCreatePage = () => {
             <Button
               variant="outline"
               onClick={handleSaveDraft}
-              disabled={saving || !activityType}
+              disabled={saving || !activityType || !title || title.trim().length < 3}
             >
               <Save className="w-5 h-5 mr-2" />
-              {saving ? 'Salvando...' : 'Salvar Rascunho'}
+              {saving ? 'Salvando...' : 'Salvar'}
             </Button>
             <Button
               onClick={handlePublish}
@@ -459,7 +566,7 @@ const TeacherActivityCreatePage = () => {
               className="bg-blue-600 hover:bg-blue-700"
             >
               <CheckSquare className="w-5 h-5 mr-2" />
-              {isEditMode ? 'Salvar Alterações' : 'Publicar Atividade'}
+              {isEditMode ? 'Publicar Alterações' : 'Publicar Atividade'}
             </Button>
           </div>
         </div>

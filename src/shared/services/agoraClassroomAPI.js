@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
 // Base URLs for Agora services
@@ -19,16 +20,16 @@ let tokenExpiry = 0;
  * @returns {Promise<string>} - The education token
  */
 async function fetchEducationToken() {
-  // console.log('[Agora] Fetching new education token...');
+  // logger.debug('[Agora] Fetching new education token...')
   
   // Check if environment variables are set
   if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-    console.error('[Agora] Missing required environment variables. Please check your .env file.');
+    logger.error('[Agora] Missing required environment variables. Please check your .env file.')
     throw new Error('Configuration error: Missing required environment variables');
   }
 
   try {
-    // console.log(`[Agora] Making request to token service: ${TOKEN_SERVICE_URL}`);
+    // logger.debug(`[Agora] Making request to token service: ${TOKEN_SERVICE_URL}`)
     
     const response = await fetch(TOKEN_SERVICE_URL, {
       method: 'POST',
@@ -39,23 +40,23 @@ async function fetchEducationToken() {
       body: JSON.stringify({}),
     });
 
-    // console.log(`[Agora] Token service response status: ${response.status}`);
+    // logger.debug(`[Agora] Token service response status: ${response.status}`)
     
     if (!response.ok) {
       let errorMessage = `HTTP error! status: ${response.status}`;
       try {
         const errorData = await response.json();
-        console.error('[Agora] Token service error response:', errorData);
+        logger.error('[Agora] Token service error response:', errorData)
         errorMessage = errorData.error || errorMessage;
       } catch (e) {
         const responseText = await response.text();
-        console.error('[Agora] Failed to parse error response:', responseText);
+        logger.error('[Agora] Failed to parse error response:', responseText)
       }
       throw new Error(`Failed to fetch education token: ${errorMessage}`);
     }
 
     const data = await response.json();
-    // console.log('[Agora] Token service response data:', data);
+    // logger.debug('[Agora] Token service response data:', data)
     
     if (!data.success) {
       throw new Error(data.error || 'Invalid response from token service: success flag is false');
@@ -69,7 +70,7 @@ async function fetchEducationToken() {
     cachedToken = data.token;
     tokenExpiry = Date.now() + (60 * 60 * 1000); // 1 hour from now
     
-    // console.log('[Agora] Successfully obtained and cached education token');
+    // logger.debug('[Agora] Successfully obtained and cached education token')
     return cachedToken;
   } catch (error) {
     console.error('[Agora] Error in fetchEducationToken:', {
@@ -142,11 +143,11 @@ const agoraApi = async (endpoint, method = 'GET', body = null) => {
 
     return data;
   } catch (error) {
-    console.error(`Agora API call failed: ${error.message}`);
+    logger.error(`Agora API call failed: ${error.message}`)
     
     // If the error is due to an invalid token, clear the cache and retry once
     if (error.message.includes('token') || error.message.includes('401')) {
-      // console.log('Token may be expired, attempting to refresh...');
+      // logger.debug('Token may be expired, attempting to refresh...')
       cachedToken = null; // Clear the cached token
       return agoraApi(endpoint, method, body); // Retry the request
     }

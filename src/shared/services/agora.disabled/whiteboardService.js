@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { WhiteWebSdk, DeviceType, AnimationMode } from 'white-web-sdk';
 import { createFastboard, createUI, FastboardApp } from '@netless/fastboard';
 
@@ -76,7 +77,7 @@ export class WhiteboardService {
 
       return this.fastboardApp;
     } catch (error) {
-      console.error('Failed to join whiteboard room:', error);
+      logger.error('Failed to join whiteboard room:', error)
       throw new Error(`Failed to join whiteboard room: ${error.message}`);
     }
   }
@@ -91,7 +92,7 @@ export class WhiteboardService {
         this.fastboardApp = null;
         this.room = null;
       } catch (error) {
-        console.error('Error leaving whiteboard room:', error);
+        logger.error('Error leaving whiteboard room:', error)
       }
     }
   }

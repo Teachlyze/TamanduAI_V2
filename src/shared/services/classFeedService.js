@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 /**
@@ -45,7 +46,7 @@ export const ClassFeedService = {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Erro ao buscar posts:', error);
+      logger.error('Erro ao buscar posts:', error)
       throw error;
     }
 
@@ -78,7 +79,7 @@ export const ClassFeedService = {
       .single();
 
     if (error) {
-      console.error('Erro ao buscar post:', error);
+      logger.error('Erro ao buscar post:', error)
       throw error;
     }
 
@@ -128,7 +129,7 @@ export const ClassFeedService = {
       .single();
 
     if (error) {
-      console.error('Erro ao criar post:', error);
+      logger.error('Erro ao criar post:', error)
       throw error;
     }
 
@@ -153,7 +154,7 @@ export const ClassFeedService = {
       .single();
 
     if (error) {
-      console.error('Erro ao atualizar post:', error);
+      logger.error('Erro ao atualizar post:', error)
       throw error;
     }
 
@@ -172,7 +173,7 @@ export const ClassFeedService = {
       .eq('id', postId);
 
     if (error) {
-      console.error('Erro ao deletar post:', error);
+      logger.error('Erro ao deletar post:', error)
       throw error;
     }
 
@@ -215,7 +216,7 @@ export const ClassFeedService = {
       .select();
 
     if (error && error.code !== '23505') { // 23505 = unique violation
-      console.error('Erro ao registrar visualização:', error);
+      logger.error('Erro ao registrar visualização:', error)
     }
 
     // Atualizar contador (será feito via trigger, mas podemos forçar)
@@ -238,7 +239,7 @@ export const ClassFeedService = {
       .order('viewed_at', { ascending: false });
 
     if (error) {
-      console.error('Erro ao buscar visualizadores:', error);
+      logger.error('Erro ao buscar visualizadores:', error)
       throw error;
     }
 
@@ -304,7 +305,7 @@ export const ClassFeedService = {
       .order('created_at', { ascending: true });
 
     if (error) {
-      console.error('Erro ao buscar comentários:', error);
+      logger.error('Erro ao buscar comentários:', error)
       throw error;
     }
 
@@ -339,7 +340,7 @@ export const ClassFeedService = {
       .single();
 
     if (error) {
-      console.error('Erro ao adicionar comentário:', error);
+      logger.error('Erro ao adicionar comentário:', error)
       throw error;
     }
 
@@ -364,7 +365,7 @@ export const ClassFeedService = {
       .single();
 
     if (error) {
-      console.error('Erro ao editar comentário:', error);
+      logger.error('Erro ao editar comentário:', error)
       throw error;
     }
 
@@ -383,7 +384,7 @@ export const ClassFeedService = {
       .eq('id', commentId);
 
     if (error) {
-      console.error('Erro ao deletar comentário:', error);
+      logger.error('Erro ao deletar comentário:', error)
       throw error;
     }
 
@@ -442,7 +443,7 @@ export const ClassFeedService = {
       .order('scheduled_for', { ascending: true });
 
     if (error) {
-      console.error('Erro ao buscar posts agendados:', error);
+      logger.error('Erro ao buscar posts agendados:', error)
       throw error;
     }
 

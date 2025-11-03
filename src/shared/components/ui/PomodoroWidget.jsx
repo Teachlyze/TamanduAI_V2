@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useRef, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { Clock, Play, Pause, RotateCcw, Award, Target } from 'lucide-react';
@@ -62,7 +63,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
             variant: 'success',
           });
         } catch (error) {
-          console.error('Erro ao registrar XP:', error);
+          logger.error('Erro ao registrar XP:', error)
         }
       } else {
         toast({

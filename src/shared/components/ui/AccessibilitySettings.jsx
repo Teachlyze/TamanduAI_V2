@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/shared/components/ui/card';
@@ -73,7 +74,7 @@ export const [loading, setLoading] = useState(true);
         description: 'As configurações de idioma foram atualizadas.',
       });
     } catch (error) {
-      console.error('Erro ao alterar idioma:', error);
+      logger.error('Erro ao alterar idioma:', error)
       toast({
         variant: 'destructive',
         title: 'Erro',

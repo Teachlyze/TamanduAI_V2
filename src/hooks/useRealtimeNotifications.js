@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import toast from 'react-hot-toast';
@@ -33,7 +34,7 @@ export const useRealtimeNotifications = (userId) => {
       setNotifications(data || []);
       setUnreadCount(data?.filter(n => !n.read).length || 0);
     } catch (err) {
-      console.error('Erro ao carregar notificações:', err);
+      logger.error('Erro ao carregar notificações:', err)
       setError(err.message);
       toast.error('Erro ao carregar notificações');
     } finally {
@@ -108,9 +109,9 @@ export const useRealtimeNotifications = (userId) => {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Inscrito em notificações real-time');
+          logger.debug('✅ Inscrito em notificações real-time')
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Erro na inscrição de notificações');
+          logger.error('❌ Erro na inscrição de notificações')
           setError('Erro na conexão em tempo real');
         }
       });
@@ -131,7 +132,7 @@ export const useRealtimeNotifications = (userId) => {
 
       return true;
     } catch (err) {
-      console.error('Erro ao marcar como lida:', err);
+      logger.error('Erro ao marcar como lida:', err)
       toast.error('Erro ao atualizar notificação');
       return false;
     }
@@ -151,7 +152,7 @@ export const useRealtimeNotifications = (userId) => {
       toast.success('Todas as notificações foram marcadas como lidas');
       return true;
     } catch (err) {
-      console.error('Erro ao marcar todas como lidas:', err);
+      logger.error('Erro ao marcar todas como lidas:', err)
       toast.error('Erro ao atualizar notificações');
       return false;
     }
@@ -168,7 +169,7 @@ export const useRealtimeNotifications = (userId) => {
 
       return true;
     } catch (err) {
-      console.error('Erro ao deletar notificação:', err);
+      logger.error('Erro ao deletar notificação:', err)
       toast.error('Erro ao excluir notificação');
       return false;
     }
@@ -187,7 +188,7 @@ export const useRealtimeNotifications = (userId) => {
       toast.success('Notificações lidas excluídas');
       return true;
     } catch (err) {
-      console.error('Erro ao deletar notificações:', err);
+      logger.error('Erro ao deletar notificações:', err)
       toast.error('Erro ao excluir notificações');
       return false;
     }

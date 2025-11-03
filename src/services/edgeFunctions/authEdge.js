@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 🔐 EDGE FUNCTION WRAPPER - AUTHENTICATION
  * 
@@ -22,13 +23,13 @@ export const validateLogin = async (email, password) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function auth-guard-login:', error);
+      logger.error('Erro na Edge Function auth-guard-login:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao validar login:', error);
+    logger.error('Erro ao validar login:', error)
     throw error;
   }
 };
@@ -45,13 +46,13 @@ export const validateRegister = async (userData) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function auth-guard-register:', error);
+      logger.error('Erro na Edge Function auth-guard-register:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao validar registro:', error);
+    logger.error('Erro ao validar registro:', error)
     throw error;
   }
 };
@@ -68,14 +69,14 @@ export const onLoginSuccess = async (userId) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function auth-login-success:', error);
+      logger.error('Erro na Edge Function auth-login-success:', error)
       // Não lançar erro - não deve bloquear o login
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro no callback de login:', error);
+    logger.error('Erro no callback de login:', error)
     return null;
   }
 };
@@ -93,14 +94,14 @@ export const onRegisterSuccess = async (userId, userData) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function auth-register-success:', error);
+      logger.error('Erro na Edge Function auth-register-success:', error)
       // Não lançar erro - não deve bloquear o registro
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro no callback de registro:', error);
+    logger.error('Erro no callback de registro:', error)
     return null;
   }
 };
@@ -123,13 +124,13 @@ export const processUserOnboarding = async (userId, onboardingData) => {
     });
 
     if (error) {
-      console.error('Erro na Edge Function user-onboarding:', error);
+      logger.error('Erro na Edge Function user-onboarding:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao processar onboarding:', error);
+    logger.error('Erro ao processar onboarding:', error)
     throw error;
   }
 };
@@ -143,13 +144,13 @@ export const getAuthenticatedUser = async () => {
     const { data, error } = await supabase.functions.invoke('auth-me');
 
     if (error) {
-      console.error('Erro na Edge Function auth-me:', error);
+      logger.error('Erro na Edge Function auth-me:', error)
       return null;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao buscar usuário autenticado:', error);
+    logger.error('Erro ao buscar usuário autenticado:', error)
     return null;
   }
 };
@@ -171,13 +172,13 @@ export const acceptTerms = async (userId, termsVersion) => {
     });
 
     if (error) {
-      console.error('Erro ao registrar aceite de termos:', error);
+      logger.error('Erro ao registrar aceite de termos:', error)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Erro ao aceitar termos:', error);
+    logger.error('Erro ao aceitar termos:', error)
     throw error;
   }
 };

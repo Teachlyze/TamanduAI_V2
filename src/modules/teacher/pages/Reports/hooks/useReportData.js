@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // Hook customizado para carregar dados de relatórios com cache
 import { useState } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -57,7 +58,7 @@ export const useReportData = () => {
       return result.data;
 
     } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
+      logger.error('Erro ao gerar relatório:', error)
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível gerar o relatório',

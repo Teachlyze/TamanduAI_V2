@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -116,7 +117,7 @@ export async function predictStudentPerformance(studentId, classId) {
       }),
     };
   } catch (error) {
-    console.error('[AnalyticsML] Error predicting performance:', error);
+    logger.error('[AnalyticsML] Error predicting performance:', error)
     return {
       success: false,
       error: error.message,
@@ -249,7 +250,7 @@ export async function clusterStudents(classId) {
       timestamp: new Date().toISOString(),
     };
   } catch (error) {
-    console.error('[AnalyticsML] Error clustering students:', error);
+    logger.error('[AnalyticsML] Error clustering students:', error)
     return {
       success: false,
       error: error.message,
@@ -351,7 +352,7 @@ export async function analyzeSentiment(classId) {
         })),
     };
   } catch (error) {
-    console.error('[AnalyticsML] Error analyzing sentiment:', error);
+    logger.error('[AnalyticsML] Error analyzing sentiment:', error)
     return {
       success: false,
       error: error.message,
@@ -456,7 +457,7 @@ export async function recommendContent(studentId, classId) {
       },
     };
   } catch (error) {
-    console.error('[AnalyticsML] Error recommending content:', error);
+    logger.error('[AnalyticsML] Error recommending content:', error)
     return {
       success: false,
       error: error.message,

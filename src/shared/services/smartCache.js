@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/smartCache.js
 import redisCache from './redis';
 import monitoringService from './monitoring';
@@ -158,7 +159,7 @@ class SmartCache {
     const duration = Date.now() - startTime;
     monitoringService.recordCacheOperation('invalidation', event, duration, true, invalidatedCount);
 
-    console.log(`Invalidated ${invalidatedCount} cache keys for event: ${event}`);
+    logger.debug(`Invalidated ${invalidatedCount} cache keys for event: ${event}`)
   }
 
   /**
@@ -172,7 +173,7 @@ class SmartCache {
       try {
         await redisCache.del(dependentKey);
       } catch (error) {
-        console.warn(`Failed to invalidate dependent key: ${dependentKey}`, error);
+        logger.warn(`Failed to invalidate dependent key: ${dependentKey}`, error)
       }
     }
   }
@@ -191,7 +192,7 @@ class SmartCache {
           try {
             await redisCache.del(key);
           } catch (error) {
-            console.warn(`Failed to invalidate tagged key: ${key}`, error);
+            logger.warn(`Failed to invalidate tagged key: ${key}`, error)
           }
         }
       }
@@ -236,7 +237,7 @@ class SmartCache {
       const exists = await redisCache.exists(pattern);
       return exists ? [pattern] : [];
     } catch (error) {
-      console.warn('Failed to find keys by pattern:', pattern, error);
+      logger.warn('Failed to find keys by pattern:', pattern, error)
       return [];
     }
   }
@@ -390,7 +391,7 @@ class SmartCache {
           await redisCache.del(key);
         }
       } catch (error) {
-        console.warn(`Failed to clear session pattern: ${pattern}`, error);
+        logger.warn(`Failed to clear session pattern: ${pattern}`, error)
       }
     }
   }
@@ -410,7 +411,7 @@ class SmartCache {
         cache: cacheStats,
       };
     } catch (error) {
-      console.warn('Failed to get smart cache stats:', error);
+      logger.warn('Failed to get smart cache stats:', error)
       return null;
     }
   }

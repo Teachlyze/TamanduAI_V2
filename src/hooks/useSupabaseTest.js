@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from "@/hooks/useAuth";
@@ -12,33 +13,33 @@ const useSupabaseTest = () => {
     const testConnection = async () => {
       try {
         // Test 1: Basic connection
-        console.log('[TEST] Testando conexão básica...');
+        logger.debug('[TEST] Testando conexão básica...')
         const { data: connectionData, error: connectionError } = await supabase
           .from('profiles')
           .select('count')
           .limit(1);
 
         if (connectionError) {
-          console.error('[TEST] Erro de conexão:', connectionError);
+          logger.error('[TEST] Erro de conexão:', connectionError)
           setConnectionStatus('error');
         } else {
-          console.log('[TEST] Conexão OK');
+          logger.debug('[TEST] Conexão OK')
           setConnectionStatus('ok');
         }
 
         // Test 2: Authentication
         if (user) {
-          console.log('[TEST] Usuário autenticado:', user.id);
+          logger.debug('[TEST] Usuário autenticado:', user.id)
           setAuthStatus('ok');
         } else {
-          console.log('[TEST] Usuário não autenticado');
+          logger.debug('[TEST] Usuário não autenticado')
           setAuthStatus('error');
         }
 
         // Test 3: Placeholder for future tests
         setTableStatus('ok');
       } catch (error) {
-        console.error('[TEST] Erro geral:', error);
+        logger.error('[TEST] Erro geral:', error)
         setConnectionStatus('error');
         setAuthStatus('error');
         setTableStatus('error');

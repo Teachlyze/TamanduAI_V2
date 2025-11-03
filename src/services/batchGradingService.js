@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -49,7 +50,7 @@ export const createBatchGradingJob = async (classId, activityId, file) => {
 
     return data;
   } catch (error) {
-    console.error('Error creating batch grading job:', error);
+    logger.error('Error creating batch grading job:', error)
     throw error;
   }
 };
@@ -132,7 +133,7 @@ const processBatchGradingJob = async (jobId) => {
       .eq('id', jobId);
 
   } catch (error) {
-    console.error('Error processing batch grading job:', error);
+    logger.error('Error processing batch grading job:', error)
     
     // Update job status to failed
     await supabase
@@ -165,7 +166,7 @@ export const getBatchGradingJob = async (jobId) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting batch grading job:', error);
+    logger.error('Error getting batch grading job:', error)
     throw error;
   }
 };
@@ -186,7 +187,7 @@ export const getBatchGradingJobsForClass = async (classId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting batch grading jobs:', error);
+    logger.error('Error getting batch grading jobs:', error)
     throw error;
   }
 };
@@ -207,7 +208,7 @@ export const getBatchGradingJobsForActivity = async (activityId) => {
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error('Error getting batch grading jobs for activity:', error);
+    logger.error('Error getting batch grading jobs for activity:', error)
     throw error;
   }
 };

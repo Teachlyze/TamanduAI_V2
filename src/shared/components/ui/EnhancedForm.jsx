@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { cn } from '@/shared/utils/cn';
@@ -200,7 +201,7 @@ export const EnhancedForm = ({
       const result = validator(value, values);
       return result || null;
     } catch (error) {
-      console.error(`Validation error for ${name}:`, error);
+      logger.error(`Validation error for ${name}:`, error)
       return error.message || 'Erro de validação';
     }
   }, [validationSchema, values]);
@@ -271,7 +272,7 @@ export const EnhancedForm = ({
         setTouched({});
       }
     } catch (error) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error)
     } finally {
       setIsSubmitting(false);
     }
@@ -477,7 +478,7 @@ export const useFormSubmission = (onSubmit, options = {}) => {
 
       return { success: true, data: result };
     } catch (error) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error)
       setSubmitError(error.message || 'Erro ao enviar formulário');
 
       if (window.toast) {
@@ -520,7 +521,7 @@ export const useAutoSave = (values, onSave, options = {}) => {
         window.toast.success('Alterações salvas automaticamente');
       }
     } catch (error) {
-      console.error('Auto-save error:', error);
+      logger.error('Auto-save error:', error)
 
       if (window.toast) {
         window.toast.error('Erro ao salvar automaticamente');

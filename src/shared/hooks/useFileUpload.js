@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useCallback } from 'react';
 import { uploadFile, getPublicUrl } from '@/shared/services/apiSupabase';
 import { useToast } from '@/shared/components/ui/use-toast';
@@ -115,7 +116,7 @@ export const useFileUpload = (options = {}) => {
       
       return fileData;
     } catch (err) {
-      console.error('Erro ao fazer upload do arquivo:', err);
+      logger.error('Erro ao fazer upload do arquivo:', err)
       setError(err.message);
       toast({
         variant: 'destructive',

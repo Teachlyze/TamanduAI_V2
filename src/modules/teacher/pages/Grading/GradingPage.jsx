@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, Calendar, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -178,14 +179,14 @@ const GradingPage = () => {
         .from('submissions')
         .select(`
           *,
-          student:student_id(id, full_name, email, avatar_url),
-          activity:activity_id(id, title, max_score, due_date)
+          student:profiles!student_id(id, full_name, email, avatar_url),
+          activity:activities!activity_id(id, title, max_score, due_date, content)
         `)
         .eq('id', submissionId)
         .single();
 
       if (submissionError) {
-        console.error('Erro ao carregar submissão:', submissionError);
+        logger.error('Erro ao carregar submissão:', submissionError)
         toast({ 
           title: 'Erro ao carregar submissão', 
           description: submissionError?.message || 'Não foi possível encontrar esta submissão.', 

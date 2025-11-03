@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 🤖 ANALYTICS ML SERVICE
  * Machine Learning para previsões e insights educacionais
@@ -73,7 +74,7 @@ export const predictPerformance = async (studentId, classId) => {
                'Desempenho estável'
     };
   } catch (error) {
-    console.error('Erro ao prever desempenho:', error);
+    logger.error('Erro ao prever desempenho:', error)
     return null;
   }
 };
@@ -161,7 +162,7 @@ export const identifyAtRiskStudents = async (classId) => {
       return levels[b.riskLevel] - levels[a.riskLevel];
     });
   } catch (error) {
-    console.error('Erro ao identificar alunos em risco:', error);
+    logger.error('Erro ao identificar alunos em risco:', error)
     return [];
   }
 };
@@ -255,7 +256,7 @@ export const clusterStudents = async (classId) => {
       totalStudents: studentMetrics.length
     };
   } catch (error) {
-    console.error('Erro ao clusterizar alunos:', error);
+    logger.error('Erro ao clusterizar alunos:', error)
     return { clusters: [], message: 'Erro ao processar' };
   }
 };
@@ -355,7 +356,7 @@ export const generateRecommendations = async (studentId, classId) => {
       weakAreas: lowGradeActivities.length
     };
   } catch (error) {
-    console.error('Erro ao gerar recomendações:', error);
+    logger.error('Erro ao gerar recomendações:', error)
     return { recommendations: [], message: 'Erro ao processar' };
   }
 };
@@ -418,7 +419,7 @@ export const predictChurn = async (classId) => {
 
     return churnRisks.sort((a, b) => b.daysSinceActivity - a.daysSinceActivity);
   } catch (error) {
-    console.error('Erro ao prever churn:', error);
+    logger.error('Erro ao prever churn:', error)
     return [];
   }
 };
@@ -521,7 +522,7 @@ export const analyzeClassPerformance = async (classId) => {
       engagement: totalXP > 5000 ? 'high' : totalXP > 2000 ? 'medium' : 'low'
     };
   } catch (error) {
-    console.error('Erro ao analisar turma:', error);
+    logger.error('Erro ao analisar turma:', error)
     return null;
   }
 };
@@ -590,7 +591,7 @@ export const analyzeTeacherPerformance = async (teacherId) => {
       activityRate: totalActivities / classes.length || 0
     };
   } catch (error) {
-    console.error('Erro ao analisar professor:', error);
+    logger.error('Erro ao analisar professor:', error)
     return null;
   }
 };
@@ -635,7 +636,7 @@ export const compareTeachers = async (schoolId) => {
     // Ordenar por avgGrade
     return comparisons.sort((a, b) => b.avgGrade - a.avgGrade);
   } catch (error) {
-    console.error('Erro ao comparar professores:', error);
+    logger.error('Erro ao comparar professores:', error)
     return [];
   }
 };
@@ -688,7 +689,7 @@ export const compareClasses = async (schoolId) => {
 
     return comparisons.sort((a, b) => b.avgGrade - a.avgGrade);
   } catch (error) {
-    console.error('Erro ao comparar turmas:', error);
+    logger.error('Erro ao comparar turmas:', error)
     return [];
   }
 };
@@ -802,7 +803,7 @@ Forneça em JSON:
     const content = response.choices?.[0]?.message?.content || '{}';
     return JSON.parse(content);
   } catch (error) {
-    console.error('Erro ao gerar insights AI:', error);
+    logger.error('Erro ao gerar insights AI:', error)
     return null;
   }
 };
@@ -841,7 +842,7 @@ export const getStudySuggestions = async (studentId) => {
 
     return suggestions;
   } catch (error) {
-    console.error('Erro ao obter sugestões:', error);
+    logger.error('Erro ao obter sugestões:', error)
     return [
       { text: 'Continue praticando regularmente', icon: 'Target' },
       { text: 'Revise conceitos fundamentais', icon: 'BookOpen' }
@@ -899,7 +900,7 @@ export const getAttentionAreas = async (studentId) => {
 
     return attentionAreas;
   } catch (error) {
-    console.error('Erro ao identificar áreas de atenção:', error);
+    logger.error('Erro ao identificar áreas de atenção:', error)
     return [];
   }
 };
@@ -944,7 +945,7 @@ export async function getStudentGradeBuckets(studentId, classId) {
     });
     return buckets;
   } catch (err) {
-    console.error('Erro ao calcular buckets do aluno:', err);
+    logger.error('Erro ao calcular buckets do aluno:', err)
     return { '0-49': 0, '50-69': 0, '70-84': 0, '85-100': 0 };
   }
 }

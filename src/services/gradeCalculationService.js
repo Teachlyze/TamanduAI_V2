@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -65,7 +66,7 @@ export const calculateWeightedGrade = async (studentId, classId) => {
       details
     };
   } catch (error) {
-    console.error('Error calculating weighted grade:', error);
+    logger.error('Error calculating weighted grade:', error)
     throw error;
   }
 };
@@ -98,7 +99,7 @@ export const calculateClassWeightedGrades = async (classId) => {
 
     return results.sort((a, b) => (b.weightedGrade || 0) - (a.weightedGrade || 0));
   } catch (error) {
-    console.error('Error calculating class weighted grades:', error);
+    logger.error('Error calculating class weighted grades:', error)
     throw error;
   }
 };

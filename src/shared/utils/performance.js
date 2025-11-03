@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * Performance Optimization Utilities
  */
@@ -59,7 +60,7 @@ export const measureRenderTime = (componentName) => {
   const start = performance.now();
   return () => {
     const end = performance.now();
-    console.log(`${componentName} rendered in ${(end - start).toFixed(2)}ms`);
+    logger.debug(`${componentName} rendered in ${(end - start).toFixed(2)}ms`);
   };
 };
 
@@ -147,13 +148,13 @@ export const monitorPerformance = () => {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
         if (entry.entryType === 'largest-contentful-paint') {
-          console.log('LCP:', entry.renderTime || entry.loadTime);
+          logger.debug('LCP:', entry.renderTime || entry.loadTime)
         }
         if (entry.entryType === 'first-input') {
-          console.log('FID:', entry.processingStart - entry.startTime);
+          logger.debug('FID:', entry.processingStart - entry.startTime)
         }
         if (entry.entryType === 'layout-shift') {
-          console.log('CLS:', entry.value);
+          logger.debug('CLS:', entry.value)
         }
       }
     });

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '../lib/supabaseClient';
 
 // Caminhos base para os buckets
@@ -46,7 +47,7 @@ export const uploadFile = async (file, bucket, path = '') => {
       error: null 
     };
   } catch (error) {
-    console.error('Error uploading file:', error);
+    logger.error('Error uploading file:', error)
     return { data: null, error };
   }
 };
@@ -66,7 +67,7 @@ export const removeFile = async (bucket, path) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Error removing file:', error);
+    logger.error('Error removing file:', error)
     return { data: null, error };
   }
 };
@@ -105,7 +106,7 @@ export const listFiles = async (bucket, path = '') => {
 
     return { data: filesWithUrls, error: null };
   } catch (error) {
-    console.error('Error listing files:', error);
+    logger.error('Error listing files:', error)
     return { data: [], error };
   }
 };
@@ -155,7 +156,7 @@ export const moveFile = async (sourceBucket, sourcePath, destBucket, destPath) =
 
     return { data: uploadData, error: null };
   } catch (error) {
-    console.error('Error moving file:', error);
+    logger.error('Error moving file:', error)
     return { data: null, error };
   }
 };
@@ -261,7 +262,7 @@ export const uploadFileWithThumbnail = async (file, bucket, path = '', options =
 
     return { data: result, error: null };
   } catch (error) {
-    console.error('Error uploading file with thumbnail:', error);
+    logger.error('Error uploading file with thumbnail:', error)
     return { data: null, error };
   }
 };

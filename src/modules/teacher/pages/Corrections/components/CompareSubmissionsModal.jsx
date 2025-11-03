@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { Card } from '@/shared/components/ui/card';
@@ -30,7 +31,7 @@ const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
         setSimilarityScore(similarity);
       }
     } catch (error) {
-      console.error('Erro ao carregar submissões:', error);
+      logger.error('Erro ao carregar submissões:', error)
     } finally {
       setLoading(false);
     }

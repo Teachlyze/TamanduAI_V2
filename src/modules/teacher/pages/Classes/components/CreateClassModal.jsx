@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { X, Save, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -72,14 +73,16 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess, teacherId }) => {
             invite_code: formData.invite_code,
             student_capacity: formData.student_capacity,
             created_by: teacherId,
-            professor_id: teacherId,
             is_active: true
           }
         ])
         .select()
         .single();
 
-      if (classError) throw classError;
+      if (classError) {
+        logger.error('Erro ao criar turma:', classError)
+        throw new Error(classError.message || 'Erro ao criar turma no banco de dados');
+      }
 
       // Adicionar professor como membro
       const { error: memberError } = await supabase
@@ -92,20 +95,24 @@ const CreateClassModal = ({ isOpen, onClose, onSuccess, teacherId }) => {
           }
         ]);
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        logger.error('Erro ao adicionar professor como membro:', memberError)
+        throw new Error(memberError.message || 'Erro ao adicionar professor à turma');
+      }
 
       toast({
-        title: 'Turma criada!',
-        description: 'Sua turma foi criada com sucesso.'
+        title: '✅ Turma criada com sucesso!',
+        description: `${formData.name} foi criada. Código: ${formData.invite_code}`
       });
 
       onSuccess();
+      onClose();
       navigate(`/dashboard/classes/${newClass.id}`);
     } catch (error) {
-      console.error('Erro ao criar turma:', error);
+      logger.error('Erro ao criar turma:', error)
       toast({
-        title: 'Erro ao criar turma',
-        description: 'Não foi possível criar a turma.',
+        title: '❌ Erro ao criar turma',
+        description: error.message || 'Não foi possível criar a turma. Tente novamente.',
         variant: 'destructive'
       });
     } finally {

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * Sistema de dados mockados configuráveis para desenvolvimento
  * Permite personalizar dados de teste através de variáveis de ambiente
@@ -233,7 +234,7 @@ export const generateMockData = (type, overrides = {}) => {
   const baseData = MOCK_DATA[type];
 
   if (!baseData) {
-    console.warn(`Tipo de dado mockado não encontrado: ${type}`);
+    logger.warn(`Tipo de dado mockado não encontrado: ${type}`)
     return null;
   }
 

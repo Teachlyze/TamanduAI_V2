@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -169,7 +170,7 @@ class NotificationManager {
           // Ignore audio play errors (browser policies)
         });
       } catch (error) {
-        console.warn('Error playing notification sound:', error);
+        logger.warn('Error playing notification sound:', error)
       }
     }
   }
@@ -268,7 +269,7 @@ export const useNotificationSettings = () => {
         const parsed = JSON.parse(savedSettings);
         setSettings(prev => ({ ...prev, ...parsed }));
       } catch (error) {
-        console.warn('Error loading notification settings:', error);
+        logger.warn('Error loading notification settings:', error)
       }
     }
   }, []);

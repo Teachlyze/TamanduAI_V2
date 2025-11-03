@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 import NotificationOrchestrator from '@/services/notificationOrchestrator';
 import EmailTemplateService from '@/services/emailTemplateService';
@@ -88,7 +89,7 @@ class ClassInviteService {
         });
       }
     } catch (e) {
-      console.warn('Falha ao enviar email de convite:', e);
+      logger.warn('Falha ao enviar email de convite:', e)
     }
     return invite;
   }
@@ -190,7 +191,7 @@ class ClassInviteService {
           user_id: userId,
         }
       ]);
-    if (usageErr) console.warn('Failed to record invitation usage', usageErr);
+    if (usageErr) logger.warn('Failed to record invitation usage', usageErr)
 
     // Notify owner
     try {
@@ -234,7 +235,7 @@ class ClassInviteService {
         });
       }
     } catch (e) {
-      console.warn('Falha ao notificar convite aceito:', e);
+      logger.warn('Falha ao notificar convite aceito:', e)
     }
 
     return { success: true };

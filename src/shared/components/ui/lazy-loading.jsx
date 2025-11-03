@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { cloneElement, lazy, useEffect, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { Loader2 } from 'lucide-react';
@@ -20,7 +21,7 @@ export const [loading, setLoading] = useState(true);
     // Lazy component
     const LazyComponent = lazy(() =>
       importFn().catch(error => {
-        console.error('Erro ao carregar componente lazy:', error);
+        logger.error('Erro ao carregar componente lazy:', error)
         setHasError(true);
         throw error;
       })
@@ -60,7 +61,7 @@ export const [loading, setLoading] = useState(true);
             setComponent(module.default || module);
           })
           .catch(error => {
-            console.error('Erro ao carregar componente:', error);
+            logger.error('Erro ao carregar componente:', error)
             setHasError(true);
           });
       }
@@ -305,7 +306,7 @@ export const LazyComponentWrapper = ({
   };
 
   const handleError = (error) => {
-    console.error(`Erro ao carregar componente ${componentName}:`, error);
+    logger.error(`Erro ao carregar componente ${componentName}:`, error)
     if (onError) onError(error);
   };
 
@@ -313,7 +314,7 @@ export const LazyComponentWrapper = ({
   useEffect(() => {
     if (isLoaded && loadTime && process.env.NODE_ENV === 'development') {
       const loadDuration = loadTime - performance.now();
-      console.log(`📊 Componente ${componentName} carregado em ${loadDuration}ms`);
+      logger.debug(`📊 Componente ${componentName} carregado em ${loadDuration}ms`)
     }
   }, [isLoaded, loadTime, componentName]);
   return (

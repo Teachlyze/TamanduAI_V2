@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import { checkChatbotLimit } from '@/shared/services/rateLimiter';
 import teacherSubscriptionService from '@/shared/services/teacherSubscriptionService';
@@ -104,7 +105,7 @@ class ChatbotWithRateLimit {
         },
       };
     } catch (error) {
-      console.error('[ChatbotWithRateLimit] Error:', error);
+      logger.error('[ChatbotWithRateLimit] Error:', error)
       return {
         success: false,
         error: 'CHATBOT_ERROR',
@@ -164,7 +165,7 @@ class ChatbotWithRateLimit {
       // Default: free
       return 'free';
     } catch (error) {
-      console.error('[ChatbotWithRateLimit] Error getting user plan:', error);
+      logger.error('[ChatbotWithRateLimit] Error getting user plan:', error)
       return 'free';
     }
   }
@@ -203,7 +204,7 @@ class ChatbotWithRateLimit {
         conversations: data || [],
       };
     } catch (error) {
-      console.error('[ChatbotWithRateLimit] Error getting history:', error);
+      logger.error('[ChatbotWithRateLimit] Error getting history:', error)
       return {
         success: false,
         error: error.message,
@@ -229,7 +230,7 @@ class ChatbotWithRateLimit {
         message: rateLimit.message,
       };
     } catch (error) {
-      console.error('[ChatbotWithRateLimit] Error checking limit:', error);
+      logger.error('[ChatbotWithRateLimit] Error checking limit:', error)
       return {
         success: false,
         error: error.message,
@@ -253,7 +254,7 @@ class ChatbotWithRateLimit {
 
       return { success: true };
     } catch (error) {
-      console.error('[ChatbotWithRateLimit] Error submitting feedback:', error);
+      logger.error('[ChatbotWithRateLimit] Error submitting feedback:', error)
       return {
         success: false,
         error: error.message,

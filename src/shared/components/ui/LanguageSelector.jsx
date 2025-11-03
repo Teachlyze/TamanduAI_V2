@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/components/ui/LanguageSelector.jsx
 import React, { useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -59,7 +60,7 @@ const LanguageSelector = ({
         window.speechSynthesis.speak(utterance);
       }
     } catch (error) {
-      console.error('Erro ao alterar idioma:', error);
+      logger.error('Erro ao alterar idioma:', error)
     }
   };
 
@@ -198,7 +199,7 @@ export const useLanguage = () => {
       await i18n.changeLanguage(languageCode);
       return true;
     } catch (error) {
-      console.error('Erro ao alterar idioma:', error);
+      logger.error('Erro ao alterar idioma:', error)
       return false;
     }
   };

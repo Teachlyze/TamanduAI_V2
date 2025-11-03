@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, ChevronLeft, ChevronRight, Calendar as CalendarIcon, Filter } from 'lucide-react';
@@ -52,10 +53,10 @@ const CalendarDay = React.memo(({ day, dayEvents, isCurrentDay, isSameMonthDay, 
             }}
             className={`
               text-xs px-2 py-1.5 rounded-lg truncate font-medium shadow-sm transition-all
-              ${event.event_type === 'class' && 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-200 hover:shadow-md'}
-              ${event.event_type === 'exam' && 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 dark:from-red-900 dark:to-red-800 dark:text-red-200 hover:shadow-md'}
-              ${event.event_type === 'meeting' && 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 dark:from-purple-900 dark:to-purple-800 dark:text-purple-200 hover:shadow-md'}
-              ${event.event_type === 'other' && 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 dark:from-gray-900 dark:to-gray-800 dark:text-gray-200 hover:shadow-md'}
+              ${event.type === 'event' && 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 dark:from-blue-900 dark:to-blue-800 dark:text-blue-200 hover:shadow-md'}
+              ${event.type === 'activity' && 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 dark:from-orange-900 dark:to-orange-800 dark:text-orange-200 hover:shadow-md'}
+              ${event.type === 'meeting' && 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 dark:from-purple-900 dark:to-purple-800 dark:text-purple-200 hover:shadow-md'}
+              ${event.type === 'deadline' && 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 dark:from-red-900 dark:to-red-800 dark:text-red-200 hover:shadow-md'}
               hover:scale-105
             `}
           >
@@ -126,7 +127,7 @@ const TeacherCalendarPage = () => {
 
       setEvents(cachedEvents);
     } catch (error) {
-      console.error('Erro ao carregar eventos:', error);
+      logger.error('Erro ao carregar eventos:', error)
       toast({
         title: 'Erro ao carregar eventos',
         description: 'Não foi possível carregar seus eventos.',
@@ -141,7 +142,7 @@ const TeacherCalendarPage = () => {
     let filtered = [...events];
 
     if (filters.types.length > 0) {
-      filtered = filtered.filter(e => filters.types.includes(e.event_type));
+      filtered = filtered.filter(e => filters.types.includes(e.type));
     }
 
     if (filters.classes.length > 0) {
@@ -383,10 +384,10 @@ const TeacherCalendarPage = () => {
                       onClick={() => handleEventClick(event)}
                       className={`
                         p-4 rounded-lg border-2 cursor-pointer transition-all hover:shadow-md group
-                        ${event.event_type === 'class' ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/30' : ''}
-                        ${event.event_type === 'exam' ? 'border-red-300 bg-red-50 dark:bg-red-950/30' : ''}
-                        ${event.event_type === 'meeting' ? 'border-purple-300 bg-purple-50 dark:bg-purple-950/30' : ''}
-                        ${!['class', 'exam', 'meeting'].includes(event.event_type) ? 'border-gray-300 bg-gray-50 dark:bg-gray-950/30' : ''}
+                        ${event.type === 'event' ? 'border-blue-300 bg-blue-50 dark:bg-blue-950/30' : ''}
+                        ${event.type === 'activity' ? 'border-orange-300 bg-orange-50 dark:bg-orange-950/30' : ''}
+                        ${event.type === 'meeting' ? 'border-purple-300 bg-purple-50 dark:bg-purple-950/30' : ''}
+                        ${event.type === 'deadline' ? 'border-red-300 bg-red-50 dark:bg-red-950/30' : ''}
                       `}
                     >
                       <div className="flex items-start justify-between">
@@ -394,14 +395,14 @@ const TeacherCalendarPage = () => {
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`
                               text-xs font-semibold px-2 py-1 rounded-full
-                              ${event.event_type === 'class' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : ''}
-                              ${event.event_type === 'exam' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : ''}
-                              ${event.event_type === 'meeting' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : ''}
-                              ${!['class', 'exam', 'meeting'].includes(event.event_type) ? 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300' : ''}
+                              ${event.type === 'event' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : ''}
+                              ${event.type === 'activity' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' : ''}
+                              ${event.type === 'meeting' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : ''}
+                              ${event.type === 'deadline' ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : ''}
                             `}>
-                              {event.event_type === 'class' ? '📚 Aula' :
-                               event.event_type === 'exam' ? '📝 Prova' :
-                               event.event_type === 'meeting' ? '👥 Reunião' : '📅 Evento'}
+                              {event.type === 'event' ? '📚 Aula' :
+                               event.type === 'activity' ? '📝 Atividade' :
+                               event.type === 'meeting' ? '👥 Reunião' : '📅 Prazo'}
                             </span>
                           </div>
                           <h4 className="font-semibold text-slate-900 dark:text-white mb-1 group-hover:text-blue-600">

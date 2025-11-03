@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/errorMonitoring.js
 /**
  * Sistema avançado de monitoramento de erros e alertas
@@ -63,7 +64,7 @@ export class ErrorMonitor {
     this.sendToExternalService(errorRecord);
 
     // Log local
-    console.error('Error recorded:', errorRecord);
+    logger.error('Error recorded:', errorRecord)
 
     return errorId;
   }
@@ -157,7 +158,7 @@ export class ErrorMonitor {
     }
 
     // Log do alerta
-    console.warn('Alert generated:', alert);
+    logger.warn('Alert generated:', alert)
   }
 
   /**
@@ -181,7 +182,7 @@ export class ErrorMonitor {
         }),
       });
     } catch (error) {
-      console.error('Failed to send alert notification:', error);
+      logger.error('Failed to send alert notification:', error)
     }
   }
 
@@ -215,7 +216,7 @@ export class ErrorMonitor {
         });
       }
     } catch (error) {
-      console.error('Failed to send to external service:', error);
+      logger.error('Failed to send to external service:', error)
     }
   }
 

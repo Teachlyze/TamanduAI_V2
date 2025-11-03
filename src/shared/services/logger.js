@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // Logging Service for TamanduAI
 // Centralized logging system that saves to Supabase and handles console output
 
@@ -105,13 +106,13 @@ const saveLogToDatabase = async (logEntry) => {
       // If table is missing, disable further DB logging for this session
       if (code === 'PGRST205' || msg.includes("could not find the table 'public.application_logs'")) {
         dbLoggingDisabled = true;
-        console.warn('[Logger] application_logs table not found. Disabling DB logging for this session.');
+        logger.warn('[Logger] application_logs table not found. Disabling DB logging for this session.')
         return;
       }
-      console.error('[Logger] Failed to save log to database:', error);
+      logger.error('[Logger] Failed to save log to database:', error)
     }
   } catch (error) {
-    console.error('[Logger] Error saving log:', error);
+    logger.error('[Logger] Error saving log:', error)
   }
 };
 
@@ -130,9 +131,9 @@ const consoleOutput = (level, message, data = null) => {
   // Only show ERROR and CRITICAL in console for better performance
   if (level === 'ERROR' || level === 'CRITICAL') {
     if (data) {
-      console.log(`%c[${timestamp}] ${level}: ${message}`, styles[level], data);
+      logger.debug(`%c[${timestamp}] ${level}: ${message}`, styles[level], data)
     } else {
-      console.log(`%c[${timestamp}] ${level}: ${message}`, styles[level]);
+      logger.debug(`%c[${timestamp}] ${level}: ${message}`, styles[level])
     }
   }
 };
@@ -179,7 +180,7 @@ export const Logger = {
         sessionStorage.setItem('user_email', userEmail);
       }
     } catch (error) {
-      console.error('[Logger] Error setting user context:', error);
+      logger.error('[Logger] Error setting user context:', error)
     }
   },
 
@@ -190,7 +191,7 @@ export const Logger = {
         sessionStorage.removeItem('user_email');
       }
     } catch (error) {
-      console.error('[Logger] Error clearing user context:', error);
+      logger.error('[Logger] Error clearing user context:', error)
     }
   },
 };

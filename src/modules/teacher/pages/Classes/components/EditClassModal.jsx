@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -64,7 +65,7 @@ const EditClassModal = ({ isOpen, onClose, onSuccess, classData }) => {
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Erro ao atualizar turma:', error);
+      logger.error('Erro ao atualizar turma:', error)
       toast({
         title: 'Erro ao atualizar',
         description: 'Não foi possível atualizar a turma.',

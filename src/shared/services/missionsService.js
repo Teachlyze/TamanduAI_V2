@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import gamificationService from './gamificationService';
 
@@ -54,7 +55,7 @@ class MissionsService {
 
       return { success: true, initialized: newMissions.length };
     } catch (error) {
-      console.error('[MissionsService] Error initializing missions:', error);
+      logger.error('[MissionsService] Error initializing missions:', error)
       throw error;
     }
   }
@@ -100,7 +101,7 @@ class MissionsService {
 
       return data || [];
     } catch (error) {
-      console.error('[MissionsService] Error getting user missions:', error);
+      logger.error('[MissionsService] Error getting user missions:', error)
       throw error;
     }
   }
@@ -149,7 +150,7 @@ class MissionsService {
 
       return { success: true, reset: updates.length };
     } catch (error) {
-      console.error('[MissionsService] Error resetting missions:', error);
+      logger.error('[MissionsService] Error resetting missions:', error)
       throw error;
     }
   }
@@ -224,7 +225,7 @@ class MissionsService {
         };
       }
     } catch (error) {
-      console.error('[MissionsService] Error updating progress:', error);
+      logger.error('[MissionsService] Error updating progress:', error)
       throw error;
     }
   }
@@ -309,7 +310,7 @@ class MissionsService {
 
       return { success: true };
     } catch (error) {
-      console.error('[MissionsService] Error tracking event:', error);
+      logger.error('[MissionsService] Error tracking event:', error)
       throw error;
     }
   }

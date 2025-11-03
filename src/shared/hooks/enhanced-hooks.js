@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 
 /**
@@ -21,7 +22,7 @@ export const useEnhancedState = (initialValue, options = {}) => {
       const stored = localStorage.getItem(persistKey);
       return stored ? JSON.parse(stored) : initialValue;
     } catch (error) {
-      console.warn('Error reading persisted state:', error);
+      logger.warn('Error reading persisted state:', error)
       return initialValue;
     }
   }, [persist, persistKey, initialValue]);
@@ -37,7 +38,7 @@ export const useEnhancedState = (initialValue, options = {}) => {
     try {
       localStorage.setItem(persistKey, JSON.stringify(value));
     } catch (error) {
-      console.warn('Error persisting state:', error);
+      logger.warn('Error persisting state:', error)
     }
   }, [persist, persistKey]);
 
@@ -48,7 +49,7 @@ export const useEnhancedState = (initialValue, options = {}) => {
 
     // Validate if validator is provided
     if (validator && !validator(valueToSet)) {
-      console.warn('State validation failed:', valueToSet);
+      logger.warn('State validation failed:', valueToSet)
       return;
     }
 
@@ -166,12 +167,12 @@ export const useSafeMemo = (factory, deps, options = {}) => {
       const result = factory();
 
       if (debug) {
-        console.log('Memo computed:', result);
+        logger.debug('Memo computed:', result)
       }
 
       return result;
     } catch (error) {
-      console.error('Error in useSafeMemo:', error);
+      logger.error('Error in useSafeMemo:', error)
 
       if (fallback !== undefined) {
         return fallback;
@@ -204,7 +205,7 @@ export const useOptimizedCallback = (callback, deps, options = {}) => {
     }
 
     if (debug) {
-      console.log('Callback called with:', args);
+      logger.debug('Callback called with:', args)
     }
 
     return callback(...args);
@@ -238,7 +239,7 @@ export const useFormState = (initialValues = {}, options = {}) => {
       setErrors(prev => ({ ...prev, [name]: result || null }));
       return !result;
     } catch (error) {
-      console.error(`Validation error for ${name}:`, error);
+      logger.error(`Validation error for ${name}:`, error)
       setErrors(prev => ({ ...prev, [name]: error.message }));
       return false;
     }
@@ -320,7 +321,7 @@ export const useFormState = (initialValues = {}, options = {}) => {
 
       return true;
     } catch (error) {
-      console.error('Form submission error:', error);
+      logger.error('Form submission error:', error)
       return false;
     } finally {
       setIsSubmitting(false);

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/middleware/cacheMiddleware.js
 import redisCache from '@/services/redisService';
 
@@ -44,7 +45,7 @@ export const cacheMiddleware = (keyGenerator, ttl = 300) => {
             data: data,
             headers: res.getHeaders()
           }, ttl).catch(err => {
-            console.error('Cache set error:', err);
+            logger.error('Cache set error:', err)
           });
         }
 
@@ -55,7 +56,7 @@ export const cacheMiddleware = (keyGenerator, ttl = 300) => {
       next();
 
     } catch (error) {
-      console.error('Cache middleware error:', error);
+      logger.error('Cache middleware error:', error)
       // Continue without cache on error
       next();
     }
@@ -90,7 +91,7 @@ export const invalidateCache = async (patterns) => {
     await Promise.all(deletePromises);
     return true;
   } catch (error) {
-    console.error('Cache invalidation error:', error);
+    logger.error('Cache invalidation error:', error)
     return false;
   }
 };
@@ -133,10 +134,10 @@ export const batchCacheSet = async (keyValuePairs, ttl = 300) => {
 export const warmCache = async (cacheWarmer) => {
   try {
     const results = await cacheWarmer();
-    console.log('Cache warmed successfully:', results);
+    logger.debug('Cache warmed successfully:', results)
     return results;
   } catch (error) {
-    console.error('Cache warming error:', error);
+    logger.error('Cache warming error:', error)
     throw error;
   }
 };

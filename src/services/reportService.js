@@ -180,11 +180,12 @@ class ReportService {
    * Gera relatório comparativo
    */
   async generateComparativeReport(teacherId) {
-    // Buscar todas as turmas do professor
+    // Buscar turmas ativas do professor
     const { data: classes } = await supabase
       .from('classes')
       .select('id, name, subject')
-      .eq('created_by', teacherId);
+      .eq('created_by', teacherId)
+      .eq('is_active', true);
 
     const classIds = classes?.map(c => c.id) || [];
 
@@ -250,11 +251,12 @@ class ReportService {
    * Gera relatório do professor
    */
   async generateTeacherReport(teacherId) {
-    // Buscar turmas
+    // Buscar turmas ativas
     const { data: classes } = await supabase
       .from('classes')
       .select('id')
-      .eq('created_by', teacherId);
+      .eq('created_by', teacherId)
+      .eq('is_active', true);
 
     // Buscar total de alunos
     const { count: studentsCount } = await supabase

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useEffect } from 'react';
 
 export const useStudentPerformance = (studentId) => {
@@ -21,7 +22,7 @@ export const useStudentPerformance = (studentId) => {
         const performanceData = await response.json();
         setData(performanceData);
       } catch (err) {
-        console.error('Error fetching student performance:', err);
+        logger.error('Error fetching student performance:', err)
         setError(err.message);
       } finally {
         setLoading(false);

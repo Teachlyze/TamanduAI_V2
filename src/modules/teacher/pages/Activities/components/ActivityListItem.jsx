@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, MoreVertical, Edit, Copy, Eye, Download, Share2, Archive, Trash2, Clock, Users, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
@@ -158,14 +159,27 @@ const ActivityListItem = ({
                     {isExpanded ? 'Fechar' : 'Ver'} Prévia
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => {
-                    toast({ title: 'Em breve', description: 'Função de exportação será implementada em breve.' });
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      const { exportActivityToPDF } = await import('@/features/teacher/services/activityExportService');
+                      await exportActivityToPDF(activity);
+                    } catch (e) {
+                      toast({ variant: 'destructive', title: 'Falha na exportação', description: 'Não foi possível gerar o PDF.' });
+                    }
                   }}>
                     <Download className="w-4 h-4 mr-2" />
                     Exportar
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    toast({ title: 'Em breve', description: 'Função de compartilhamento será implementada em breve.' });
+                  <DropdownMenuItem onClick={async () => {
+                    try {
+                      const base = window.location.origin;
+                      const url = `${base}/teacher/activities/${activity.id}`;
+                      await navigator.clipboard.writeText(url);
+                      toast({ title: 'Link copiado', description: 'URL de compartilhamento copiada para a área de transferência.' });
+                    } catch (err) {
+                      logger.error('Erro ao copiar link:', err)
+                      toast({ variant: 'destructive', title: 'Falha ao copiar', description: 'Não foi possível copiar o link. Tente novamente.' });
+                    }
                   }}>
                     <Share2 className="w-4 h-4 mr-2" />
                     Compartilhar

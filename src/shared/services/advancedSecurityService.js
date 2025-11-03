@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import monitoringService from '@/shared/services/monitoring';
 
@@ -589,7 +590,7 @@ export class AdvancedSecurityService {
     });
 
     // In production, this would update firewall rules or CDN configuration
-    console.log(`IP ${ip} blocked:`, options.reason);
+    logger.debug(`IP ${ip} blocked:`, options.reason)
   }
 
   /**

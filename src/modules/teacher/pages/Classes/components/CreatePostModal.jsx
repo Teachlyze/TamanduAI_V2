@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { X, FileText, Video, Link as LinkIcon, Image, Upload } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -6,13 +7,13 @@ import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { redisCache } from '@/shared/services/redisCache';
 
-const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
+const CreatePostModal = ({ isOpen, onClose, classId, onSuccess, editingPost }) => {
   const [loading, setLoading] = useState(false);
-  const [postType, setPostType] = useState('text');
+  const [postType, setPostType] = useState(editingPost?.file_type?.includes('video') ? 'video' : editingPost?.file_type === 'link' ? 'link' : 'text');
   const [formData, setFormData] = useState({
-    title: '',
-    content: '',
-    link: '',
+    title: editingPost?.title || '',
+    content: editingPost?.description || '',
+    link: editingPost?.file_url || '',
     file: null
   });
 
@@ -43,19 +44,33 @@ const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
       
       if (!user) throw new Error('Usuário não autenticado');
 
-      // Salvar em class_materials
-      const { error } = await supabase
-        .from('class_materials')
-        .insert({
-          class_id: classId,
-          title: formData.title,
-          description: formData.content,
-          file_url: formData.link || null,
-          file_type: postType === 'video' ? 'video/url' : postType === 'link' ? 'link' : 'text',
-          category: 'post',
-          created_by: user.id,
-          is_public: false
-        });
+      // Salvar ou atualizar em class_materials
+      const postData = {
+        title: formData.title,
+        description: formData.content,
+        file_url: formData.link || null,
+        file_type: postType === 'video' ? 'video/url' : postType === 'link' ? 'link' : 'text',
+        category: 'post',
+        is_public: false
+      };
+
+      let error;
+      if (editingPost) {
+        // Atualizar post existente
+        ({ error } = await supabase
+          .from('class_materials')
+          .update(postData)
+          .eq('id', editingPost.id));
+      } else {
+        // Criar novo post
+        ({ error } = await supabase
+          .from('class_materials')
+          .insert({
+            ...postData,
+            class_id: classId,
+            created_by: user.id
+          }));
+      }
 
       if (error) throw error;
       
@@ -63,8 +78,8 @@ const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
       await redisCache.invalidateClass(classId);
 
       toast({
-        title: 'Post criado!',
-        description: 'Seu post foi publicado no mural'
+        title: editingPost ? '✅ Post atualizado!' : '✅ Post criado!',
+        description: editingPost ? 'Suas alterações foram salvas.' : 'Seu post foi publicado no mural.'
       });
 
       // Resetar form
@@ -75,7 +90,7 @@ const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
       onClose();
       
     } catch (error) {
-      console.error('Erro ao criar post:', error);
+      logger.error('Erro ao criar post:', error)
       toast({
         title: 'Erro ao criar post',
         description: error.message,
@@ -95,8 +110,8 @@ const CreatePostModal = ({ isOpen, onClose, classId, onSuccess }) => {
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-600 p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-bold text-white">Nova Postagem</h2>
-              <p className="text-cyan-100 text-sm">Compartilhe conteúdo com seus alunos</p>
+              <h2 className="text-2xl font-bold text-white">{editingPost ? 'Editar Postagem' : 'Nova Postagem'}</h2>
+              <p className="text-cyan-100 text-sm">{editingPost ? 'Atualize o conteúdo da postagem' : 'Compartilhe conteúdo com seus alunos'}</p>
             </div>
             <button 
               onClick={onClose}

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useToast } from '@/shared/components/ui/use-toast';
@@ -19,7 +20,7 @@ export default function useClassInvites(classId) {
       const data = await ClassInviteService.getInvitesByClass(classId);
       setInvites(data || []);
     } catch (err) {
-      console.error('Error fetching invites:', err);
+      logger.error('Error fetching invites:', err)
       setError(err.message);
       toast({
         variant: 'destructive',
@@ -41,7 +42,7 @@ export default function useClassInvites(classId) {
     const TIMEOUT_MS = 10000; // 10 segundos
     
     try {
-      console.log(`[useClassInvites] Tentativa ${retryCount + 1}/${MAX_RETRIES} de criar convite`);
+      logger.debug(`[useClassInvites] Tentativa ${retryCount + 1}/${MAX_RETRIES} de criar convite`)
       
       // Promise com timeout
       const timeoutPromise = new Promise((_, reject) =>
@@ -52,7 +53,7 @@ export default function useClassInvites(classId) {
       
       const invite = await Promise.race([createPromise, timeoutPromise]);
       
-      console.log('[useClassInvites] Convite criado com sucesso');
+      logger.debug('[useClassInvites] Convite criado com sucesso')
       await fetchInvites();
       
       toast({
@@ -62,11 +63,11 @@ export default function useClassInvites(classId) {
       
       return invite;
     } catch (err) {
-      console.error('[useClassInvites] Erro ao criar convite:', err);
+      logger.error('[useClassInvites] Erro ao criar convite:', err)
       
       // Se for timeout e ainda tem retries, tentar novamente
       if (err.message === 'TIMEOUT' && retryCount < MAX_RETRIES - 1) {
-        console.log(`[useClassInvites] Timeout detectado. Tentando novamente... (${retryCount + 2}/${MAX_RETRIES})`);
+        logger.debug(`[useClassInvites] Timeout detectado. Tentando novamente... (${retryCount + 2}/${MAX_RETRIES})`);
         toast({
           title: 'Operação lenta',
           description: `Tentativa ${retryCount + 1} de ${MAX_RETRIES}. Aguarde...`,
@@ -113,7 +114,7 @@ export default function useClassInvites(classId) {
       });
       return true;
     } catch (err) {
-      console.error('Error revoking invite:', err);
+      logger.error('Error revoking invite:', err)
       setError(err.message);
       toast({
         variant: 'destructive',
@@ -149,7 +150,7 @@ export default function useClassInvites(classId) {
       
       return result;
     } catch (err) {
-      console.error('Error using invite:', err);
+      logger.error('Error using invite:', err)
       setError(err.message);
       toast({
         variant: 'destructive',

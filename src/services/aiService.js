@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // AI service using ChatGPT/OpenAI integration
 import { supabase } from '@/lib/supabaseClient';
 
@@ -12,7 +13,7 @@ export async function askClassAI({ classId, question }) {
     });
     
     if (error) {
-      console.error('AI Service Error:', error);
+      logger.error('AI Service Error:', error)
       return { 
         answer: 'Desculpe, o assistente IA está temporariamente indisponível. Tente novamente em alguns minutos.',
         error: true 
@@ -21,7 +22,7 @@ export async function askClassAI({ classId, question }) {
     
     return data;
   } catch (error) {
-    console.error('AI Service Error:', error);
+    logger.error('AI Service Error:', error)
     return { 
       answer: 'Desculpe, o assistente IA está temporariamente indisponível. Tente novamente em alguns minutos.',
       error: true 

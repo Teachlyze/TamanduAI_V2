@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Users, BookOpen, ArrowRight } from 'lucide-react';
@@ -79,7 +80,7 @@ const JoinClassWithCodePage = () => {
         setError('Você já é membro desta turma');
         setTimeout(() => {
           if (profile.role === 'student') {
-            navigate(`/students/classes/${classInfo.id}`);
+            navigate(`/student/classes/${classInfo.id}`);
           } else {
             navigate(`/dashboard/classes/${classInfo.id}`);
           }
@@ -89,7 +90,7 @@ const JoinClassWithCodePage = () => {
 
       setClassData(classInfo);
     } catch (err) {
-      console.error('Erro ao buscar turma:', err);
+      logger.error('Erro ao buscar turma:', err)
       setError('Erro ao buscar turma. Tente novamente.');
     } finally {
       setLoading(false);
@@ -118,14 +119,14 @@ const JoinClassWithCodePage = () => {
 
       setTimeout(() => {
         if (profile.role === 'student') {
-          navigate(`/students/classes/${classData.id}`);
+          navigate(`/student/classes/${classData.id}`);
         } else {
           navigate(`/dashboard/classes/${classData.id}`);
         }
       }, 1500);
 
     } catch (err) {
-      console.error('Erro ao entrar na turma:', err);
+      logger.error('Erro ao entrar na turma:', err)
       setError('Erro ao entrar na turma. Tente novamente.');
     } finally {
       setJoining(false);
@@ -276,7 +277,7 @@ const JoinClassWithCodePage = () => {
             variant="ghost"
             onClick={() => {
               if (profile?.role === 'student') {
-                navigate('/students/classes');
+                navigate('/student/classes');
               } else {
                 navigate('/dashboard');
               }

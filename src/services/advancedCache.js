@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/advancedCache.js
 /**
  * Sistema avançado de cache multi-nível para produção
@@ -31,13 +32,13 @@ export class AdvancedCache {
       });
 
       this.redisClient.on('error', (error) => {
-        console.error('Redis connection error:', error);
+        logger.error('Redis connection error:', error)
         this.cacheStats.errors++;
       });
 
-      console.log('✅ Redis cache initialized');
+      logger.debug('✅ Redis cache initialized')
     } catch (error) {
-      console.warn('⚠️ Redis not available, using memory cache only:', error.message);
+      logger.warn('⚠️ Redis not available, using memory cache only:', error.message)
     }
   }
 
@@ -79,7 +80,7 @@ export class AdvancedCache {
 
       this.cacheStats.sets++;
     } catch (error) {
-      console.error('Cache set error:', error);
+      logger.error('Cache set error:', error)
       this.cacheStats.errors++;
     }
   }
@@ -129,7 +130,7 @@ export class AdvancedCache {
 
       return { value, source };
     } catch (error) {
-      console.error('Cache get error:', error);
+      logger.error('Cache get error:', error)
       this.cacheStats.errors++;
       return { value: null, source: null };
     }
@@ -147,7 +148,7 @@ export class AdvancedCache {
         await this.redisClient.del(`tag:${key}`);
       }
     } catch (error) {
-      console.error('Cache delete error:', error);
+      logger.error('Cache delete error:', error)
       this.cacheStats.errors++;
     }
   }
@@ -177,7 +178,7 @@ export class AdvancedCache {
         }
       }
     } catch (error) {
-      console.error('Cache invalidation error:', error);
+      logger.error('Cache invalidation error:', error)
       this.cacheStats.errors++;
     }
   }
@@ -193,7 +194,7 @@ export class AdvancedCache {
         await this.redisClient.flushdb();
       }
     } catch (error) {
-      console.error('Cache clear error:', error);
+      logger.error('Cache clear error:', error)
       this.cacheStats.errors++;
     }
   }
@@ -248,7 +249,7 @@ export class AdvancedCache {
 
       return freshValue;
     } catch (error) {
-      console.error('Smart cache fetch error:', error);
+      logger.error('Smart cache fetch error:', error)
       throw error;
     }
   }

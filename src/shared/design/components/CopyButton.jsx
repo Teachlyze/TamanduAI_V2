@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -37,7 +38,7 @@ const CopyButton = ({
         setCopied(false);
       }, 2000);
     } catch (error) {
-      console.error('Erro ao copiar:', error);
+      logger.error('Erro ao copiar:', error)
     }
   };
 

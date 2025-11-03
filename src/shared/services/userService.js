@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 
 export class UserService {
@@ -13,13 +14,13 @@ export class UserService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar usuários:', error);
+        logger.error('Erro ao buscar usuários:', error)
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Erro no UserService.getUsers:', error);
+      logger.error('Erro no UserService.getUsers:', error)
       throw new Error('Não foi possível carregar os usuários. Tente novamente.');
     }
   }
@@ -38,13 +39,13 @@ export class UserService {
         .single();
 
       if (error) {
-        console.error('Erro ao buscar usuário:', error);
+        logger.error('Erro ao buscar usuário:', error)
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Erro no UserService.getUserById:', error);
+      logger.error('Erro no UserService.getUserById:', error)
       throw new Error('Não foi possível carregar o usuário. Tente novamente.');
     }
   }
@@ -63,13 +64,13 @@ export class UserService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar usuários por role:', error);
+        logger.error('Erro ao buscar usuários por role:', error)
         throw error;
       }
 
       return data || [];
     } catch (error) {
-      console.error('Erro no UserService.getUsersByRole:', error);
+      logger.error('Erro no UserService.getUsersByRole:', error)
       throw new Error('Não foi possível carregar os usuários. Tente novamente.');
     }
   }
@@ -90,13 +91,13 @@ export class UserService {
         .single();
 
       if (error) {
-        console.error('Erro ao atualizar usuário:', error);
+        logger.error('Erro ao atualizar usuário:', error)
         throw error;
       }
 
       return data;
     } catch (error) {
-      console.error('Erro no UserService.updateUser:', error);
+      logger.error('Erro no UserService.updateUser:', error)
       throw new Error('Não foi possível atualizar o usuário. Tente novamente.');
     }
   }
@@ -135,7 +136,7 @@ export class UserService {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Erro ao buscar usuários paginados:', error);
+        logger.error('Erro ao buscar usuários paginados:', error)
         throw error;
       }
 
@@ -147,7 +148,7 @@ export class UserService {
         totalPages: Math.ceil((count || 0) / limit)
       };
     } catch (error) {
-      console.error('Erro no UserService.getUsersPaginated:', error);
+      logger.error('Erro no UserService.getUsersPaginated:', error)
       throw new Error('Não foi possível carregar os usuários. Tente novamente.');
     }
   }

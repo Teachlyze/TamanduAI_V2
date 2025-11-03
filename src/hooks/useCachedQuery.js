@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -107,7 +108,7 @@ export const useCachedQuery = (queryKey, queryFn, options = {}) => {
     } catch (err) {
       if (err.name !== 'AbortError') {
         setError(err);
-        console.error('[useCachedQuery] Query error:', err);
+        logger.error('[useCachedQuery] Query error:', err)
       }
     } finally {
       if (!abortControllerRef.current.signal.aborted) {

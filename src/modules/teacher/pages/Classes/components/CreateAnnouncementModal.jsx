@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState } from 'react';
 import { X, Megaphone, AlertTriangle, Info, AlertCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -64,7 +65,7 @@ const CreateAnnouncementModal = ({ isOpen, onClose, classId, onSuccess }) => {
       onClose();
       
     } catch (error) {
-      console.error('Erro ao criar comunicado:', error);
+      logger.error('Erro ao criar comunicado:', error)
       toast({
         title: 'Erro ao criar comunicado',
         description: error.message,

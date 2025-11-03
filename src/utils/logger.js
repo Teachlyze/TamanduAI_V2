@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/utils/logger.js
 /**
  * Sistema de logging avançado para monitoramento e debugging
@@ -98,16 +99,16 @@ export class Logger {
 
     switch (level) {
       case 'error':
-        console.error(prefix, message, suffix);
+        logger.error(prefix, message, suffix)
         break;
       case 'warn':
-        console.warn(prefix, message, suffix);
+        logger.warn(prefix, message, suffix)
         break;
       case 'info':
-        console.info(prefix, message, suffix);
+        logger.debug(prefix, message, suffix)
         break;
       case 'debug':
-        console.debug(prefix, message, suffix);
+        logger.debug(prefix, message, suffix)
         break;
     }
   }
@@ -126,7 +127,7 @@ export class Logger {
       });
     } catch (error) {
       // Fallback para console se o remote falhar
-      console.error('Failed to send log to remote endpoint:', error);
+      logger.error('Failed to send log to remote endpoint:', error)
     }
   }
 

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -14,7 +15,7 @@ class ActivityErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('ActivityErrorBoundary caught an error:', error, errorInfo);
+    logger.error('ActivityErrorBoundary caught an error:', error, errorInfo)
     this.setState({
       error,
       errorInfo

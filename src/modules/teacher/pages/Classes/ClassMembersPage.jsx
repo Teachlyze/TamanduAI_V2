@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -62,7 +63,7 @@ const ClassMembersPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar membros:', error);
+      logger.error('Erro ao carregar membros:', error)
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ const ClassMembersPage = () => {
       // Reload members
       await loadData();
     } catch (error) {
-      console.error('Erro ao remover membro:', error);
+      logger.error('Erro ao remover membro:', error)
       alert('Erro ao remover membro. Tente novamente.');
     }
   };

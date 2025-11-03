@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/enhancedPerformanceService.js
 /**
  * Serviço avançado de monitoramento de performance
@@ -40,7 +41,7 @@ class EnhancedPerformanceService {
           resourceObserver.observe({ entryTypes: ['resource'] });
           this.observers.set('resource', resourceObserver);
         } catch (e) {
-          console.warn('Resource observer not supported');
+          logger.warn('Resource observer not supported')
         }
 
         // Observer para medidas de pintura
@@ -54,7 +55,7 @@ class EnhancedPerformanceService {
           paintObserver.observe({ entryTypes: ['paint'] });
           this.observers.set('paint', paintObserver);
         } catch (e) {
-          console.warn('Paint observer not supported');
+          logger.warn('Paint observer not supported')
         }
 
         // Observer para largest contentful paint
@@ -68,7 +69,7 @@ class EnhancedPerformanceService {
           lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
           this.observers.set('lcp', lcpObserver);
         } catch (e) {
-          console.warn('LCP observer not supported');
+          logger.warn('LCP observer not supported')
         }
 
         // Observer para first input delay
@@ -82,7 +83,7 @@ class EnhancedPerformanceService {
           fidObserver.observe({ entryTypes: ['first-input'] });
           this.observers.set('fid', fidObserver);
         } catch (e) {
-          console.warn('FID observer not supported');
+          logger.warn('FID observer not supported')
         }
 
         // Observer para layout shifts
@@ -100,11 +101,11 @@ class EnhancedPerformanceService {
           clsObserver.observe({ entryTypes: ['layout-shift'] });
           this.observers.set('cls', clsObserver);
         } catch (e) {
-          console.warn('CLS observer not supported');
+          logger.warn('CLS observer not supported')
         }
       }
     } catch (error) {
-      console.warn('Performance observers initialization failed:', error);
+      logger.warn('Performance observers initialization failed:', error)
     }
   }
 
@@ -339,7 +340,7 @@ class EnhancedPerformanceService {
         this.baselines = new Map(JSON.parse(stored));
       }
     } catch (error) {
-      console.warn('Failed to load performance baselines:', error);
+      logger.warn('Failed to load performance baselines:', error)
     }
   }
 
@@ -351,7 +352,7 @@ class EnhancedPerformanceService {
       const baselinesObj = Object.fromEntries(this.baselines);
       localStorage.setItem('performance_baselines', JSON.stringify(baselinesObj));
     } catch (error) {
-      console.warn('Failed to save performance baselines:', error);
+      logger.warn('Failed to save performance baselines:', error)
     }
   }
 
@@ -415,7 +416,7 @@ class EnhancedPerformanceService {
       try {
         observer.disconnect();
       } catch (error) {
-        console.warn('Failed to disconnect observer:', error);
+        logger.warn('Failed to disconnect observer:', error)
       }
     });
     this.observers.clear();

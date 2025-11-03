@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 /**
  * 👨‍🏫 TEACHER SERVICE
  * Serviços específicos para professores
@@ -22,7 +23,7 @@ export const getTeacherProfile = async (teacherId) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao buscar perfil do professor:', error);
+    logger.error('Erro ao buscar perfil do professor:', error)
     return { data: null, error };
   }
 };
@@ -48,7 +49,7 @@ export const updateTeacherProfile = async (teacherId, profileData) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao atualizar perfil do professor:', error);
+    logger.error('Erro ao atualizar perfil do professor:', error)
     return { data: null, error };
   }
 };
@@ -148,7 +149,7 @@ export const getTeacherStats = async (teacherId) => {
       error: null
     };
   } catch (error) {
-    console.error('Erro ao buscar estatísticas do professor:', error);
+    logger.error('Erro ao buscar estatísticas do professor:', error)
     return { data: null, error };
   }
 };
@@ -200,7 +201,7 @@ export const getDashboardSummary = async (teacherId) => {
       error: null
     };
   } catch (error) {
-    console.error('Erro ao buscar resumo do dashboard:', error);
+    logger.error('Erro ao buscar resumo do dashboard:', error)
     return { data: null, error };
   }
 };
@@ -240,7 +241,7 @@ export const updatePreferences = async (teacherId, preferences) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Erro ao atualizar preferências:', error);
+    logger.error('Erro ao atualizar preferências:', error)
     return { data: null, error };
   }
 };
@@ -284,7 +285,7 @@ export const uploadAvatar = async (teacherId, file) => {
 
     return { data: { avatar_url: avatarUrl }, error: null };
   } catch (error) {
-    console.error('Erro ao fazer upload do avatar:', error);
+    logger.error('Erro ao fazer upload do avatar:', error)
     return { data: null, error };
   }
 };

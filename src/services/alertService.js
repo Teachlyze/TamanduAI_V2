@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/lib/supabaseClient';
 
 /**
@@ -184,7 +185,7 @@ export const generateAlertsForClass = async (classId) => {
 
     return inserted;
   } catch (error) {
-    console.error('Error generating alerts:', error);
+    logger.error('Error generating alerts:', error)
     throw error;
   }
 };

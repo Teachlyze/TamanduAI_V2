@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // Import the singleton Supabase client
 import { supabase } from '@/shared/services/supabaseClient';
 
@@ -216,7 +217,7 @@ const validateResourceAccess = async (resourceType, resourceId, userId, required
 
     return true;
   } catch (error) {
-    console.error('Erro na validação de acesso:', error);
+    logger.error('Erro na validação de acesso:', error)
     throw error;
   }
 };
@@ -305,7 +306,7 @@ export const getCurrentUser = async () => {
     const { data: { user }, error } = await supabase.auth.getUser();
 
     if (error) {
-      console.warn('Error getting current user:', error.message);
+      logger.warn('Error getting current user:', error.message)
       return null;
     }
 
@@ -314,7 +315,7 @@ export const getCurrentUser = async () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        console.warn('Error getting session:', sessionError.message);
+        logger.warn('Error getting session:', sessionError.message)
         return null;
       }
 
@@ -323,7 +324,7 @@ export const getCurrentUser = async () => {
 
     return user;
   } catch (error) {
-    console.error('Unexpected error in getCurrentUser:', error);
+    logger.error('Unexpected error in getCurrentUser:', error)
     return null;
   }
 };
@@ -364,7 +365,7 @@ export const getUserProfile = async (userId = null) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error getting user profile:', error);
+    logger.error('Error getting user profile:', error)
     throw error;
   }
 };
@@ -382,7 +383,7 @@ export const signOut = async () => {
 
     return { success: true };
   } catch (error) {
-    console.error('Error signing out:', error);
+    logger.error('Error signing out:', error)
     throw error;
   }
 };
@@ -395,13 +396,13 @@ export const isAuthenticated = async () => {
     const { data: { session }, error } = await supabase.auth.getSession();
 
     if (error) {
-      console.warn('Error checking authentication:', error.message);
+      logger.warn('Error checking authentication:', error.message)
       return false;
     }
 
     return !!session?.user;
   } catch (error) {
-    console.error('Unexpected error in isAuthenticated:', error);
+    logger.error('Unexpected error in isAuthenticated:', error)
     return false;
   }
 };
@@ -414,13 +415,13 @@ export const getToken = async () => {
     const { data: { session }, error } = await supabase.auth.getSession();
 
     if (error) {
-      console.warn('Error getting token:', error.message);
+      logger.warn('Error getting token:', error.message)
       return null;
     }
 
     return session?.access_token || null;
   } catch (error) {
-    console.error('Unexpected error in getToken:', error);
+    logger.error('Unexpected error in getToken:', error)
     return null;
   }
 };
@@ -514,7 +515,7 @@ export const exportClassData = async (classId) => {
       return exportData;
     });
   } catch (error) {
-    console.error('Error exporting class data:', error);
+    logger.error('Error exporting class data:', error)
     throw new Error('Falha ao exportar dados da turma: ' + error.message);
   }
 };
@@ -594,7 +595,7 @@ export const getUserClasses = async (userId, role = 'student') => {
         .limit(200);
 
       if (error) {
-        console.error('Error fetching teacher classes:', error.message);
+        logger.error('Error fetching teacher classes:', error.message)
         throw new Error(`Erro ao buscar turmas: ${error.message}`);
       }
       return data || [];
@@ -617,13 +618,13 @@ export const getUserClasses = async (userId, role = 'student') => {
         .eq('role', 'student');
 
       if (error) {
-        console.error('Error fetching student classes:', error.message);
+        logger.error('Error fetching student classes:', error.message)
         throw new Error(`Erro ao buscar turmas: ${error.message}`);
       }
       return data ? data.map(row => row.class).filter(Boolean) : [];
     }
   } catch (error) {
-    console.error('Error in getUserClasses:', error);
+    logger.error('Error in getUserClasses:', error)
     return [];
   }
 };
@@ -772,7 +773,7 @@ export const createActivityTemplate = async (templateData) => {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('Error creating activity template:', error);
+    logger.error('Error creating activity template:', error)
     throw error;
   }
 };
@@ -939,7 +940,7 @@ export const publishActivityTemplate = async (templateId, classIds, overrides = 
     if (assignmentsError) throw assignmentsError;
     return assignments || [];
   } catch (error) {
-    console.error('Error publishing activity template:', error);
+    logger.error('Error publishing activity template:', error)
     throw error;
   }
 };
@@ -1012,13 +1013,13 @@ export const submitActivity = async ({ activity_id, answers, hcaptchaToken }) =>
       .single();
 
     if (error) {
-      console.error('Error submitting activity:', error.message);
+      logger.error('Error submitting activity:', error.message)
       throw error;
     }
 
     return data;
   } catch (error) {
-    console.error('Error in submitActivity:', error);
+    logger.error('Error in submitActivity:', error)
     throw error;
   }
 };

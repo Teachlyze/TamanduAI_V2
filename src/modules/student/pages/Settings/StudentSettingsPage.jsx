@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -52,7 +53,7 @@ const StudentSettingsPage = () => {
         birth_date: data.birth_date || ''
       });
     } catch (error) {
-      console.error('Error loading profile:', error);
+      logger.error('Error loading profile:', error)
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ const StudentSettingsPage = () => {
 
       alert('Perfil atualizado com sucesso!');
     } catch (error) {
-      console.error('Error saving profile:', error);
+      logger.error('Error saving profile:', error)
       alert('Erro ao salvar perfil. Tente novamente.');
     } finally {
       setSaving(false);

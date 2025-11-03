@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import NotificationOrchestrator from '@/shared/services/notificationOrchestrator';
 
@@ -58,7 +59,7 @@ export const ActivityService = {
       .single();
 
     if (error) {
-      console.error('Error creating activity:', error);
+      logger.error('Error creating activity:', error)
       throw error;
     }
 
@@ -83,7 +84,7 @@ export const ActivityService = {
       .single();
 
     if (error) {
-      console.error('Error updating activity:', error);
+      logger.error('Error updating activity:', error)
       throw error;
     }
 
@@ -113,7 +114,7 @@ export const ActivityService = {
       .single();
 
     if (activityError) {
-      console.error('Error publishing activity:', activityError);
+      logger.error('Error publishing activity:', activityError)
       throw activityError;
     }
 
@@ -130,7 +131,7 @@ export const ActivityService = {
         .insert(assignments);
 
       if (assignError && assignError.code !== '23505') { // Ignore duplicates
-        console.error('Error assigning activity to classes:', assignError);
+        logger.error('Error assigning activity to classes:', assignError)
         throw assignError;
       }
 
@@ -158,7 +159,7 @@ export const ActivityService = {
           }
         }
       } catch (e) {
-        console.warn('Failed to notify students:', e);
+        logger.warn('Failed to notify students:', e)
       }
     }
 
@@ -185,7 +186,7 @@ export const ActivityService = {
       .single();
 
     if (error) {
-      console.error('Error fetching activity:', error);
+      logger.error('Error fetching activity:', error)
       throw error;
     }
 
@@ -224,7 +225,7 @@ export const ActivityService = {
     const { data, error } = await query;
 
     if (error) {
-      console.error('Error fetching activities:', error);
+      logger.error('Error fetching activities:', error)
       throw error;
     }
 
@@ -247,7 +248,7 @@ export const ActivityService = {
       .order('submitted_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching submissions:', error);
+      logger.error('Error fetching submissions:', error)
       throw error;
     }
 
@@ -266,7 +267,7 @@ export const ActivityService = {
       .eq('id', activityId);
 
     if (error) {
-      console.error('Error deleting activity:', error);
+      logger.error('Error deleting activity:', error)
       throw error;
     }
 

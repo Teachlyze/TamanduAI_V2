@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/hooks/useLazyLoad.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 
@@ -172,7 +173,7 @@ export const usePrefetch = (urls = [], enabled = true) => {
           setPrefetchedData(prev => new Map(prev.set(url, data)));
         }
       } catch (error) {
-        console.warn(`Failed to prefetch ${url}:`, error);
+        logger.warn(`Failed to prefetch ${url}:`, error)
       }
     });
 

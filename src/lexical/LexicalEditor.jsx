@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 
 import React from 'react';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
@@ -47,7 +48,7 @@ const LexicalEditor = ({ onChange, initialConfig = {}, showToolbar = true }) => 
   const baseConfig = {
     namespace: 'TamanduAI-Editor',
     theme: editorTheme,
-    onError: (error) => console.error(error),
+    onError: (error) => logger.error(error),
     nodes: [
       HeadingNode,
       ListNode,

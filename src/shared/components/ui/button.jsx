@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { forwardRef, useCallback, useMemo } from 'react';
 import { cn } from '@/shared/utils/cn';
 import { Slot } from '@radix-ui/react-slot';
@@ -71,7 +72,7 @@ const Button = React.forwardRef(({
 
     // For icon buttons, require explicit aria-label
     if (!children && (leftIcon || rightIcon)) {
-      console.warn('Button: Icon buttons should have an explicit aria-label for accessibility');
+      logger.warn('Button: Icon buttons should have an explicit aria-label for accessibility')
       return 'Botão sem label acessível';
     }
 

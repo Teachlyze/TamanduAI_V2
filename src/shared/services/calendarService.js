@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 // src/services/calendarService.js
 import { supabase } from '@/shared/services/supabaseClient';
 import { addMinutes } from 'date-fns';
@@ -10,12 +11,12 @@ const CalendarService = {
       if (userId && userRole === 'student') {
         const { data: events, error } = await supabase
           .from('calendar_events')
-          .select('id, class_id, title, description, start_time, end_time, activity_id, type, event_type, created_by')
+          .select('id, class_id, title, description, start_time, end_time, activity_id, type, created_by')
           .gte('start_time', from.toISOString())
           .lte('end_time', to.toISOString())
           .order('start_time', { ascending: true });
         if (error) {
-          console.error('CalendarService.getUserCalendar error:', error);
+          logger.error('CalendarService.getUserCalendar error:', error)
           return [];
         }
         return events || [];
@@ -24,7 +25,7 @@ const CalendarService = {
       // Professor: filtrar por created_by quando disponível
       let query = supabase
         .from('calendar_events')
-        .select('id, class_id, title, description, start_time, end_time, activity_id, type, event_type, created_by')
+        .select('id, class_id, title, description, start_time, end_time, activity_id, type, created_by')
         .gte('start_time', from.toISOString())
         .lte('end_time', to.toISOString())
         .order('start_time', { ascending: true });
@@ -36,12 +37,12 @@ const CalendarService = {
       const { data: events, error } = await query;
 
       if (error) {
-        console.error('CalendarService.getUserCalendar error:', error);
+        logger.error('CalendarService.getUserCalendar error:', error)
         return [];
       }
       return events || [];
     } catch (err) {
-      console.error('CalendarService.getUserCalendar exception:', err);
+      logger.error('CalendarService.getUserCalendar exception:', err)
       return [];
     }
   },
@@ -54,38 +55,11 @@ const CalendarService = {
     start_time,
     end_time,
     type = 'event', // allowed: event | meeting | activity | deadline
-    event_type = null, // allowed: meeting | class | assignment | exam | other
     activity_id = null
   }) {
-    // Resolve authenticated user for teacher_id
+    // Resolve authenticated user
     const { data: auth } = await supabase.auth.getUser();
-    const teacher_id = auth?.user?.id || null;
-
-    // Map UI or caller type to valid DB enums
-    const normalize = (ui) => {
-      switch ((ui || '').toLowerCase()) {
-        case 'meeting':
-          return { type: 'meeting', event_type: 'meeting' };
-        case 'class':
-          return { type: 'event', event_type: 'class' };
-        case 'exam':
-          return { type: 'event', event_type: 'exam' };
-        case 'video':
-          return { type: 'meeting', event_type: 'meeting' };
-        case 'other':
-          return { type: 'event', event_type: 'other' };
-        case 'deadline':
-          return { type: 'deadline', event_type: 'assignment' };
-        case 'activity':
-          return { type: 'activity', event_type: 'assignment' };
-        default:
-          return { type: 'event', event_type: 'other' };
-      }
-    };
-
-    const mapped = normalize(type);
-    const effType = mapped.type;
-    const effEventType = event_type || mapped.event_type;
+    const userId = auth?.user?.id || null;
 
     const payload = {
       class_id,
@@ -93,10 +67,9 @@ const CalendarService = {
       description,
       start_time: start_time instanceof Date ? start_time.toISOString() : start_time,
       end_time: end_time instanceof Date ? end_time.toISOString() : end_time,
-      type: effType,
-      event_type: effEventType,
+      type,
       activity_id,
-      created_by: teacher_id,
+      created_by: userId,
     };
     const { data, error } = await supabase
       .from('calendar_events')
@@ -115,32 +88,6 @@ const CalendarService = {
     if (patch.start_time) patch.start_time = toIso(patch.start_time);
     if (patch.end_time) patch.end_time = toIso(patch.end_time);
 
-    // Normalize type -> (type, event_type) enums
-    if (typeof patch.type === 'string' && patch.type) {
-      const normalize = (ui) => {
-        switch ((ui || '').toLowerCase()) {
-          case 'meeting':
-            return { type: 'meeting', event_type: 'meeting' };
-          case 'class':
-            return { type: 'event', event_type: 'class' };
-          case 'exam':
-            return { type: 'event', event_type: 'exam' };
-          case 'video':
-            return { type: 'meeting', event_type: 'meeting' };
-          case 'other':
-            return { type: 'event', event_type: 'other' };
-          case 'deadline':
-            return { type: 'deadline', event_type: 'assignment' };
-          case 'activity':
-            return { type: 'activity', event_type: 'assignment' };
-          default:
-            return { type: 'event', event_type: 'other' };
-        }
-      };
-      const mapped = normalize(patch.type);
-      patch.type = mapped.type;
-      if (!patch.event_type) patch.event_type = mapped.event_type;
-    }
     const { data, error } = await supabase
       .from('calendar_events')
       .update(patch)

@@ -1,3 +1,4 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -84,7 +85,7 @@ const ClassroomsListPage = () => {
       });
 
     } catch (error) {
-      console.error('Erro ao carregar turmas:', error);
+      logger.error('Erro ao carregar turmas:', error)
     } finally {
       setLoading(false);
     }

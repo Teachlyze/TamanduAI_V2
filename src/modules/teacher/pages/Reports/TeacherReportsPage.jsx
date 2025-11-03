@@ -1,13 +1,17 @@
+import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, User, Users, GitCompare, ClipboardList, BarChart, Download,
-  Eye, Clock, Star, FileSpreadsheet, FileImage, Plus, History, Settings
+  Eye, Clock, Star, FileSpreadsheet, FileImage, Plus, History, Settings,
+  Filter, X
 } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
+import { Label } from '@/shared/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { DashboardHeader } from '@/shared/design';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -126,9 +130,14 @@ const TeacherReportsPage = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [period, setPeriod] = useState('30');
+  const [students, setStudents] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [filterType, setFilterType] = useState(''); // '', 'student', 'class', 'all'
+  const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
     loadRecentReports();
+    loadClassesAndStudents();
   }, [user]);
 
   const loadRecentReports = async () => {
@@ -136,12 +145,99 @@ const TeacherReportsPage = () => {
     setRecentReports([]);
   };
 
+  const loadClassesAndStudents = async () => {
+    if (!user) return;
+    
+    try {
+      setLoadingData(true);
+      
+      // Buscar turmas do professor
+      const { data: classesData, error: classesError } = await supabase
+        .from('classes')
+        .select('id, name, subject')
+        .eq('created_by', user.id)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+      
+      if (classesError) throw classesError;
+      setClasses(classesData || []);
+      
+      // Buscar alunos de todas as turmas do professor
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('class_members')
+        .select(`
+          user_id,
+          profile:profiles!class_members_user_id_fkey(id, full_name, email),
+          class:classes!class_members_class_id_fkey(id, name)
+        `)
+        .in('class_id', classesData?.map(c => c.id) || [])
+        .eq('role', 'student');
+      
+      if (studentsError) throw studentsError;
+      
+      // Agrupar alunos únicos
+      const uniqueStudents = [];
+      const seenIds = new Set();
+      studentsData?.forEach(member => {
+        if (member.profile && !seenIds.has(member.profile.id)) {
+          seenIds.add(member.profile.id);
+          uniqueStudents.push({
+            id: member.profile.id,
+            name: member.profile.full_name,
+            email: member.profile.email,
+            className: member.class?.name
+          });
+        }
+      });
+      
+      setStudents(uniqueStudents);
+      
+    } catch (error) {
+      logger.error('Erro ao carregar dados:', error)
+      toast({
+        title: 'Erro ao carregar dados',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
   const handleGenerateReport = async (templateId) => {
+    // Validar filtros obrigatórios
+    if (!filterType) {
+      toast({
+        title: 'Selecione o escopo do relatório',
+        description: 'Escolha se deseja gerar para um aluno, turma ou todos os alunos.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (filterType === 'student' && !selectedStudent) {
+      toast({
+        title: 'Selecione um aluno',
+        description: 'Escolha qual aluno você deseja incluir no relatório.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (filterType === 'class' && !selectedClass) {
+      toast({
+        title: 'Selecione uma turma',
+        description: 'Escolha qual turma você deseja incluir no relatório.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setGeneratingReport(true);
     setCurrentReport(null);
 
     try {
-      let targetId = user?.id; // Usar ID do professor por padrão
+      let targetId = user?.id; // Padrão: professor
       
       // Para relatórios que precisam de contexto específico
       const reportInfo = REPORT_TEMPLATES.find(t => t.id === templateId);
@@ -151,8 +247,27 @@ const TeacherReportsPage = () => {
         description: 'Processando dados... Aguarde.',
       });
 
+      // Ajustar targetId para relatórios que exigem contexto específico
+      if (templateId === 'class-report') {
+        if (!selectedClass) {
+          // Buscar primeira turma ativa do professor
+          const { data: classes } = await supabase
+            .from('classes')
+            .select('id, is_active')
+            .eq('created_by', user.id)
+            .eq('is_active', true)
+            .order('name', { ascending: true });
+          if (!classes || classes.length === 0) {
+            throw new Error('Nenhuma turma ativa encontrada para gerar o relatório.');
+          }
+          targetId = classes[0].id;
+        } else {
+          targetId = selectedClass;
+        }
+      }
+
       // Gerar relatório com dados reais
-      const report = await reportService.generateReport(templateId, targetId, { period: parseInt(period) });
+      const report = await reportService.generateReport(templateId, targetId, { period: parseInt(period), includeArchived: false });
       
       setCurrentReport(report);
       
@@ -173,7 +288,7 @@ const TeacherReportsPage = () => {
       ]);
 
     } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
+      logger.error('Erro ao gerar relatório:', error)
       toast({
         title: 'Erro',
         description: error.message || 'Não foi possível gerar o relatório',
@@ -193,6 +308,91 @@ const TeacherReportsPage = () => {
       title: 'Em desenvolvimento',
       description: 'Gerenciamento de templates será implementado em breve'
     });
+  };
+
+  // Helpers: Export
+  const deriveTabularData = (report) => {
+    if (!report) return null;
+    if (Array.isArray(report)) return report;
+    if (Array.isArray(report?.rows)) return report.rows;
+    if (Array.isArray(report?.data)) return report.data;
+    if (Array.isArray(report?.items)) return report.items;
+    // Try to find first array in object values
+    const arr = Object.values(report).find((v) => Array.isArray(v));
+    if (Array.isArray(arr)) return arr;
+    // Fallback: single row from flattened object
+    return [report];
+  };
+
+  const toCSV = (rows) => {
+    if (!rows || rows.length === 0) return '';
+    // Collect headers
+    const headers = Array.from(
+      rows.reduce((set, row) => {
+        Object.keys(row || {}).forEach((k) => set.add(k));
+        return set;
+      }, new Set())
+    );
+    const escape = (val) => {
+      if (val === null || val === undefined) return '';
+      const s = typeof val === 'object' ? JSON.stringify(val) : String(val);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    };
+    const headerLine = headers.map(escape).join(',');
+    const lines = rows.map((row) => headers.map((h) => escape(row?.[h])).join(','));
+    return [headerLine, ...lines].join('\n');
+  };
+
+  const downloadBlob = (content, filename, type) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportExcel = () => {
+    if (!currentReport) {
+      toast({ title: 'Nenhum relatório para exportar', description: 'Gere um relatório primeiro.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const rows = deriveTabularData(currentReport).map((r) => {
+        // flatten simple nested props
+        const flat = {};
+        Object.entries(r || {}).forEach(([k, v]) => {
+          if (v && typeof v === 'object' && !Array.isArray(v)) {
+            Object.entries(v).forEach(([sk, sv]) => {
+              flat[`${k}.${sk}`] = sv;
+            });
+          } else {
+            flat[k] = v;
+          }
+        });
+        return flat;
+      });
+      const csv = toCSV(rows);
+      if (!csv) throw new Error('Não há dados tabulares para exportar');
+      const name = (currentReport?.templateName || 'relatorio')
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '-');
+      downloadBlob(csv, `${name}-${Date.now()}.csv`, 'text/csv;charset=utf-8;');
+      toast({ title: 'Exportado com sucesso', description: 'Arquivo CSV baixado.' });
+    } catch (err) {
+      logger.warn('CSV export fallback to JSON:', err)
+      const name = (currentReport?.templateName || 'relatorio')
+        .toString()
+        .toLowerCase()
+        .replace(/\s+/g, '-');
+      downloadBlob(JSON.stringify(currentReport, null, 2), `${name}-${Date.now()}.json`, 'application/json');
+      toast({ title: 'Exportado como JSON', description: 'Não foi possível gerar CSV. Baixamos o JSON.', variant: 'destructive' });
+    }
   };
 
   return (
@@ -219,6 +419,121 @@ const TeacherReportsPage = () => {
           </div>
         }
       />
+
+      {/* Filtros Obrigatórios */}
+      <Card className="mt-6 p-6 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <Filter className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">
+              Selecione o Escopo do Relatório
+            </h3>
+            <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+              Escolha para quem deseja gerar o relatório antes de selecionar um template
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Tipo de Filtro */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="bg-white dark:bg-slate-900">
+                    <SelectValue placeholder="Selecione o tipo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Aluno Específico</SelectItem>
+                    <SelectItem value="class">Turma Completa</SelectItem>
+                    <SelectItem value="all">Todos os Alunos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Seletor de Aluno (se tipo = student) */}
+              {filterType === 'student' && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Selecionar Aluno</Label>
+                  <Select value={selectedStudent || ''} onValueChange={setSelectedStudent}>
+                    <SelectTrigger className="bg-white dark:bg-slate-900">
+                      <SelectValue placeholder="Escolha um aluno..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {students.map(student => (
+                        <SelectItem key={student.id} value={student.id}>
+                          {student.name} {student.className && `(${student.className})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Seletor de Turma (se tipo = class) */}
+              {filterType === 'class' && (
+                <div>
+                  <Label className="text-sm font-medium mb-2 block">Selecionar Turma</Label>
+                  <Select value={selectedClass || ''} onValueChange={setSelectedClass}>
+                    <SelectTrigger className="bg-white dark:bg-slate-900">
+                      <SelectValue placeholder="Escolha uma turma..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {classes.map(cls => (
+                        <SelectItem key={cls.id} value={cls.id}>
+                          {cls.name} {cls.subject && `- ${cls.subject}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Período */}
+              <div>
+                <Label className="text-sm font-medium mb-2 block">Período</Label>
+                <Select value={period} onValueChange={setPeriod}>
+                  <SelectTrigger className="bg-white dark:bg-slate-900">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Últimos 7 dias</SelectItem>
+                    <SelectItem value="30">Últimos 30 dias</SelectItem>
+                    <SelectItem value="90">Últimos 90 dias</SelectItem>
+                    <SelectItem value="180">Últimos 6 meses</SelectItem>
+                    <SelectItem value="365">Último ano</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Limpar Filtros */}
+            {filterType && (
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm text-blue-700 dark:text-blue-300">
+                  <strong>Filtro ativo:</strong> {
+                    filterType === 'student' ? `Aluno - ${students.find(s => s.id === selectedStudent)?.name || 'Selecione'}` :
+                    filterType === 'class' ? `Turma - ${classes.find(c => c.id === selectedClass)?.name || 'Selecione'}` :
+                    'Todos os alunos'
+                  }
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setFilterType('');
+                    setSelectedStudent(null);
+                    setSelectedClass(null);
+                  }}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-6">
         <TabsList className="grid w-full max-w-md grid-cols-2">
@@ -295,7 +610,7 @@ const TeacherReportsPage = () => {
                       <Button 
                         className={`flex-1 bg-gradient-to-r ${template.color} text-white hover:opacity-90`}
                         onClick={() => {
-                          console.log('Botão Gerar clicado:', template.id);
+                          logger.debug('Botão Gerar clicado:', template.id)
                           handleGenerateReport(template.id);
                         }}
                       >
@@ -306,7 +621,7 @@ const TeacherReportsPage = () => {
                         variant="outline" 
                         size="icon"
                         onClick={() => {
-                          console.log('Botão Preview clicado');
+                          logger.debug('Botão Preview clicado')
                           toast({ title: 'Preview', description: 'Visualização será implementada' });
                         }}
                       >
@@ -327,7 +642,7 @@ const TeacherReportsPage = () => {
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/20"
                 onClick={() => {
-                  console.log('Exportar PDF clicado');
+                  logger.debug('Exportar PDF clicado')
                   toast({ title: 'Exportar PDF', description: 'Funcionalidade em desenvolvimento' });
                 }}
               >
@@ -337,10 +652,7 @@ const TeacherReportsPage = () => {
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center hover:bg-green-50 hover:border-green-300 dark:hover:bg-green-950/20"
-                onClick={() => {
-                  console.log('Exportar Excel clicado');
-                  toast({ title: 'Exportar Excel', description: 'Funcionalidade em desenvolvimento' });
-                }}
+                onClick={handleExportExcel}
               >
                 <FileSpreadsheet className="w-8 h-8 mb-2 text-green-600" />
                 <span className="text-sm font-medium">Excel</span>
@@ -349,7 +661,7 @@ const TeacherReportsPage = () => {
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center hover:bg-blue-50 hover:border-blue-300 dark:hover:bg-blue-950/20"
                 onClick={() => {
-                  console.log('Exportar Word clicado');
+                  logger.debug('Exportar Word clicado')
                   toast({ title: 'Exportar Word', description: 'Funcionalidade em desenvolvimento' });
                 }}
               >
@@ -360,7 +672,7 @@ const TeacherReportsPage = () => {
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center hover:bg-purple-50 hover:border-purple-300 dark:hover:bg-purple-950/20"
                 onClick={() => {
-                  console.log('Exportar PNG clicado');
+                  logger.debug('Exportar PNG clicado')
                   toast({ title: 'Exportar PNG', description: 'Funcionalidade em desenvolvimento' });
                 }}
               >
