@@ -107,7 +107,7 @@ class BrowserCache {
 class UpstashRedisCache extends BrowserCache {
   constructor() {
     super();
-    this.edgeFunctionUrl = UPSTASH_REDIS_URL;
+    this.edgeFunctionUrl = VITE_UPSTASH_REDIS_URL;
     this.enabled = !!this.edgeFunctionUrl;
   }
 
@@ -124,7 +124,7 @@ class UpstashRedisCache extends BrowserCache {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env?.VITE_SUPABASE_ANON_KEY || ''}`,
+        'Authorization': `Bearer ${import.meta.env?.VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY || ''}`,
       },
       body: JSON.stringify(payload),
     });
