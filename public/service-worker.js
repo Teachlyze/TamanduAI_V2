@@ -2,17 +2,23 @@
  * Service Worker - TamanduAI PWA
  * Cache-First Strategy para assets estáticos
  * Network-First para dados dinâmicos
+ * 
+ * VERSÃO 2.0 - Corrigido problema de chunks incompatíveis
+ * - NÃO cacheia chunks JS (evita conflito de versões)
+ * - Cacheia apenas HTML, CSS, imagens, fontes
+ * - Invalida caches antigos automaticamente
  */
 
-const CACHE_NAME = 'tamanduai-v1.0.0';
-const STATIC_CACHE = 'tamanduai-static-v1';
-const DYNAMIC_CACHE = 'tamanduai-dynamic-v1';
+const CACHE_VERSION = 'v2.0.0'; // INCREMENTAR EM CADA DEPLOY
+const STATIC_CACHE = `tamanduai-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `tamanduai-dynamic-${CACHE_VERSION}`;
 
 // Assets para cache inicial
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/offline.html',
   // Adicionar outros assets críticos aqui
 ];
 
@@ -81,7 +87,19 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // Cache-First para assets estáticos
+  // NÃO CACHEAR chunks JS (evitar conflito de versões)
+  // Deixar Vite gerenciar versionamento via hash no nome do arquivo
+  if (
+    url.pathname.match(/chunk-[A-Z0-9]+\.js/) || // chunks do Vite
+    url.pathname.match(/assets\/.*-[a-f0-9]{8}\.js/) || // assets com hash
+    url.pathname.endsWith('.js?v=') // JS com query param de versão
+  ) {
+    console.log('[ServiceWorker] Skipping cache for JS chunk:', request.url);
+    event.respondWith(fetch(request));
+    return;
+  }
+  
+  // Cache-First para assets estáticos (HTML, CSS, imagens, fontes)
   event.respondWith(
     caches.match(request)
       .then((cachedResponse) => {

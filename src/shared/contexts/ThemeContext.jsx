@@ -13,7 +13,8 @@ export const useTheme = () => {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    // Usar storageManager para recuperar preferência
+    // Usar storageManager para recuperar preferência do usuário
+    // Se não houver (após logout), usa 'light' como padrão
     return storageManager.getTheme();
   });
 

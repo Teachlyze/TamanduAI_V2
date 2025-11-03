@@ -19,6 +19,7 @@ import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import reportService from '@/services/reportService';
 import ReportViewer from './components/ReportViewer';
+import { cacheService } from '@/shared/services/cacheService';
 
 const REPORT_TEMPLATES = [
   {
@@ -151,6 +152,21 @@ const TeacherReportsPage = () => {
     try {
       setLoadingData(true);
       
+      // Chave do cache para este professor
+      const cacheKey = `teacher:reports:data:${user.id}:${period}`;
+      
+      // Tentar buscar do cache
+      const cached = await cacheService.get(cacheKey);
+      if (cached) {
+        console.log('✅ [Reports] Dados carregados do cache');
+        setClasses(cached.classes || []);
+        setStudents(cached.students || []);
+        setLoadingData(false);
+        return;
+      }
+      
+      console.log('🔄 [Reports] Buscando dados do banco...');
+      
       // Buscar turmas do professor
       const { data: classesData, error: classesError } = await supabase
         .from('classes')
@@ -191,6 +207,14 @@ const TeacherReportsPage = () => {
       });
       
       setStudents(uniqueStudents);
+      
+      // Salvar no cache (TTL: 5 minutos = 300s)
+      await cacheService.set(cacheKey, {
+        classes: classesData || [],
+        students: uniqueStudents
+      }, 300);
+      
+      console.log('💾 [Reports] Dados salvos no cache (TTL: 5min)');
       
     } catch (error) {
       logger.error('Erro ao carregar dados:', error)

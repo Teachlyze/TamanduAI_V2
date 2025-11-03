@@ -11,8 +11,6 @@
 
 const STORAGE_KEYS = {
   // 🌍 PREFERÊNCIAS GLOBAIS (persistem após logout)
-  THEME: 'app_theme',
-  HIGH_CONTRAST: 'app_high_contrast',
   LANGUAGE: 'app_language',
   FONT_SIZE: 'app_font_size',
   ACCESSIBILITY_SETTINGS: 'app_accessibility',
@@ -27,6 +25,8 @@ const STORAGE_KEYS = {
   USER_CACHE: 'user_cache',
   ACTIVITY_DRAFTS: 'user_activity_drafts',
   SIDEBAR_COLLAPSED: 'user_sidebar_collapsed',
+  THEME: 'user_theme',                    // Movido para usuário
+  HIGH_CONTRAST: 'user_high_contrast',    // Movido para usuário
   
   // 📝 CACHE TEMPORÁRIO (pode ser limpo)
   TEMP_DATA: 'temp_data',
@@ -104,34 +104,6 @@ class StorageManager {
   // ========================================================================
   // PREFERÊNCIAS GLOBAIS (persistem após logout)
   // ========================================================================
-
-  /**
-   * Salva o tema (dark/light)
-   */
-  setTheme(theme) {
-    return this.set(STORAGE_KEYS.THEME, theme);
-  }
-
-  /**
-   * Recupera o tema
-   */
-  getTheme() {
-    return this.get(STORAGE_KEYS.THEME, 'light');
-  }
-
-  /**
-   * Salva preferência de alto contraste
-   */
-  setHighContrast(enabled) {
-    return this.set(STORAGE_KEYS.HIGH_CONTRAST, enabled);
-  }
-
-  /**
-   * Recupera preferência de alto contraste
-   */
-  getHighContrast() {
-    return this.get(STORAGE_KEYS.HIGH_CONTRAST, false);
-  }
 
   /**
    * Salva idioma preferido
@@ -238,6 +210,34 @@ class StorageManager {
    */
   getSidebarCollapsed() {
     return this.get(STORAGE_KEYS.SIDEBAR_COLLAPSED, false);
+  }
+
+  /**
+   * Salva o tema do usuário (dark/light) - POR USUÁRIO
+   */
+  setTheme(theme) {
+    return this.set(STORAGE_KEYS.THEME, theme);
+  }
+
+  /**
+   * Recupera o tema do usuário - POR USUÁRIO
+   */
+  getTheme() {
+    return this.get(STORAGE_KEYS.THEME, 'light');
+  }
+
+  /**
+   * Salva preferência de alto contraste do usuário - POR USUÁRIO
+   */
+  setHighContrast(enabled) {
+    return this.set(STORAGE_KEYS.HIGH_CONTRAST, enabled);
+  }
+
+  /**
+   * Recupera preferência de alto contraste do usuário - POR USUÁRIO
+   */
+  getHighContrast() {
+    return this.get(STORAGE_KEYS.HIGH_CONTRAST, false);
   }
 
   // ========================================================================
