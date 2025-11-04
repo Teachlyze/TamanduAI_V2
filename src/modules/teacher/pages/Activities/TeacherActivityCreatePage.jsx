@@ -13,6 +13,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Badge } from '@/shared/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -88,6 +89,7 @@ const TeacherActivityCreatePage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
   const [validationWarnings, setValidationWarnings] = useState([]);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   // Upload de arquivos (usa drafts quando não há id ainda)
   const {
@@ -432,12 +434,17 @@ const TeacherActivityCreatePage = () => {
     // Verificar avisos
     if (validationWarnings.length > 0) {
       // Mostrar modal de confirmação
-      const confirmed = window.confirm(
-        `Há ${validationWarnings.length} aviso(s). Deseja publicar mesmo assim?`
-      );
-      if (!confirmed) return;
+      setShowWarningModal(true);
+      return;
     }
 
+    // Se não há avisos, publicar diretamente
+    await confirmPublish();
+  };
+
+  const confirmPublish = async () => {
+    setShowWarningModal(false);
+    
     try {
       setSaving(true);
 
@@ -902,6 +909,45 @@ const TeacherActivityCreatePage = () => {
           onClose={() => setShowPreview(false)}
         />
       )}
+
+      {/* Modal de Confirmação com Avisos */}
+      <Dialog open={showWarningModal} onOpenChange={setShowWarningModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-6 h-6 text-orange-600" />
+              Avisos Detectados
+            </DialogTitle>
+            <DialogDescription>
+              Há {validationWarnings.length} aviso(s) na atividade. Deseja publicar mesmo assim?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="space-y-2">
+              {validationWarnings.map((warning, index) => (
+                <div key={index} className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    ⚠️ {warning.message}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWarningModal(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmPublish}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Publicar Mesmo Assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

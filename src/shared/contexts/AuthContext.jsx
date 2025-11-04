@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }) => {
     let timeoutId;
     
     const bootstrap = async () => {
-      logger.debug('[AuthContext] Starting bootstrap...')
       const startTime = Date.now();
       
       try {
@@ -43,7 +42,6 @@ export const AuthProvider = ({ children }) => {
         
         clearTimeout(timeoutId);
         const elapsed = Date.now() - startTime;
-        logger.debug(`[AuthContext] Session check completed in ${elapsed}ms`)
         
         if (!mounted) return;
         
@@ -56,14 +54,11 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (!session) {
-          logger.debug('[AuthContext] No session found')
           setUser(null);
           setProfile(null);
           setLoading(false);
           return;
         }
-
-        logger.debug('[AuthContext] Session found:', session.user.email)
         setUser(session.user);
         
         // ✅ Usar user_metadata IMEDIATAMENTE
@@ -77,11 +72,10 @@ export const AuthProvider = ({ children }) => {
           created_at: session.user.created_at
         };
         
-        logger.debug('[AuthContext] Using user_metadata profile:', immediateProfile.role)
         setProfile(immediateProfile);
         setLoading(false);
         
-        // Buscar profile da tabela em background (não bloqueia)
+        // Buscar profile completo do DB em background (não bloqueia)
         supabase
           .from('profiles')
           .select('*')
@@ -96,8 +90,6 @@ export const AuthProvider = ({ children }) => {
           .catch(err => {
             logger.debug('[AuthContext] Profile fetch em background falhou (ignorado):', err.message);
           });
-        
-        logger.debug('[AuthContext] Bootstrap complete')
 
       } catch (err) {
         logger.error('[AuthContext] Bootstrap error:', err)
@@ -114,16 +106,12 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      logger.debug('[AuthContext] Auth state change:', event, '- Has session:', !!session)
-      
       if (!mounted) {
-        logger.debug('[AuthContext] Component unmounted, ignoring event')
         return;
       }
       
       // SIGNED_IN: usuário acabou de fazer login
       if (event === 'SIGNED_IN') {
-        logger.debug('[AuthContext] Processing SIGNED_IN event')
         setUser(session.user);
         
         // ✅ Usar user_metadata IMEDIATAMENTE (não bloqueia)
@@ -149,15 +137,12 @@ export const AuthProvider = ({ children }) => {
           .single()
           .then(({ data: profileData, error: profileError }) => {
             if (mounted && profileData && !profileError) {
-              logger.debug('[AuthContext] Profile atualizado do DB:', profileData.role)
               setProfile(profileData);
             }
           })
           .catch(err => {
-            logger.debug('[AuthContext] Profile fetch em background falhou (ignorado):', err.message);
+            // Ignora erro de fetch em background
           });
-        
-        logger.debug('[AuthContext] SIGNED_IN complete')
       }
       // USER_UPDATED: atualizar dados do usuário
       else if (event === 'USER_UPDATED') {
@@ -196,7 +181,7 @@ export const AuthProvider = ({ children }) => {
       }
       // Ignorar outros eventos
       else {
-        logger.debug('[AuthContext] Ignoring event:', event)
+        // Ignora
       }
     });
 
@@ -245,7 +230,6 @@ export const AuthProvider = ({ children }) => {
   // Sign Out
   const signOut = useCallback(async () => {
     try {
-      logger.debug('[AuthContext] Starting sign out...')
       
       // 1. Sign out do Supabase
       const { error } = await supabase.auth.signOut();
@@ -257,8 +241,6 @@ export const AuthProvider = ({ children }) => {
       
       // 3. Limpar localStorage (mantém apenas preferências globais)
       storageManager.clearUserData();
-      logger.debug('[AuthContext] User data cleared from localStorage')
-      logger.debug('[AuthContext] App preferences preserved (theme, language, etc.)')
       
       return { error: null };
     } catch (error) {

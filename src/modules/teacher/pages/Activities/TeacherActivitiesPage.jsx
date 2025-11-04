@@ -31,10 +31,6 @@ const TeacherActivitiesPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // 🔍 DEBUG: Log inicial
-  logger.debug('[TeacherActivitiesPage] Componente montado')
-  logger.debug('[TeacherActivitiesPage] User:', user)
-  logger.debug('[TeacherActivitiesPage] Current URL:', window.location.pathname)
 
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
@@ -64,9 +60,7 @@ const TeacherActivitiesPage = () => {
   const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
-    logger.debug('[TeacherActivitiesPage] useEffect triggered, user:', user)
     if (user) {
-      logger.debug('[TeacherActivitiesPage] Loading activities and classes...')
       loadActivities();
       loadClasses();
     } else {
@@ -150,7 +144,6 @@ const TeacherActivitiesPage = () => {
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const recentCount = activitiesData.filter(a => new Date(a.created_at) > lastMonth).length;
     
-    logger.debug('[TeacherActivitiesPage] Stats calculadas:', { total, byType, mostUsed, recentCount });
     setStats({ total, byType, mostUsed, recentCount });
   };
 
@@ -197,15 +190,10 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleEdit = (activity) => {
-    logger.debug('[TeacherActivitiesPage] 🎯 handleEdit chamado')
-    logger.debug('[TeacherActivitiesPage] Activity:', activity)
-    logger.debug('[TeacherActivitiesPage] Navegando para:', `/dashboard/activities/${activity.id}/edit`)
     navigate(`/dashboard/activities/${activity.id}/edit`);
   };
 
   const handleDuplicate = async (activity) => {
-    logger.debug('[TeacherActivitiesPage] 📋 handleDuplicate chamado')
-    logger.debug('[TeacherActivitiesPage] Activity:', activity)
     try {
       // Remover campos que não existem na tabela (vieram do SELECT)
       const { assignments, submissions, submittedCount, avgGrade, timesUsed, classNames, ...activityData } = activity;
@@ -227,7 +215,6 @@ const TeacherActivitiesPage = () => {
       if (error) throw error;
       toast({ title: 'Sucesso', description: 'Atividade duplicada com sucesso!' });
       loadActivities();
-      logger.debug('[TeacherActivitiesPage] Navegando após duplicar para:', `/dashboard/activities/${data.id}/edit`)
       navigate(`/dashboard/activities/${data.id}/edit`);
     } catch (error) {
       logger.error('Erro ao duplicar:', error)
@@ -236,8 +223,6 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleToggleFavorite = async (activityId) => {
-    logger.debug('[TeacherActivitiesPage] ⭐ handleToggleFavorite chamado')
-    logger.debug('[TeacherActivitiesPage] Activity ID:', activityId)
     // Funcionalidade de favoritos desabilitada (coluna is_favorite não existe no DB)
     toast({ 
       title: 'Funcionalidade em desenvolvimento',
@@ -246,8 +231,6 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleArchive = async (activityId) => {
-    logger.debug('[TeacherActivitiesPage] 📦 handleArchive chamado')
-    logger.debug('[TeacherActivitiesPage] Activity ID:', activityId)
     try {
       const { error } = await supabase
         .from('activities')
@@ -288,8 +271,6 @@ const TeacherActivitiesPage = () => {
   };
 
   const handleDelete = async (activityId) => {
-    logger.debug('[TeacherActivitiesPage] 🗑️ handleDelete chamado')
-    logger.debug('[TeacherActivitiesPage] Activity ID:', activityId)
     try {
       const { error } = await supabase.from('activities').update({ deleted_at: new Date().toISOString() }).eq('id', activityId);
       if (error) throw error;
@@ -329,9 +310,6 @@ const TeacherActivitiesPage = () => {
         <DashboardHeader title="Banco de Atividades" subtitle="Crie, organize e reutilize suas atividades" role="teacher" />
         <div className="flex flex-wrap gap-3 mt-4">
           <Button size="lg" onClick={() => {
-            logger.debug('[TeacherActivitiesPage] ➕ Botão "Nova Atividade" clicado')
-            logger.debug('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create')
-            logger.debug('[TeacherActivitiesPage] URL atual:', window.location.pathname)
             navigate('/dashboard/activities/create');
           }}
             className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800">
@@ -491,8 +469,6 @@ const TeacherActivitiesPage = () => {
         <EmptyState icon={ClipboardList} title={searchQuery ? 'Nenhuma atividade encontrada' : 'Você ainda não criou nenhuma atividade'}
           description={searchQuery ? 'Tente ajustar os filtros.' : 'Comece criando sua primeira atividade.'}
           actionLabel="Criar Primeira Atividade" actionIcon={Plus} action={() => {
-            logger.debug('[TeacherActivitiesPage] ➕ EmptyState "Criar Primeira Atividade" clicado')
-            logger.debug('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create')
             navigate('/dashboard/activities/create');
           }} />
       )}
@@ -500,8 +476,6 @@ const TeacherActivitiesPage = () => {
       {filteredActivities.length > 0 && (
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5 }} className="fixed bottom-8 right-8 z-40">
           <Button size="lg" onClick={() => {
-            logger.debug('[TeacherActivitiesPage] 🎯 FAB (Floating Action Button) clicado');
-            logger.debug('[TeacherActivitiesPage] Navegando para: /dashboard/activities/create')
             navigate('/dashboard/activities/create');
           }}
             className="w-16 h-16 rounded-full shadow-2xl bg-gradient-to-r from-blue-600 to-blue-700">

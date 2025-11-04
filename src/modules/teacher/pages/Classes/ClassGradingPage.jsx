@@ -67,7 +67,7 @@ const ClassGradingPage = () => {
         .from('submissions')
         .select(`
           *,
-          student:profiles!submissions_user_id_fkey(id, name, email, avatar_url),
+          student:profiles!submissions_user_id_fkey(id, full_name, email, avatar_url),
           activity:activities(id, title)
         `)
         .in('activity_id', activityIds)
