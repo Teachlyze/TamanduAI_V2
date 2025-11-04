@@ -129,20 +129,36 @@ const TeacherActivityCreatePage = () => {
         const data = JSON.parse(importedData);
         
         // Definir tipo de atividade (mixed por padrão para importadas)
-        setActivityType(data.activityType || 'mixed');
+        // Inferir tipo a partir das questões importadas, se houver
+        let inferredType = data.activityType || null;
+        if (!inferredType && Array.isArray(data.questions) && data.questions.length > 0) {
+          const hasClosed = data.questions.some(q => q.type === 'closed');
+          const hasOpen = data.questions.some(q => q.type === 'open');
+          if (hasClosed && hasOpen) inferredType = 'mixed';
+          else if (hasClosed) inferredType = 'quiz';
+          else if (hasOpen) inferredType = 'open';
+        }
+        setActivityType(inferredType || 'mixed');
         
         // Preencher campos com dados importados
         setTitle(data.title || '');
         setDescription(data.description || '');
         
-        // Criar uma questão aberta inicial com o conteúdo importado
-        if (data.content) {
+        // Popular questões importadas quando existirem; caso contrário, criar questão aberta com o texto
+        if (Array.isArray(data.questions) && data.questions.length > 0) {
+          setQuestions(data.questions);
+        } else if (data.content) {
           setQuestions([{
             id: Date.now().toString(),
             type: 'open',
-            prompt: data.content,
-            maxScore: 10,
-            rubric: ''
+            text: data.content,
+            points: 10,
+            maxLines: null,
+            maxCharacters: null,
+            image: null,
+            attachments: [],
+            rubric: [],
+            expectedAnswer: ''
           }]);
         }
         

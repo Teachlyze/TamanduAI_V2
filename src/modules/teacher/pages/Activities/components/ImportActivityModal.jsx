@@ -8,7 +8,7 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Input } from '@/shared/components/ui/input';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
-import mammoth from 'mammoth';
+import DocumentParserService from '@/shared/services/documentParserService';
 
 const ImportActivityModal = ({ open, onClose }) => {
   const { toast } = useToast();
@@ -20,6 +20,7 @@ const ImportActivityModal = ({ open, onClose }) => {
   const [extractedText, setExtractedText] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [parsedActivity, setParsedActivity] = useState(null);
   
   const supportedFormats = [
     { ext: '.txt', label: 'Texto (TXT)', mime: 'text/plain' },
@@ -52,66 +53,34 @@ const ImportActivityModal = ({ open, onClose }) => {
   const extractTextFromFile = async (file) => {
     try {
       setProcessing(true);
-      
       const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
-      
-      // Extrair texto baseado no tipo de arquivo
-      let text = '';
-      
-      if (fileExtension === '.txt') {
-        // TXT: Leitura direta
-        text = await file.text();
-      } 
-      else if (fileExtension === '.pdf') {
-        // PDF: Extração manual (pdf-parse não funciona no browser)
-        text = `[PDF carregado: ${file.name}]\n\n` +
-               `NOTA: Para PDFs, copie o texto do arquivo e cole abaixo.\n` +
-               `A extração automática de PDF requer processamento no servidor.\n\n` +
-               `Cole o conteúdo do PDF aqui...`;
-        
-        toast({
-          title: 'PDF carregado',
-          description: 'Cole o conteúdo do PDF no campo abaixo',
-          variant: 'default'
-        });
+      let result = null;
+      if (fileExtension === '.docx' || fileExtension === '.pdf') {
+        result = await DocumentParserService.parseToActivity(file);
+      } else if (fileExtension === '.txt') {
+        const text = await file.text();
+        result = {
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          description: text.substring(0, 500) + '...',
+          content: { text, questions: [] },
+          type: 'assignment'
+        };
+      } else if (fileExtension === '.odt') {
+        const text = `[Conteúdo extraído do ODT: ${file.name}]\n\nRevise e edite o conteúdo abaixo.`;
+        result = {
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          description: text.substring(0, 500) + '...',
+          content: { text, questions: [] },
+          type: 'assignment'
+        };
       }
-      else if (fileExtension === '.docx') {
-        // DOCX: Extração usando mammoth
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          text = result.value;
-          
-          if (!text || text.trim().length === 0) {
-            text = `[DOCX processado: ${file.name}]\n\nNOTA: O arquivo não contém texto extraível. Cole o conteúdo manualmente.`;
-          }
-        } catch (docxError) {
-          logger.error('Erro ao extrair DOCX:', docxError);
-          text = `[Erro ao processar DOCX: ${file.name}]\n\nNOTA: Não foi possível extrair o texto automaticamente. Cole o conteúdo manualmente.`;
-        }
-      }
-      else if (fileExtension === '.odt') {
-        // ODT: Mostrar mensagem
-        text = `[Conteúdo extraído do ODT: ${file.name}]\n\n` +
-               `NOTA: Para extração completa de ODT, instale biblioteca apropriada.\n\n` +
-               `Por enquanto, cole o conteúdo manualmente abaixo.`;
-      }
-      
-      setExtractedText(text);
-      
-      // Tentar extrair título do nome do arquivo
-      const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extensão
-      setTitle(fileName);
-      
-      if (fileExtension !== '.pdf') {
-        toast({
-          title: 'Arquivo carregado',
-          description: fileExtension === '.txt' || fileExtension === '.docx'
-            ? 'Texto extraído com sucesso!' 
-            : 'Revise e edite o conteúdo abaixo.'
-        });
-      }
-      
+
+      if (!result) throw new Error('Formato de arquivo não suportado');
+
+      setParsedActivity(result);
+      setExtractedText(result.content?.text || '');
+      setTitle(result.title || file.name.replace(/\.[^/.]+$/, ''));
+      toast({ title: 'Arquivo processado', description: 'Conteúdo extraído com sucesso.' });
     } catch (error) {
       logger.error('Erro ao processar arquivo:', error)
       toast({
@@ -143,14 +112,14 @@ const ImportActivityModal = ({ open, onClose }) => {
       return;
     }
 
-    // Navegar para criação de atividade com dados pré-preenchidos
     const activityData = {
-      title: title.trim(),
-      description: description.trim() || extractedText.substring(0, 200) + '...',
+      title: title.trim() || parsedActivity?.title || '',
+      description: description.trim() || parsedActivity?.description || extractedText.substring(0, 200) + '...',
       content: extractedText,
+      questions: parsedActivity?.content?.questions || [],
       imported: true,
       importedFrom: file?.name,
-      activityType: 'mixed' // Todas as atividades importadas são mistas por padrão
+      activityType: 'mixed'
     };
 
     // Armazenar temporariamente no sessionStorage
