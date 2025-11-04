@@ -11,10 +11,12 @@ import { DashboardHeader } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ClassService } from '@/shared/services/classService';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const ChatbotConfigPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -141,12 +143,19 @@ const ChatbotConfigPage = () => {
 
       setTrainingProgress(100);
       setTimeout(() => {
-        alert('✅ Chatbot ativado com sucesso!');
+        toast({
+          title: '✅ Chatbot ativado!',
+          description: 'Seu assistente virtual está pronto para ajudar os alunos.',
+        });
         navigate(`/dashboard/chatbot/${classId}/analytics`);
       }, 500);
     } catch (error) {
       logger.error('Erro ao ativar chatbot:', error);
-      alert('❌ Erro ao ativar chatbot. Tente novamente.');
+      toast({
+        title: '❌ Erro ao ativar chatbot',
+        description: 'Tente novamente em alguns instantes.',
+        variant: 'destructive'
+      });
       setTraining(false);
     }
   };

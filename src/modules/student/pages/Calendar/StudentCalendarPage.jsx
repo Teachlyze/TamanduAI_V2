@@ -68,7 +68,8 @@ const StudentCalendarPage = () => {
       const end = endOfMonth(currentMonth);
 
       // 1. Buscar eventos do calendário
-      const { data: calendarEvents } = await supabase
+      // 1a. Eventos da turma
+      const { data: classCalendarEvents } = await supabase
         .from('calendar_events')
         .select(`
           id,
@@ -77,12 +78,54 @@ const StudentCalendarPage = () => {
           start_time,
           end_time,
           type,
+          modality,
+          location,
+          meeting_link,
           class_id,
           class:classes(id, name, subject)
         `)
         .in('class_id', classIds)
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString());
+
+      // 1b. Eventos onde o aluno é participante (attendees)
+      const { data: attendeeEvents } = await supabase
+        .from('calendar_events')
+        .select(`
+          id,
+          title,
+          description,
+          start_time,
+          end_time,
+          type,
+          modality,
+          location,
+          meeting_link,
+          attendees,
+          created_by,
+          class_id,
+          class:classes(id, name, subject)
+        `)
+        .contains('attendees', [user.id])
+        .gte('start_time', start.toISOString())
+        .lte('start_time', end.toISOString());
+
+      // Combinar eventos (remover duplicatas)
+      const eventIds = new Set();
+      const calendarEvents = [
+        ...(classCalendarEvents || []),
+        ...(attendeeEvents || [])
+      ].filter(event => {
+        if (eventIds.has(event.id)) return false;
+        eventIds.add(event.id);
+        return true;
+      });
+
+      logger.debug('[StudentCalendar] Eventos carregados:', {
+        classEvents: classCalendarEvents?.length || 0,
+        attendeeEvents: attendeeEvents?.length || 0,
+        total: calendarEvents.length
+      });
 
       // 2. Buscar reuniões
       const { data: meetings } = await supabase

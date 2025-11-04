@@ -32,7 +32,7 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
         onTabChange?.('library');
         break;
       case 'Agendar Aula':
-        toast({ title: 'Em desenvolvimento', description: 'Função de agendar aulas será implementada em breve' });
+        onTabChange?.('schedule');
         break;
       case 'Postar Comunicado':
         onTabChange?.('announcements');
@@ -205,7 +205,7 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
             <Calendar className="w-5 h-5 text-blue-600" />
             Agenda de Aulas
           </h3>
-          <Button variant="outline" size="sm" onClick={() => toast({ title: 'Em desenvolvimento', description: 'Calendário completo será implementado em breve' })}>Ver Completa</Button>
+          <Button variant="outline" size="sm" onClick={() => onTabChange?.('schedule')}>Ver Completa</Button>
         </div>
         <div className="text-center py-8">
           <Calendar className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />

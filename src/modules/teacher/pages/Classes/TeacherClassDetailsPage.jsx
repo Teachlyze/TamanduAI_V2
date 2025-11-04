@@ -282,10 +282,10 @@ const TeacherClassDetailsPage = () => {
       {/* ==================== HEADER COM BANNER IMERSIVO ==================== */}
       <div className={`relative h-64 bg-gradient-to-r ${bannerGradient} overflow-hidden shadow-xl`}>
         {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px] pointer-events-none" />
         
         {/* Animated Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
         
         {/* Navegação (canto superior esquerdo) */}
         <div className="absolute top-4 left-6 z-10">

@@ -12,6 +12,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -27,11 +28,13 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
     selected_classes: [],
     selected_students: [],
     invite_type: 'all', // 'all', 'classes', 'individuals'
-    color: '#3B82F6'
+    color: '#3B82F6',
+    activity_id: null
   });
 
   useEffect(() => {
     loadClasses();
+    loadActivities();
   }, [teacherId]);
 
   useEffect(() => {
@@ -55,6 +58,22 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
       setClasses(data || []);
     } catch (error) {
       logger.error('Erro ao carregar turmas:', error)
+    }
+  };
+
+  const loadActivities = async () => {
+    try {
+      const { data } = await supabase
+        .from('activities')
+        .select('id, title, type, status')
+        .eq('created_by', teacherId)
+        .neq('status', 'archived')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      setActivities(data || []);
+    } catch (error) {
+      logger.error('Erro ao carregar atividades:', error)
     }
   };
 
@@ -158,7 +177,8 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
             created_by: teacherId,
             class_id: classId,
             attendees: attendees,
-            color: formData.color
+            color: formData.color,
+            activity_id: formData.activity_id || null
           }))
         : [{
             title: formData.title,
@@ -171,7 +191,8 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
             location: formData.modality === 'presential' ? formData.location : null,
             created_by: teacherId,
             attendees: attendees,
-            color: formData.color
+            color: formData.color,
+            activity_id: formData.activity_id || null
           }];
 
       // Inserir eventos
@@ -265,6 +286,38 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
               })}
             </div>
           </div>
+
+          {/* Seleção de Atividade (quando tipo = activity) */}
+          {formData.type === 'activity' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Vincular Atividade
+              </label>
+              <select
+                value={formData.activity_id || ''}
+                onChange={(e) => {
+                  const activityId = e.target.value || null;
+                  const activity = activities.find(a => a.id === activityId);
+                  setFormData({ 
+                    ...formData, 
+                    activity_id: activityId,
+                    title: activity ? activity.title : formData.title 
+                  });
+                }}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-slate-800"
+              >
+                <option value="">Nenhuma atividade vinculada</option>
+                {activities.map(activity => (
+                  <option key={activity.id} value={activity.id}>
+                    {activity.title} ({activity.type})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                Vincule uma atividade existente a este evento de agenda
+              </p>
+            </div>
+          )}
 
           {/* Título */}
           <div>

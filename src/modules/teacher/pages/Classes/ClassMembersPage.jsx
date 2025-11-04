@@ -17,11 +17,13 @@ import {
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { ClassService } from '@/shared/services/classService';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const ClassMembersPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [classData, setClassData] = useState(null);
@@ -91,9 +93,10 @@ const ClassMembersPage = () => {
       
       // Reload members
       await loadData();
+      toast({ title: '✅ Membro removido', description: 'O usuário foi removido da turma.' });
     } catch (error) {
       logger.error('Erro ao remover membro:', error)
-      alert('Erro ao remover membro. Tente novamente.');
+      toast({ title: '❌ Erro ao remover', description: 'Tente novamente.', variant: 'destructive' });
     }
   };
 

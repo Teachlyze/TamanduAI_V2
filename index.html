@@ -88,9 +88,12 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     
-    <!-- PWA Service Worker Registration -->
+    <!-- PWA Service Worker Registration (Production Only) -->
     <script>
-      if ('serviceWorker' in navigator) {
+      // Only register service worker in production to avoid conflicts with Vite HMR
+      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+      
+      if (isProduction && 'serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/service-worker.js')
             .then(registration => {
@@ -126,6 +129,19 @@
             }
           });
         });
+      } else if (!isProduction) {
+        console.log('[PWA] Service Worker disabled in development mode');
+        
+        // Unregister any existing service workers in development
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(registrations => {
+            for (let registration of registrations) {
+              registration.unregister().then(() => {
+                console.log('[PWA] Unregistered service worker for development');
+              });
+            }
+          });
+        }
       } else {
         console.warn('[PWA] Service Workers not supported in this browser');
       }

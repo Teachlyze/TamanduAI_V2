@@ -36,27 +36,37 @@ const SubmissionView = ({ submission }) => {
           const correctAnswer = question.correctAnswer || question.correct_answer || question.answer;
 
           return (
-            <Card key={idx} className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="font-semibold">Questão {idx + 1}</h4>
+            <Card key={idx} className="p-4 border-l-4" style={{ borderLeftColor: isCorrect ? '#22c55e' : '#ef4444' }}>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-lg">Questão {idx + 1}</h4>
                 <Badge variant={isCorrect ? "success" : "destructive"}>
                   {isCorrect ? '✓ Correta' : '✗ Incorreta'}
                   {answer?.points_earned !== undefined && ` (${answer.points_earned} pts)`}
                 </Badge>
               </div>
               
-              <p className="text-sm mb-3 font-medium">{question.text || question.question || question.prompt}</p>
+              {/* Enunciado da Questão */}
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
+                <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO:</p>
+                <p className="text-sm font-medium leading-relaxed">{question.text || question.question || question.prompt}</p>
+                {question.maxScore && (
+                  <p className="text-xs text-gray-500 mt-2">Valor: {question.maxScore} pontos</p>
+                )}
+              </div>
               
-              <div className="space-y-2 mb-3">
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Resposta do aluno:</p>
+              {/* Resposta do Aluno */}
+              <div className="space-y-3 mb-3">
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">👤 RESPOSTA DO ALUNO:</p>
                   <p className="text-sm font-medium">{studentAnswer || 'Não respondeu'}</p>
                 </div>
                 
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Resposta correta:</p>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-400">{correctAnswer || 'Não especificada'}</p>
-                </div>
+                {correctAnswer && (
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 rounded">
+                    <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">✓ RESPOSTA CORRETA:</p>
+                    <p className="text-sm font-medium">{correctAnswer}</p>
+                  </div>
+                )}
               </div>
               
               {question.options && question.options.length > 0 && (
@@ -127,19 +137,34 @@ const SubmissionView = ({ submission }) => {
 
   if (submission.activity?.type === 'assignment') {
     // Atividade Aberta
+    const activityDescription = submission.activity?.description || submission.activity?.content?.description || '';
+    
     return (
-      <div className="prose max-w-none">
-        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg whitespace-pre-wrap">
-          {renderContent()}
+      <div className="space-y-4">
+        {/* Enunciado da Atividade */}
+        {activityDescription && (
+          <div className="p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
+            <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO DA ATIVIDADE:</p>
+            <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{activityDescription}</p>
+          </div>
+        )}
+        
+        {/* Resposta do Aluno */}
+        <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-3">👤 RESPOSTA DO ALUNO:</p>
+          <div className="text-sm font-medium whitespace-pre-wrap">
+            {renderContent()}
+          </div>
         </div>
         
+        {/* Anexos */}
         {content?.attachments && content.attachments.length > 0 && (
-          <div className="mt-4">
-            <h4 className="font-semibold mb-2">Anexos:</h4>
+          <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded">
+            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-2">📎 ANEXOS:</p>
             <ul className="space-y-2">
               {content.attachments.map((file, idx) => (
                 <li key={idx}>
-                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
                     {file.name}
                   </a>
                 </li>
@@ -174,27 +199,37 @@ const SubmissionView = ({ submission }) => {
           const correctAnswer = question.correctAnswer || question.correct_answer || question.answer;
 
           return (
-            <Card key={idx} className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h4 className="font-semibold">Questão {idx + 1}</h4>
+            <Card key={idx} className="p-4 border-l-4" style={{ borderLeftColor: isCorrect ? '#22c55e' : '#ef4444' }}>
+              <div className="flex justify-between items-start mb-3">
+                <h4 className="font-semibold text-lg">Questão {idx + 1}</h4>
                 <Badge variant={isCorrect ? "success" : "destructive"}>
                   {isCorrect ? '✓ Correta' : '✗ Incorreta'}
                   {answer?.points_earned !== undefined && ` (${answer.points_earned} pts)`}
                 </Badge>
               </div>
               
-              <p className="text-sm mb-3 font-medium">{question.text || question.question || question.prompt}</p>
+              {/* Enunciado da Questão */}
+              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
+                <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO:</p>
+                <p className="text-sm font-medium leading-relaxed">{question.text || question.question || question.prompt}</p>
+                {question.maxScore && (
+                  <p className="text-xs text-gray-500 mt-2">Valor: {question.maxScore} pontos</p>
+                )}
+              </div>
               
-              <div className="space-y-2 mb-3">
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Resposta do aluno:</p>
+              {/* Resposta do Aluno */}
+              <div className="space-y-3 mb-3">
+                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
+                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">👤 RESPOSTA DO ALUNO:</p>
                   <p className="text-sm font-medium">{studentAnswer || 'Não respondeu'}</p>
                 </div>
                 
-                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded">
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Resposta correta:</p>
-                  <p className="text-sm font-medium text-green-700 dark:text-green-400">{correctAnswer || 'Não especificada'}</p>
-                </div>
+                {correctAnswer && (
+                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 rounded">
+                    <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">✓ RESPOSTA CORRETA:</p>
+                    <p className="text-sm font-medium">{correctAnswer}</p>
+                  </div>
+                )}
               </div>
               
               {question.options && question.options.length > 0 && (

@@ -199,7 +199,7 @@ const StudentClassDetailsPage = () => {
             <div className="flex gap-2">
               <Button
                 variant="ghost"
-                onClick={() => navigate('/student/classes')}
+                onClick={() => navigate('/students/classes')}
                 className="text-white hover:bg-white/20 border border-white/30 backdrop-blur-sm transition-all hover:scale-105 cursor-pointer relative z-10"
                 style={{ pointerEvents: 'auto' }}
               >

@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
-import React, { useState } from 'react';
-import { X, Edit, Trash2, Copy, ExternalLink, Clock, MapPin, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Edit, Trash2, Copy, ExternalLink, Clock, MapPin, Users, User, BookOpen, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/shared/components/ui/button';
@@ -12,6 +12,66 @@ import { supabase } from '@/shared/services/supabaseClient';
 const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [attendees, setAttendees] = useState([]);
+  const [activity, setActivity] = useState(null);
+  const [classInfo, setClassInfo] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && event) {
+      loadEventDetails();
+    }
+  }, [isOpen, event]);
+
+  const loadEventDetails = async () => {
+    try {
+      setLoadingDetails(true);
+
+      // Carregar participantes (se for reunião)
+      if (event.type === 'meeting' || event.type === 'reunião') {
+        const { data: attendeesData, error: attendeesError } = await supabase
+          .from('event_attendees')
+          .select(`
+            user_id,
+            status,
+            profiles:profiles!event_attendees_user_id_fkey(id, full_name, email)
+          `)
+          .eq('event_id', event.id);
+
+        if (attendeesError) throw attendeesError;
+        setAttendees(attendeesData || []);
+      }
+
+      // Carregar atividade linkada (se houver)
+      if (event.activity_id) {
+        const { data: activityData, error: activityError } = await supabase
+          .from('activities')
+          .select('id, title, type, description, max_score')
+          .eq('id', event.activity_id)
+          .single();
+
+        if (activityError && activityError.code !== 'PGRST116') throw activityError;
+        setActivity(activityData);
+      }
+
+      // Carregar informações da turma (se houver)
+      if (event.class_id) {
+        const { data: classData, error: classError } = await supabase
+          .from('classes')
+          .select('id, name, subject')
+          .eq('id', event.class_id)
+          .single();
+
+        if (classError && classError.code !== 'PGRST116') throw classError;
+        setClassInfo(classData);
+      }
+
+    } catch (error) {
+      logger.error('Erro ao carregar detalhes do evento:', error);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -156,32 +216,89 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
           </div>
 
           {/* Turma */}
-          {event.class && (
-            <div>
+          {(classInfo || event.class) && (
+            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border-l-4 border-green-500">
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
+                <Users className="w-5 h-5 text-green-600" />
                 Turma
               </h3>
-              <Badge variant="outline">
-                {event.class.name}
-              </Badge>
+              <div className="font-medium">{classInfo?.name || event.class?.name}</div>
+              {(classInfo?.subject || event.class?.subject) && (
+                <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                  {classInfo?.subject || event.class?.subject}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Atividade Linkada */}
+          {activity && (
+            <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border-l-4 border-blue-500">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+                Atividade Linkada
+              </h3>
+              <div className="font-medium mb-1">{activity.title}</div>
+              {activity.description && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">{activity.description}</p>
+              )}
+              <div className="flex gap-2">
+                <Badge variant="outline">{activity.type}</Badge>
+                {activity.max_score && (
+                  <Badge variant="outline">{activity.max_score} pontos</Badge>
+                )}
+              </div>
             </div>
           )}
 
           {/* Participantes */}
-          {event.participants && Array.isArray(event.participants) && event.participants.length > 0 && (
-            <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-                <Users className="w-5 h-5 text-blue-600" />
-                Participantes
+          {attendees.length > 0 && (
+            <div className="p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border-l-4 border-purple-500">
+              <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5 text-purple-600" />
+                Participantes ({attendees.length})
               </h3>
               <div className="space-y-2">
-                {event.participants.map((participant, idx) => (
-                  <div key={idx} className="text-sm text-slate-700 dark:text-slate-300">
-                    {participant.name || participant.email || 'Participante'}
+                {attendees.map((attendee) => (
+                  <div 
+                    key={attendee.user_id}
+                    className="flex items-center justify-between p-2 bg-white dark:bg-slate-800 rounded"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <div className="text-sm font-medium">{attendee.profiles?.full_name}</div>
+                        <div className="text-xs text-slate-500">{attendee.profiles?.email}</div>
+                      </div>
+                    </div>
+                    <Badge 
+                      variant={attendee.status === 'accepted' ? 'success' : 'secondary'}
+                      className="text-xs"
+                    >
+                      {attendee.status === 'accepted' ? 'Confirmado' : 
+                       attendee.status === 'declined' ? 'Recusado' : 'Pendente'}
+                    </Badge>
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Link de Reunião */}
+          {event.meeting_url && (
+            <div className="p-4 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Video className="w-4 h-4 text-indigo-600" />
+                <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-400">LINK DA REUNIÃO:</span>
+              </div>
+              <a 
+                href={event.meeting_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:underline break-all"
+              >
+                {event.meeting_url}
+              </a>
             </div>
           )}
 

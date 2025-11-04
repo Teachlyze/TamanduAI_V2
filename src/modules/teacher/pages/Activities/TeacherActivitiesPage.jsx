@@ -140,24 +140,26 @@ const TeacherActivitiesPage = () => {
   const calculateStats = (activitiesData) => {
     const total = activitiesData.length;
     const byType = {
-      open: activitiesData.filter(a => a.type === 'open' || a.type === 'assignment').length,
-      closed: activitiesData.filter(a => a.type === 'closed' || a.type === 'quiz').length,
-      mixed: activitiesData.filter(a => a.type === 'mixed' || a.type === 'project').length
+      open: activitiesData.filter(a => a.type === 'open').length,
+      closed: activitiesData.filter(a => a.type === 'objective').length, // 'objective' é o tipo correto
+      mixed: activitiesData.filter(a => a.type === 'mixed').length
     };
     const mostUsed = activitiesData.reduce((max, activity) => 
       activity.timesUsed > (max?.timesUsed || 0) ? activity : max, null);
     const lastMonth = new Date();
     lastMonth.setMonth(lastMonth.getMonth() - 1);
     const recentCount = activitiesData.filter(a => new Date(a.created_at) > lastMonth).length;
+    
+    logger.debug('[TeacherActivitiesPage] Stats calculadas:', { total, byType, mostUsed, recentCount });
     setStats({ total, byType, mostUsed, recentCount });
   };
 
   const filteredActivities = useMemo(() => {
     let result = [...activities];
 
-    if (activeTab === 'open') result = result.filter(a => a.type === 'open' || a.type === 'assignment');
-    else if (activeTab === 'closed') result = result.filter(a => a.type === 'closed' || a.type === 'quiz');
-    else if (activeTab === 'mixed') result = result.filter(a => a.type === 'mixed' || a.type === 'project');
+    if (activeTab === 'open') result = result.filter(a => a.type === 'open');
+    else if (activeTab === 'closed') result = result.filter(a => a.type === 'objective'); // tipo correto
+    else if (activeTab === 'mixed') result = result.filter(a => a.type === 'mixed');
     else if (activeTab === 'drafts') result = result.filter(a => a.status === 'draft');
     else if (activeTab === 'favorites') result = result.filter(a => a.is_favorite);
 

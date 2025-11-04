@@ -33,6 +33,7 @@ import AdvancedSettings from './components/AdvancedSettings';
 import ActivityPreview from './components/ActivityPreview';
 import ValidationChecklist from './components/ValidationChecklist';
 import useActivityFiles from '@/shared/hooks/useActivityFiles';
+import { mapFrontendTypeToDatabase, mapDatabaseTypeToFrontend, isValidDatabaseType } from '@/constants/activityTypes';
 
 const TeacherActivityCreatePage = () => {
   const navigate = useNavigate();
@@ -125,13 +126,12 @@ const TeacherActivityCreatePage = () => {
       if (importedData) {
         const data = JSON.parse(importedData);
         
+        // Definir tipo de atividade (mixed por padrão para importadas)
+        setActivityType(data.activityType || 'mixed');
+        
         // Preencher campos com dados importados
         setTitle(data.title || '');
         setDescription(data.description || '');
-        
-        // Determinar tipo de atividade baseado no conteúdo
-        // Por padrão, usar 'open' (questões abertas) para conteúdo importado
-        setActivityType('open');
         
         // Criar uma questão aberta inicial com o conteúdo importado
         if (data.content) {
@@ -171,8 +171,16 @@ const TeacherActivityCreatePage = () => {
 
       if (error) throw error;
 
+      // Converter tipo do banco para frontend
+      const frontendType = mapDatabaseTypeToFrontend(data.type);
+      
+      logger.debug('[Activity Load] Convertendo tipo:', { 
+        databaseType: data.type, 
+        frontendType 
+      });
+
       // Preencher estados com dados carregados
-      setActivityType(data.type);
+      setActivityType(frontendType);
       setTitle(data.title);
       setDescription(data.description || '');
       setSubject(data.content?.subject || '');
@@ -208,10 +216,13 @@ const TeacherActivityCreatePage = () => {
     if (!title || !activityType) return;
 
     try {
+      // Mapear tipo do frontend para o banco
+      const databaseType = mapFrontendTypeToDatabase(activityType);
+
       const activityData = {
         title,
         description,
-        type: activityType,
+        type: databaseType,  // CORREÇÃO: usa tipo mapeado
         max_score: maxScore,
         status: 'draft',
         content: {
@@ -331,10 +342,18 @@ const TeacherActivityCreatePage = () => {
     try {
       setSaving(true);
 
+      // Mapear tipo do frontend para o banco
+      const databaseType = mapFrontendTypeToDatabase(activityType);
+      
+      logger.debug('[Activity Draft] Mapeando tipo:', { 
+        frontendType: activityType, 
+        databaseType 
+      });
+
       const activityData = {
         title: title.trim(),
         description: description?.trim() || '',
-        type: activityType,
+        type: databaseType,  // CORREÇÃO: usa tipo mapeado
         max_score: maxScore,
         status: 'draft',
         content: {
@@ -422,10 +441,19 @@ const TeacherActivityCreatePage = () => {
     try {
       setSaving(true);
 
+      // Mapear tipo do frontend para o banco
+      const databaseType = mapFrontendTypeToDatabase(activityType);
+      
+      logger.debug('[Activity Create] Mapeando tipo:', { 
+        frontendType: activityType, 
+        databaseType,
+        isValid: isValidDatabaseType(databaseType)
+      });
+
       let activityData = {
         title,
         description,
-        type: activityType,
+        type: databaseType,  // CORREÇÃO: usa tipo mapeado
         max_score: maxScore,
         status: 'published',
         is_published: true,

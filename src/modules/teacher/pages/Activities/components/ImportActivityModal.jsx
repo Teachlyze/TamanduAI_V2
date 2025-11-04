@@ -8,6 +8,7 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Input } from '@/shared/components/ui/input';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import mammoth from 'mammoth';
 
 const ImportActivityModal = ({ open, onClose }) => {
   const { toast } = useToast();
@@ -62,16 +63,32 @@ const ImportActivityModal = ({ open, onClose }) => {
         text = await file.text();
       } 
       else if (fileExtension === '.pdf') {
-        // PDF: Mostrar mensagem que precisa de biblioteca
-        text = `[Conteúdo extraído do PDF: ${file.name}]\n\n` +
-               `NOTA: Para extração completa de PDF, instale a biblioteca 'pdf-parse'.\n\n` +
-               `Por enquanto, cole o conteúdo manualmente abaixo.`;
+        // PDF: Extração manual (pdf-parse não funciona no browser)
+        text = `[PDF carregado: ${file.name}]\n\n` +
+               `NOTA: Para PDFs, copie o texto do arquivo e cole abaixo.\n` +
+               `A extração automática de PDF requer processamento no servidor.\n\n` +
+               `Cole o conteúdo do PDF aqui...`;
+        
+        toast({
+          title: 'PDF carregado',
+          description: 'Cole o conteúdo do PDF no campo abaixo',
+          variant: 'default'
+        });
       }
       else if (fileExtension === '.docx') {
-        // DOCX: Mostrar mensagem que precisa de biblioteca
-        text = `[Conteúdo extraído do DOCX: ${file.name}]\n\n` +
-               `NOTA: Para extração completa de DOCX, instale a biblioteca 'mammoth'.\n\n` +
-               `Por enquanto, cole o conteúdo manualmente abaixo.`;
+        // DOCX: Extração usando mammoth
+        try {
+          const arrayBuffer = await file.arrayBuffer();
+          const result = await mammoth.extractRawText({ arrayBuffer });
+          text = result.value;
+          
+          if (!text || text.trim().length === 0) {
+            text = `[DOCX processado: ${file.name}]\n\nNOTA: O arquivo não contém texto extraível. Cole o conteúdo manualmente.`;
+          }
+        } catch (docxError) {
+          logger.error('Erro ao extrair DOCX:', docxError);
+          text = `[Erro ao processar DOCX: ${file.name}]\n\nNOTA: Não foi possível extrair o texto automaticamente. Cole o conteúdo manualmente.`;
+        }
       }
       else if (fileExtension === '.odt') {
         // ODT: Mostrar mensagem
@@ -86,12 +103,14 @@ const ImportActivityModal = ({ open, onClose }) => {
       const fileName = file.name.replace(/\.[^/.]+$/, ''); // Remove extensão
       setTitle(fileName);
       
-      toast({
-        title: 'Arquivo carregado',
-        description: fileExtension === '.txt' 
-          ? 'Texto extraído com sucesso!' 
-          : 'Revise e edite o conteúdo abaixo.'
-      });
+      if (fileExtension !== '.pdf') {
+        toast({
+          title: 'Arquivo carregado',
+          description: fileExtension === '.txt' || fileExtension === '.docx'
+            ? 'Texto extraído com sucesso!' 
+            : 'Revise e edite o conteúdo abaixo.'
+        });
+      }
       
     } catch (error) {
       logger.error('Erro ao processar arquivo:', error)
@@ -130,7 +149,8 @@ const ImportActivityModal = ({ open, onClose }) => {
       description: description.trim() || extractedText.substring(0, 200) + '...',
       content: extractedText,
       imported: true,
-      importedFrom: file?.name
+      importedFrom: file?.name,
+      activityType: 'mixed' // Todas as atividades importadas são mistas por padrão
     };
 
     // Armazenar temporariamente no sessionStorage
@@ -187,14 +207,15 @@ const ImportActivityModal = ({ open, onClose }) => {
                   className="hidden"
                   id="file-upload"
                 />
-                <label htmlFor="file-upload">
-                  <Button asChild variant="outline" size="lg">
-                    <span className="cursor-pointer">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Escolher Arquivo
-                    </span>
-                  </Button>
-                </label>
+                <Button 
+                  variant="outline" 
+                  size="lg"
+                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                >
+                  <FileText className="w-4 h-4 mr-2" />
+                  Escolher Arquivo
+                </Button>
               </div>
             </div>
           ) : (
@@ -266,17 +287,32 @@ const ImportActivityModal = ({ open, onClose }) => {
                 </p>
               </div>
 
-              {/* Warning for PDF/DOCX */}
-              {file && (file.name.endsWith('.pdf') || file.name.endsWith('.docx') || file.name.endsWith('.odt')) && (
-                <div className="flex items-start gap-2 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              {/* Info for PDF */}
+              {file && file.name.endsWith('.pdf') && (
+                <div className="flex items-start gap-2 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm">
-                    <p className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-                      Extração Manual Necessária
+                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                      📄 PDF Detectado
                     </p>
-                    <p className="text-amber-700 dark:text-amber-300">
-                      Para arquivos {file.name.split('.').pop().toUpperCase()}, copie e cole o conteúdo manualmente no campo acima.
-                      Para extração automática, as bibliotecas 'pdf-parse' (PDF) ou 'mammoth' (DOCX) precisam ser instaladas.
+                    <p className="text-blue-700 dark:text-blue-300">
+                      Abra o PDF em outro visualizador, copie o conteúdo e cole no campo acima.
+                      Você pode editar o texto antes de importar.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              {/* Success for DOCX */}
+              {file && file.name.endsWith('.docx') && extractedText && !extractedText.includes('[Erro') && (
+                <div className="flex items-start gap-2 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-green-900 dark:text-green-100 mb-1">
+                      ✓ DOCX Extraído Automaticamente
+                    </p>
+                    <p className="text-green-700 dark:text-green-300">
+                      O conteúdo do arquivo DOCX foi extraído com sucesso!
                     </p>
                   </div>
                 </div>

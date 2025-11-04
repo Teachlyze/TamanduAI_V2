@@ -94,7 +94,7 @@ const JoinClassWithCodePage = () => {
         setError('Você já é membro desta turma');
         setTimeout(() => {
           if (profile.role === 'student') {
-            navigate(`/student/classes/${classInfo.id}`);
+            navigate(`/students/classes/${classInfo.id}`);
           } else {
             navigate(`/dashboard/classes/${classInfo.id}`);
           }
@@ -133,7 +133,7 @@ const JoinClassWithCodePage = () => {
 
       setTimeout(() => {
         if (profile.role === 'student') {
-          navigate(`/student/classes/${classData.id}`);
+          navigate(`/students/classes/${classData.id}`);
         } else {
           navigate(`/dashboard/classes/${classData.id}`);
         }

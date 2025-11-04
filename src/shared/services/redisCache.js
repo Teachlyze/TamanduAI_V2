@@ -48,7 +48,7 @@ class RedisCacheService {
           ...params
         })
       });
-
+      
       if (!response.ok) {
         // Silenciosamente falha e retorna null (aplicação continua funcionando)
         if (response.status === 500) {

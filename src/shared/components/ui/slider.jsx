@@ -1,4 +1,4 @@
-import React, { forwardRef, useCallback, useEffect, useRef } from 'react';
+import React, { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 import { cn } from '@/shared/utils/cn';
 
@@ -27,6 +27,10 @@ import { cn } from '@/shared/utils/cn';
   ...props
 }, ref) => {
   const sliderRef = useRef(null);
+  
+  // CORREÇÃO: Estados que estavam faltando
+  const [isDragging, setIsDragging] = useState(false);
+  const [internalValue, setInternalValue] = useState(value);
 
   // Update internal value when prop changes
   useEffect(() => {

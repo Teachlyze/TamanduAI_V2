@@ -2,6 +2,8 @@ import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import PostActivityModal from '@/modules/teacher/components/PostActivityModal';
+import EventDetailsModal from '@/modules/teacher/pages/Calendar/components/EventDetailsModal';
 import {
   BookOpen,
   Users,
@@ -60,6 +62,10 @@ const TeacherDashboard = () => {
   const [todayEvents, setTodayEvents] = useState([]);
   const [alertStudents, setAlertStudents] = useState([]);
   const [scheduledActivities, setScheduledActivities] = useState([]);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [activityToPost, setActivityToPost] = useState(null);
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -178,13 +184,14 @@ const TeacherDashboard = () => {
         setTodayEvents(events.filter(e => isToday(new Date(e.start_time))));
       }
 
-      // 7. Buscar reuniões (com filtro de dias)
+      // 7. Buscar reuniões (calendar_events do tipo meeting/reunião)
       const { data: meetings, error: meetingsError } = await supabase
-        .from('meetings')
+        .from('calendar_events')
         .select('*')
         .eq('created_by', user.id)
+        .in('type', ['meeting', 'reunião'])
         .gte('start_time', new Date().toISOString())
-        .lte('start_time', eventEndDate.toISOString())
+        .lte('start_time', addDays(new Date(), eventFilter).toISOString())
         .order('start_time', { ascending: true })
         .limit(4);
 
@@ -463,25 +470,113 @@ const TeacherDashboard = () => {
           </div>
           <div className="space-y-4">
             {todayEvents.length > 0 ? (
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Eventos</h3>
-                {todayEvents.map((event, index) => (
-                  <div
-                    key={event.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
-                  >
-                    <Clock className="w-4 h-4 text-blue-600" />
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900 dark:text-white">{event.title}</p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        {format(new Date(event.start_time), "HH:mm")}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                {todayEvents.map((event, index) => {
+                  const isMeeting = event.type === 'meeting' || event.type === 'reunião';
+                  const isActivity = event.type === 'activity' || event.type === 'atividade';
+                  const isOnline = event.modality === 'online';
+                  const isPresential = event.modality === 'presential';
+                  
+                  const eventIcon = isMeeting ? Video : isActivity ? FileText : Calendar;
+                  const EventIcon = eventIcon;
+                  
+                  return (
+                    <motion.div
+                      key={event.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      onClick={() => {
+                        setSelectedEvent(event);
+                        setShowEventDetailsModal(true);
+                      }}
+                      className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 cursor-pointer transition-all bg-white dark:bg-slate-800 hover:shadow-md"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          isMeeting ? 'bg-purple-100 dark:bg-purple-900/30' :
+                          isActivity ? 'bg-orange-100 dark:bg-orange-900/30' :
+                          'bg-blue-100 dark:bg-blue-900/30'
+                        }`}>
+                          <EventIcon className={`w-5 h-5 ${
+                            isMeeting ? 'text-purple-600' :
+                            isActivity ? 'text-orange-600' :
+                            'text-blue-600'
+                          }`} />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <h4 className="font-semibold text-slate-900 dark:text-white">
+                              {event.title}
+                            </h4>
+                            <Badge className={`whitespace-nowrap ${
+                              isMeeting ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' :
+                              isActivity ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
+                              'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                            }`}>
+                              {isMeeting ? '📹 Reunião' : isActivity ? '📝 Atividade' : '📅 Evento'}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 mb-2">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              {format(new Date(event.start_time), "HH:mm")}
+                            </span>
+                            
+                            {isMeeting && isOnline && event.meeting_link && (
+                              <a
+                                href={event.meeting_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline"
+                              >
+                                <Video className="w-4 h-4" />
+                                Entrar na reunião
+                              </a>
+                            )}
+                            
+                            {isMeeting && isPresential && event.location && (
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {event.location}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {event.description && (
+                            <p className="text-xs text-slate-500 dark:text-slate-500 line-clamp-1">
+                              {event.description}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {isActivity && event.activity_id && (
+                          <Button 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActivityToPost({ id: event.activity_id, title: event.title });
+                              setShowPostModal(true);
+                            }}
+                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
+                          >
+                            Postar
+                          </Button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             ) : (
-              <p className="text-sm text-slate-600 dark:text-slate-400">Nenhum evento hoje</p>
+              <EmptyState
+                icon={Calendar}
+                title="Nenhum evento hoje"
+                description="Sua agenda está livre hoje."
+              />
             )}
 
             {scheduledActivities.length > 0 && (
@@ -502,9 +597,12 @@ const TeacherDashboard = () => {
                     <Button 
                       size="sm" 
                       className="bg-gradient-to-r from-blue-600 to-cyan-600"
-                      onClick={() => navigate(`/dashboard/activities/${activity.id}`)}
+                      onClick={() => {
+                        setActivityToPost(activity);
+                        setShowPostModal(true);
+                      }}
                     >
-                      Publicar
+                      Postar
                     </Button>
                   </div>
                 ))}
@@ -775,6 +873,43 @@ const TeacherDashboard = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Modal para Postar Atividade */}
+      <PostActivityModal
+        open={showPostModal}
+        onClose={() => {
+          setShowPostModal(false);
+          setActivityToPost(null);
+        }}
+        activity={activityToPost}
+        onSuccess={(assignment) => {
+          console.log('✅ Atividade postada:', assignment);
+          loadDashboardData(); // Recarregar dados
+        }}
+      />
+
+      {/* Modal de Detalhes do Evento */}
+      {showEventDetailsModal && selectedEvent && (
+        <EventDetailsModal
+          isOpen={showEventDetailsModal}
+          onClose={() => {
+            setShowEventDetailsModal(false);
+            setSelectedEvent(null);
+          }}
+          event={selectedEvent}
+          onEdit={() => {
+            // Navegar para editar evento
+            navigate('/dashboard/calendar');
+          }}
+          onDelete={async () => {
+            // Deletar evento e recarregar
+            await supabase.from('calendar_events').delete().eq('id', selectedEvent.id);
+            setShowEventDetailsModal(false);
+            setSelectedEvent(null);
+            loadDashboardData();
+          }}
+        />
+      )}
     </div>
   );
 };
