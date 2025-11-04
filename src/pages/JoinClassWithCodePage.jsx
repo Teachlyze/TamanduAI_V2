@@ -46,6 +46,8 @@ const JoinClassWithCodePage = () => {
       }
 
       // Buscar turma
+      logger.debug('[JoinClass] Buscando turma com código:', normalizedCode);
+      
       const { data: classInfo, error: classError } = await supabase
         .from('classes')
         .select(`
@@ -63,7 +65,19 @@ const JoinClassWithCodePage = () => {
         .eq('is_active', true)
         .single();
 
-      if (classError || !classInfo) {
+      logger.debug('[JoinClass] Resultado da busca:', { classInfo, classError });
+
+      if (classError) {
+        if (classError.code === 'PGRST116') {
+          setError('Turma não encontrada. Verifique o código e tente novamente.');
+        } else {
+          logger.error('[JoinClass] Erro ao buscar turma:', classError);
+          setError(`Erro ao buscar turma: ${classError.message}`);
+        }
+        return;
+      }
+
+      if (!classInfo) {
         setError('Turma não encontrada. Verifique o código e tente novamente.');
         return;
       }
@@ -80,7 +94,7 @@ const JoinClassWithCodePage = () => {
         setError('Você já é membro desta turma');
         setTimeout(() => {
           if (profile.role === 'student') {
-            navigate(`/student/classes/${classInfo.id}`);
+            navigate(`/students/classes/${classInfo.id}`);
           } else {
             navigate(`/dashboard/classes/${classInfo.id}`);
           }
@@ -119,7 +133,7 @@ const JoinClassWithCodePage = () => {
 
       setTimeout(() => {
         if (profile.role === 'student') {
-          navigate(`/student/classes/${classData.id}`);
+          navigate(`/students/classes/${classData.id}`);
         } else {
           navigate(`/dashboard/classes/${classData.id}`);
         }

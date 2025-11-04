@@ -19,6 +19,7 @@ import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import reportService from '@/services/reportService';
 import ReportViewer from './components/ReportViewer';
+import { cacheService } from '@/shared/services/cacheService';
 
 const REPORT_TEMPLATES = [
   {
@@ -141,8 +142,35 @@ const TeacherReportsPage = () => {
   }, [user]);
 
   const loadRecentReports = async () => {
-    // Placeholder - implementar histórico de relatórios
-    setRecentReports([]);
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('report_history')
+        .select(`
+          id,
+          template_id,
+          template_name,
+          filter_type,
+          student_id,
+          class_id,
+          activity_id,
+          period,
+          created_at,
+          report_data
+        `)
+        .eq('teacher_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      
+      if (error) throw error;
+      
+      setRecentReports(data || []);
+      console.log(`✅ [Reports] ${data?.length || 0} relatórios carregados do histórico`);
+    } catch (error) {
+      logger.error('Erro ao carregar histórico:', error);
+      setRecentReports([]);
+    }
   };
 
   const loadClassesAndStudents = async () => {
@@ -150,6 +178,21 @@ const TeacherReportsPage = () => {
     
     try {
       setLoadingData(true);
+      
+      // Chave do cache para este professor
+      const cacheKey = `teacher:reports:data:${user.id}:${period}`;
+      
+      // Tentar buscar do cache
+      const cached = await cacheService.get(cacheKey);
+      if (cached) {
+        console.log('✅ [Reports] Dados carregados do cache');
+        setClasses(cached.classes || []);
+        setStudents(cached.students || []);
+        setLoadingData(false);
+        return;
+      }
+      
+      console.log('🔄 [Reports] Buscando dados do banco...');
       
       // Buscar turmas do professor
       const { data: classesData, error: classesError } = await supabase
@@ -192,6 +235,14 @@ const TeacherReportsPage = () => {
       
       setStudents(uniqueStudents);
       
+      // Salvar no cache (TTL: 5 minutos = 300s)
+      await cacheService.set(cacheKey, {
+        classes: classesData || [],
+        students: uniqueStudents
+      }, 300);
+      
+      console.log('💾 [Reports] Dados salvos no cache (TTL: 5min)');
+      
     } catch (error) {
       logger.error('Erro ao carregar dados:', error)
       toast({
@@ -204,33 +255,61 @@ const TeacherReportsPage = () => {
     }
   };
 
+  // Função para determinar se um template deve ser desabilitado baseado nos filtros
+  const isTemplateDisabled = (templateId) => {
+    // Relatório comparativo sempre ativo - compara todas as turmas ativas
+    if (templateId === 'comparative') {
+      return false;
+    }
+    
+    // Se selecionou aluno, desabilitar relatórios de turma
+    if (filterType === 'student' && ['class-report'].includes(templateId)) {
+      return true;
+    }
+    
+    // Se selecionou turma, desabilitar relatórios individuais
+    if (filterType === 'class' && ['individual-student'].includes(templateId)) {
+      return true;
+    }
+    
+    // Se selecionou atividade, apenas permitir relatório de atividade
+    if (selectedActivity && templateId !== 'activity-report') {
+      return true;
+    }
+    
+    return false;
+  };
+
   const handleGenerateReport = async (templateId) => {
-    // Validar filtros obrigatórios
-    if (!filterType) {
-      toast({
-        title: 'Selecione o escopo do relatório',
-        description: 'Escolha se deseja gerar para um aluno, turma ou todos os alunos.',
-        variant: 'destructive'
-      });
-      return;
-    }
+    // Relatório comparativo não precisa de filtros - compara todas as turmas
+    if (templateId !== 'comparative') {
+      // Validar filtros obrigatórios para outros relatórios
+      if (!filterType) {
+        toast({
+          title: 'Selecione o escopo do relatório',
+          description: 'Escolha se deseja gerar para um aluno, turma ou todos os alunos.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
-    if (filterType === 'student' && !selectedStudent) {
-      toast({
-        title: 'Selecione um aluno',
-        description: 'Escolha qual aluno você deseja incluir no relatório.',
-        variant: 'destructive'
-      });
-      return;
-    }
+      if (filterType === 'student' && !selectedStudent) {
+        toast({
+          title: 'Selecione um aluno',
+          description: 'Escolha qual aluno você deseja incluir no relatório.',
+          variant: 'destructive'
+        });
+        return;
+      }
 
-    if (filterType === 'class' && !selectedClass) {
-      toast({
-        title: 'Selecione uma turma',
-        description: 'Escolha qual turma você deseja incluir no relatório.',
-        variant: 'destructive'
-      });
-      return;
+      if (filterType === 'class' && !selectedClass) {
+        toast({
+          title: 'Selecione uma turma',
+          description: 'Escolha qual turma você deseja incluir no relatório.',
+          variant: 'destructive'
+        });
+        return;
+      }
     }
 
     setGeneratingReport(true);
@@ -247,10 +326,14 @@ const TeacherReportsPage = () => {
         description: 'Processando dados... Aguarde.',
       });
 
-      // Ajustar targetId para relatórios que exigem contexto específico
-      if (templateId === 'class-report') {
+      // Ajustar targetId baseado no filterType
+      if (filterType === 'student' && selectedStudent) {
+        targetId = selectedStudent; // Usar ID do aluno selecionado
+      } else if (filterType === 'class' && selectedClass) {
+        targetId = selectedClass; // Usar ID da turma selecionada
+      } else if (templateId === 'class-report') {
+        // Para relatório de turma sem filtro, usar primeira turma
         if (!selectedClass) {
-          // Buscar primeira turma ativa do professor
           const { data: classes } = await supabase
             .from('classes')
             .select('id, is_active')
@@ -266,8 +349,15 @@ const TeacherReportsPage = () => {
         }
       }
 
-      // Gerar relatório com dados reais
-      const report = await reportService.generateReport(templateId, targetId, { period: parseInt(period), includeArchived: false });
+      // Gerar relatório com dados reais e filtros aplicados
+      const report = await reportService.generateReport(templateId, targetId, { 
+        period: parseInt(period), 
+        includeArchived: false,
+        filterType,
+        studentId: selectedStudent,
+        classId: selectedClass,
+        activityId: selectedActivity
+      });
       
       setCurrentReport(report);
       
@@ -276,13 +366,42 @@ const TeacherReportsPage = () => {
         description: `${report.templateName} gerado com sucesso!`,
       });
 
-      // Adicionar ao histórico
+      // Salvar no histórico do banco de dados
+      try {
+        const { error: historyError } = await supabase
+          .from('report_history')
+          .insert({
+            teacher_id: user.id,
+            template_id: templateId,
+            template_name: reportInfo?.name || 'Relatório',
+            filter_type: filterType || null,
+            student_id: selectedStudent || null,
+            class_id: selectedClass || null,
+            activity_id: selectedActivity || null,
+            period: parseInt(period),
+            report_data: report
+          });
+        
+        if (historyError) {
+          logger.error('Erro ao salvar histórico:', historyError);
+        } else {
+          console.log('✅ Relatório salvo no histórico');
+        }
+      } catch (error) {
+        logger.error('Erro ao salvar histórico:', error);
+      }
+
+      // Adicionar ao histórico local
       setRecentReports(prev => [
         {
           id: Date.now(),
           templateId,
+          templateName: reportInfo?.name,
           generatedAt: new Date().toISOString(),
-          cached: false
+          cached: false,
+          filterType,
+          studentId: selectedStudent,
+          classId: selectedClass
         },
         ...prev.slice(0, 9)
       ]);
@@ -546,6 +665,7 @@ const TeacherReportsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {REPORT_TEMPLATES.map((template, index) => {
               const Icon = template.icon;
+              const disabled = isTemplateDisabled(template.id);
               
               return (
                 <motion.div
@@ -555,7 +675,7 @@ const TeacherReportsPage = () => {
                   transition={{ delay: index * 0.1 }}
                   style={{ pointerEvents: 'auto' }}
                 >
-                  <Card className="p-6 h-full flex flex-col hover:shadow-lg transition-shadow relative" style={{ pointerEvents: 'auto' }}>
+                  <Card className={`p-6 h-full flex flex-col hover:shadow-lg transition-shadow relative ${disabled ? 'opacity-50' : ''}`} style={{ pointerEvents: 'auto' }}>
                     {/* Gradient Background */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${template.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
                     
@@ -610,9 +730,18 @@ const TeacherReportsPage = () => {
                       <Button 
                         className={`flex-1 bg-gradient-to-r ${template.color} text-white hover:opacity-90`}
                         onClick={() => {
+                          if (disabled) {
+                            toast({
+                              title: 'Template incompatível',
+                              description: 'Este template não é compatível com os filtros selecionados.',
+                              variant: 'destructive'
+                            });
+                            return;
+                          }
                           logger.debug('Botão Gerar clicado:', template.id)
                           handleGenerateReport(template.id);
                         }}
+                        disabled={disabled}
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Gerar

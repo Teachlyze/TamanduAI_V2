@@ -1,1 +1,0 @@
-import{n as i,a as m}from"./isSameMonth-iICNHCxz.js";import{c as d}from"./en-US-Bd7_-tVp.js";function h(s,a){const{start:t,end:n}=i(a?.in,s);let r=+t>+n;const c=r?+t:+n,e=r?n:t;e.setHours(0,0,0,0);let u=1;const o=[];for(;+e<=c;)o.push(d(t,e)),e.setDate(e.getDate()+u),e.setHours(0,0,0,0);return r?o.reverse():o}function p(s,a,t){return m(s,-1,t)}export{h as e,p as s};

@@ -65,7 +65,16 @@ const ClassDetailsPage = () => {
         .eq('id', classId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Erro ao buscar turma:', error);
+        throw error;
+      }
+
+      if (!classInfo) {
+        logger.error('Turma não encontrada:', classId);
+        throw new Error('Turma não encontrada');
+      }
+
       setClassData(classInfo);
 
       // Contar alunos
@@ -78,12 +87,13 @@ const ClassDetailsPage = () => {
       setStudentCount(count || 0);
 
     } catch (error) {
-      logger.error('Erro ao carregar turma:', error)
+      logger.error('Erro ao carregar turma:', error);
       toast({
         title: 'Erro ao carregar turma',
-        description: 'Não foi possível carregar os dados da turma.',
+        description: error.message || 'Não foi possível carregar os dados da turma.',
         variant: 'destructive'
       });
+      navigate('/dashboard/classes');
     } finally {
       setLoading(false);
     }

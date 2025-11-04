@@ -7,8 +7,10 @@ import { Button } from '@/shared/components/ui/button';
 import { ScrollArea } from '@/shared/components/ui/scroll-area';
 import { AlertTriangle, Users } from 'lucide-react';
 import { getSubmissionDetails } from '@/shared/services/correctionService';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
+  const { toast } = useToast();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [similarityScore, setSimilarityScore] = useState(null);
@@ -155,7 +157,10 @@ const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
               disabled={similarityScore < 60}
               onClick={() => {
                 // Marcar para revisão ou ação de plágio
-                alert('Funcionalidade de marcar plágio será implementada');
+                toast({ 
+                  title: '🚧 Em desenvolvimento', 
+                  description: 'Funcionalidade de marcar plágio será implementada em breve.' 
+                });
               }}
             >
               Marcar como Suspeita

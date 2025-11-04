@@ -11,10 +11,12 @@ import { DashboardHeader } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ClassService } from '@/shared/services/classService';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const ChatbotConfigPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -36,11 +38,12 @@ const ChatbotConfigPage = () => {
     canExplain: true,
     canGiveExamples: true,
     canAnswerDoubt: true,
-    canGiveHints: false,
-    canShowAnswers: false,
+    canGiveHints: true,  // Mudado: permitir dicas (guiar)
+    canShowAnswers: false,  // NUNCA dar respostas diretas
     availability: '24/7',
     messagesLimit: 10,
-    language: 'pt-BR'
+    language: 'pt-BR',
+    guidingMode: true  // Novo: modo de orientação ativo
   });
 
   useEffect(() => {
@@ -85,23 +88,76 @@ const ChatbotConfigPage = () => {
   };
 
   const handleActivate = async () => {
-    setTraining(true);
-    setTrainingProgress(0);
+    try {
+      setTraining(true);
+      setTrainingProgress(0);
 
-    // Simulate training progress
-    const interval = setInterval(() => {
-      setTrainingProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            alert('Chatbot ativado com sucesso!');
-            navigate(`/dashboard/chatbot/${classId}/analytics`);
-          }, 500);
-          return 100;
+      // 1. Salvar fontes de treinamento (atividades selecionadas)
+      setTrainingProgress(25);
+      for (const activityId of config.selectedActivities) {
+        const activity = activities.find(a => a.id === activityId);
+        if (activity) {
+          await supabase.from('rag_training_sources').upsert({
+            class_id: classId,
+            source_type: 'activity',
+            source_id: activityId,
+            content: activity.description || activity.title,
+            metadata: { title: activity.title, due_date: activity.due_date }
+          });
         }
-        return prev + 10;
+      }
+
+      // 2. Ativar chatbot na tabela classes (settings.chatbot_enabled)
+      setTrainingProgress(50);
+      const { data: currentClass } = await supabase
+        .from('classes')
+        .select('settings')
+        .eq('id', classId)
+        .single();
+
+      await supabase
+        .from('classes')
+        .update({
+          settings: {
+            ...(currentClass?.settings || {}),
+            chatbot_enabled: true,
+            chatbot_paused: false,
+            chatbot_config: config
+          }
+        })
+        .eq('id', classId);
+
+      // 3. Salvar configuração do chatbot
+      setTrainingProgress(75);
+      await supabase.from('chatbot_configurations').upsert({
+        class_id: classId,
+        enabled: true,
+        keywords: [],
+        themes: [],
+        scope_restrictions: [],
+        is_trained: true,
+        last_training: new Date().toISOString(),
+        guiding_mode: config.guidingMode,
+        can_show_answers: config.canShowAnswers
       });
-    }, 300);
+
+      setTrainingProgress(100);
+      setTimeout(() => {
+        toast({
+          title: '✅ Chatbot ativado!',
+          description: 'Seu assistente virtual está pronto para ajudar os alunos.',
+        });
+        navigate(`/dashboard/chatbot/${classId}/analytics`);
+      }, 500);
+    } catch (error) {
+      logger.error('Erro ao ativar chatbot:', error);
+      toast({
+        title: '❌ Erro ao ativar chatbot',
+        description: 'Tente novamente em alguns instantes.',
+        variant: 'destructive'
+      });
+      setTraining(false);
+    }
   };
 
   const avatars = ['🤖', '🎓', '📚', '💡', '🧠', '⭐', '🎯', '🚀'];
@@ -341,13 +397,26 @@ const ChatbotConfigPage = () => {
                   </label>
                   <label className="flex items-center gap-2">
                     <input type="checkbox" checked={config.canGiveHints} onChange={(e) => setConfig(prev => ({ ...prev, canGiveHints: e.target.checked }))} />
-                    <span>Dar dicas sobre as questões</span>
+                    <span>Dar dicas sobre as questões (RECOMENDADO)</span>
                   </label>
-                  <label className="flex items-center gap-2">
-                    <input type="checkbox" checked={config.canShowAnswers} onChange={(e) => setConfig(prev => ({ ...prev, canShowAnswers: e.target.checked }))} />
-                    <span>Mostrar respostas corretas</span>
+                  <label className="flex items-center gap-2 opacity-50 cursor-not-allowed" title="Desabilitado: O chatbot deve guiar o aluno, não dar respostas diretas">
+                    <input type="checkbox" checked={config.canShowAnswers} disabled />
+                    <span className="line-through">Mostrar respostas corretas (desabilitado)</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg mb-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200 font-semibold mb-2">
+                  🎯 Modo de Orientação Ativo
+                </p>
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  O chatbot irá GUIAR o aluno a chegar na resposta através de:
+                  <br />• Perguntas que estimulam o raciocínio
+                  <br />• Dicas progressivas (se habilitado)
+                  <br />• Exemplos similares para analogias
+                  <br />• Explicações de conceitos fundamentais
+                </p>
               </div>
 
               <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg">
@@ -356,6 +425,7 @@ const ChatbotConfigPage = () => {
                   <br />• Fazer as atividades pelo aluno
                   <br />• Dar respostas diretas
                   <br />• Substituir o professor
+                  <br />• Resolver exercícios completos
                 </p>
               </div>
 

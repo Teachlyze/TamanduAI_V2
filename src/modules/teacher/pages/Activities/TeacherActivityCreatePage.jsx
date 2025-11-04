@@ -13,6 +13,7 @@ import { Label } from '@/shared/components/ui/label';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Badge } from '@/shared/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -33,6 +34,7 @@ import AdvancedSettings from './components/AdvancedSettings';
 import ActivityPreview from './components/ActivityPreview';
 import ValidationChecklist from './components/ValidationChecklist';
 import useActivityFiles from '@/shared/hooks/useActivityFiles';
+import { mapFrontendTypeToDatabase, mapDatabaseTypeToFrontend, isValidDatabaseType } from '@/constants/activityTypes';
 
 const TeacherActivityCreatePage = () => {
   const navigate = useNavigate();
@@ -87,6 +89,7 @@ const TeacherActivityCreatePage = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [validationErrors, setValidationErrors] = useState([]);
   const [validationWarnings, setValidationWarnings] = useState([]);
+  const [showWarningModal, setShowWarningModal] = useState(false);
 
   // Upload de arquivos (usa drafts quando não há id ainda)
   const {
@@ -125,22 +128,37 @@ const TeacherActivityCreatePage = () => {
       if (importedData) {
         const data = JSON.parse(importedData);
         
+        // Definir tipo de atividade (mixed por padrão para importadas)
+        // Inferir tipo a partir das questões importadas, se houver
+        let inferredType = data.activityType || null;
+        if (!inferredType && Array.isArray(data.questions) && data.questions.length > 0) {
+          const hasClosed = data.questions.some(q => q.type === 'closed');
+          const hasOpen = data.questions.some(q => q.type === 'open');
+          if (hasClosed && hasOpen) inferredType = 'mixed';
+          else if (hasClosed) inferredType = 'quiz';
+          else if (hasOpen) inferredType = 'open';
+        }
+        setActivityType(inferredType || 'mixed');
+        
         // Preencher campos com dados importados
         setTitle(data.title || '');
         setDescription(data.description || '');
         
-        // Determinar tipo de atividade baseado no conteúdo
-        // Por padrão, usar 'open' (questões abertas) para conteúdo importado
-        setActivityType('open');
-        
-        // Criar uma questão aberta inicial com o conteúdo importado
-        if (data.content) {
+        // Popular questões importadas quando existirem; caso contrário, criar questão aberta com o texto
+        if (Array.isArray(data.questions) && data.questions.length > 0) {
+          setQuestions(data.questions);
+        } else if (data.content) {
           setQuestions([{
             id: Date.now().toString(),
             type: 'open',
-            prompt: data.content,
-            maxScore: 10,
-            rubric: ''
+            text: data.content,
+            points: 10,
+            maxLines: null,
+            maxCharacters: null,
+            image: null,
+            attachments: [],
+            rubric: [],
+            expectedAnswer: ''
           }]);
         }
         
@@ -171,8 +189,16 @@ const TeacherActivityCreatePage = () => {
 
       if (error) throw error;
 
+      // Converter tipo do banco para frontend
+      const frontendType = mapDatabaseTypeToFrontend(data.type);
+      
+      logger.debug('[Activity Load] Convertendo tipo:', { 
+        databaseType: data.type, 
+        frontendType 
+      });
+
       // Preencher estados com dados carregados
-      setActivityType(data.type);
+      setActivityType(frontendType);
       setTitle(data.title);
       setDescription(data.description || '');
       setSubject(data.content?.subject || '');
@@ -208,10 +234,13 @@ const TeacherActivityCreatePage = () => {
     if (!title || !activityType) return;
 
     try {
+      // Mapear tipo do frontend para o banco
+      const databaseType = mapFrontendTypeToDatabase(activityType);
+
       const activityData = {
         title,
         description,
-        type: activityType,
+        type: databaseType,  // CORREÇÃO: usa tipo mapeado
         max_score: maxScore,
         status: 'draft',
         content: {
@@ -331,10 +360,18 @@ const TeacherActivityCreatePage = () => {
     try {
       setSaving(true);
 
+      // Mapear tipo do frontend para o banco
+      const databaseType = mapFrontendTypeToDatabase(activityType);
+      
+      logger.debug('[Activity Draft] Mapeando tipo:', { 
+        frontendType: activityType, 
+        databaseType 
+      });
+
       const activityData = {
         title: title.trim(),
         description: description?.trim() || '',
-        type: activityType,
+        type: databaseType,  // CORREÇÃO: usa tipo mapeado
         max_score: maxScore,
         status: 'draft',
         content: {
@@ -413,19 +450,33 @@ const TeacherActivityCreatePage = () => {
     // Verificar avisos
     if (validationWarnings.length > 0) {
       // Mostrar modal de confirmação
-      const confirmed = window.confirm(
-        `Há ${validationWarnings.length} aviso(s). Deseja publicar mesmo assim?`
-      );
-      if (!confirmed) return;
+      setShowWarningModal(true);
+      return;
     }
 
+    // Se não há avisos, publicar diretamente
+    await confirmPublish();
+  };
+
+  const confirmPublish = async () => {
+    setShowWarningModal(false);
+    
     try {
       setSaving(true);
+
+      // Mapear tipo do frontend para o banco
+      const databaseType = mapFrontendTypeToDatabase(activityType);
+      
+      logger.debug('[Activity Create] Mapeando tipo:', { 
+        frontendType: activityType, 
+        databaseType,
+        isValid: isValidDatabaseType(databaseType)
+      });
 
       let activityData = {
         title,
         description,
-        type: activityType,
+        type: databaseType,  // CORREÇÃO: usa tipo mapeado
         max_score: maxScore,
         status: 'published',
         is_published: true,
@@ -874,6 +925,45 @@ const TeacherActivityCreatePage = () => {
           onClose={() => setShowPreview(false)}
         />
       )}
+
+      {/* Modal de Confirmação com Avisos */}
+      <Dialog open={showWarningModal} onOpenChange={setShowWarningModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-6 h-6 text-orange-600" />
+              Avisos Detectados
+            </DialogTitle>
+            <DialogDescription>
+              Há {validationWarnings.length} aviso(s) na atividade. Deseja publicar mesmo assim?
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4">
+            <div className="space-y-2">
+              {validationWarnings.map((warning, index) => (
+                <div key={index} className="p-3 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                  <p className="text-sm text-orange-700 dark:text-orange-300">
+                    ⚠️ {warning.message}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWarningModal(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmPublish}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Publicar Mesmo Assim
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

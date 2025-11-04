@@ -7,9 +7,11 @@ import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { User, Mail, Phone, Calendar, Save, Bell, Moon, Sun } from 'lucide-react';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const StudentSettingsPage = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
@@ -75,10 +77,10 @@ const StudentSettingsPage = () => {
 
       if (error) throw error;
 
-      alert('Perfil atualizado com sucesso!');
+      toast({ title: '✅ Perfil atualizado!', description: 'Suas informações foram salvas com sucesso.' });
     } catch (error) {
       logger.error('Error saving profile:', error)
-      alert('Erro ao salvar perfil. Tente novamente.');
+      toast({ title: '❌ Erro ao salvar', description: 'Tente novamente em alguns instantes.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }

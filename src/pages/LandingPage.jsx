@@ -138,9 +138,10 @@ export default function LandingPage() {
               </motion.span>
               <nav className="hidden md:flex space-x-6 ml-6">
                 <a href="#features" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Recursos</a>
-                <a href="/pricing" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Preços</a>
+                <Link to="/pricing" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Preços</Link>
                 <a href="#testimonials" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Depoimentos</a>
                 <Link to="/docs" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Docs</Link>
+                <Link to="/contact" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Contato</Link>
               </nav>
             </div>
             <div className="flex items-center space-x-3">

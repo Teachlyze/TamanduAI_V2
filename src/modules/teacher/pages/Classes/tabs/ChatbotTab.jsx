@@ -39,23 +39,31 @@ const ChatbotTab = ({ classId, classData }) => {
   useEffect(() => {
     loadChatbotData();
     
-    // TEMPORÁRIO: Carregar do localStorage
-    const savedState = localStorage.getItem(`chatbot_enabled_${classId}`);
-    if (savedState !== null) {
-      const chatbotEnabled = JSON.parse(savedState);
-      setEnabled(chatbotEnabled);
-      logger.debug('🤖 Estado inicial do chatbot (localStorage):', chatbotEnabled);
-    }
-    
-    // TODO: Depois de rodar SQL, carregar do banco:
-    /*
-    if (classData?.settings) {
-      const chatbotEnabled = classData.settings.chatbot_enabled || false;
-      setEnabled(chatbotEnabled);
-      logger.debug('🤖 Estado inicial do chatbot:', chatbotEnabled)
-    }
-    */
-  }, [classId]);
+    // Carregar estado do banco (sincronizado com outras páginas)
+    const loadChatbotStatus = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('classes')
+          .select('settings')
+          .eq('id', classId)
+          .single();
+
+        if (error) throw error;
+
+        const chatbotEnabled = data?.settings?.chatbot_enabled || false;
+        const chatbotPaused = data?.settings?.chatbot_paused || false;
+        
+        // Se está habilitado mas pausado, mostrar como desabilitado
+        setEnabled(chatbotEnabled && !chatbotPaused);
+        
+        logger.debug('🤖 Estado do chatbot carregado:', { enabled: chatbotEnabled, paused: chatbotPaused });
+      } catch (error) {
+        logger.error('Erro ao carregar estado do chatbot:', error);
+      }
+    };
+
+    loadChatbotStatus();
+  }, [classId, classData]);
 
   const loadChatbotData = async () => {
     try {
@@ -102,8 +110,28 @@ const ChatbotTab = ({ classId, classData }) => {
     setEnabled(newState);
     
     try {
-      // Salvar em localStorage (solução temporária mais confiável)
-      localStorage.setItem(`chatbot_enabled_${classId}`, JSON.stringify(newState));
+      // Buscar configuração atual do chatbot
+      const { data: currentClass } = await supabase
+        .from('classes')
+        .select('settings')
+        .eq('id', classId)
+        .single();
+
+      // Salvar no banco mantendo outras configurações
+      const { error } = await supabase
+        .from('classes')
+        .update({ 
+          settings: { 
+            ...(currentClass?.settings || {}),
+            chatbot_enabled: newState,
+            chatbot_paused: !newState  // Se desativar, marcar como pausado
+          }
+        })
+        .eq('id', classId);
+
+      if (error) {
+        throw error;
+      }
 
       toast({
         title: newState ? '✅ Chatbot Ativado' : '⏸️ Chatbot Desativado',
@@ -112,28 +140,14 @@ const ChatbotTab = ({ classId, classData }) => {
           : 'O assistente virtual foi desativado.'
       });
 
-      // Tentar salvar no banco também (se settings existir)
-      try {
-        const { error } = await supabase
-          .from('classes')
-          .update({ 
-            settings: { chatbot_enabled: newState }
-          })
-          .eq('id', classId);
-
-        if (error && !error.message.includes('settings')) {
-          logger.warn('Erro ao salvar no banco (usando localStorage):', error);
-        }
-      } catch (dbError) {
-        logger.warn('Banco não suporta settings ainda, usando localStorage:', dbError)
-      }
+      logger.debug('🤖 Estado do chatbot salvo:', { enabled: newState });
 
     } catch (error) {
-      logger.error('Erro ao salvar configuração:', error)
-      setEnabled(!newState);
+      logger.error('Erro ao salvar configuração:', error);
+      setEnabled(!newState);  // Reverter UI
       toast({
         title: 'Erro ao salvar',
-        description: 'Não foi possível salvar a configuração',
+        description: 'Não foi possível salvar a configuração. Tente novamente.',
         variant: 'destructive'
       });
     }

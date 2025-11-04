@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Clock, Pin, Heart, ThumbsUp, Sparkles, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { MessageSquare, Clock, Pin, Heart, ThumbsUp, Sparkles, Send, ChevronDown, ChevronUp, Eye, Image as ImageIcon, Video, FileText } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
@@ -14,138 +14,153 @@ import { useToast } from '@/shared/components/ui/use-toast';
 const FeedTab = ({ posts, loading }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [reactions, setReactions] = useState({});
+  const [likes, setLikes] = useState({});
   const [comments, setComments] = useState({});
+  const [views, setViews] = useState({});
   const [newComment, setNewComment] = useState({});
   const [showComments, setShowComments] = useState({});
   const [loadingComments, setLoadingComments] = useState({});
+  const [showMedia, setShowMedia] = useState({});
 
-  // Carregar reações e comentários
+  // Carregar likes, comentários e views
   useEffect(() => {
     if (posts?.length > 0) {
-      loadReactionsAndComments();
+      loadLikesCommentsAndViews();
     }
-  }, [posts]);
+  }, [posts, user]);
 
-  const loadReactionsAndComments = async () => {
-    if (!posts) return;
+  const loadLikesCommentsAndViews = async () => {
+    if (!posts || !user) return;
 
-    const discussionIds = posts.map(p => p.id);
+    const postIds = posts.map(p => p.id);
 
-    // Carregar reações
-    const { data: reactionsData } = await supabase
-      .from('discussion_reactions')
-      .select('discussion_id, reaction_type, user_id')
-      .in('discussion_id', discussionIds);
+    // Carregar likes
+    const { data: likesData } = await supabase
+      .from('post_likes')
+      .select('post_id, user_id')
+      .in('post_id', postIds);
 
-    // Organizar reações por discussão
-    const reactionsMap = {};
-    reactionsData?.forEach(r => {
-      if (!reactionsMap[r.discussion_id]) {
-        reactionsMap[r.discussion_id] = { like: [], love: [], celebrate: [] };
+    // Organizar likes por post
+    const likesMap = {};
+    likesData?.forEach(l => {
+      if (!likesMap[l.post_id]) {
+        likesMap[l.post_id] = [];
       }
-      if (reactionsMap[r.discussion_id][r.reaction_type]) {
-        reactionsMap[r.discussion_id][r.reaction_type].push(r.user_id);
-      }
+      likesMap[l.post_id].push(l.user_id);
     });
-    setReactions(reactionsMap);
+    setLikes(likesMap);
 
     // Carregar comentários
     const { data: commentsData } = await supabase
-      .from('discussion_messages')
+      .from('post_comments')
       .select(`
         id,
-        discussion_id,
+        post_id,
         content,
         created_at,
-        user_id,
-        profiles!discussion_messages_user_id_fkey (
+        author_id,
+        profiles!post_comments_author_id_fkey (
           id,
           full_name,
           avatar_url
         )
       `)
-      .in('discussion_id', discussionIds)
-      .eq('is_deleted', false)
+      .in('post_id', postIds)
+      .is('parent_comment_id', null)
       .order('created_at', { ascending: true });
 
-    // Organizar comentários por discussão
+    // Organizar comentários por post
     const commentsMap = {};
     commentsData?.forEach(c => {
-      if (!commentsMap[c.discussion_id]) {
-        commentsMap[c.discussion_id] = [];
+      if (!commentsMap[c.post_id]) {
+        commentsMap[c.post_id] = [];
       }
-      commentsMap[c.discussion_id].push(c);
+      commentsMap[c.post_id].push(c);
     });
     setComments(commentsMap);
-  };
 
-  const handleReaction = async (discussionId, reactionType) => {
-    if (!user) return;
+    // Carregar visualizações
+    const { data: viewsData } = await supabase
+      .from('post_views')
+      .select('post_id, user_id')
+      .in('post_id', postIds);
 
-    const postReactions = reactions[discussionId] || { like: [], love: [], celebrate: [] };
-    const hasReacted = postReactions[reactionType]?.includes(user.id);
-
-    if (hasReacted) {
-      // Remover reação
-      const { error } = await supabase
-        .from('discussion_reactions')
-        .delete()
-        .eq('discussion_id', discussionId)
-        .eq('user_id', user.id)
-        .eq('reaction_type', reactionType);
-
-      if (!error) {
-        setReactions(prev => {
-          const currentReactions = prev[discussionId] || { like: [], love: [], celebrate: [] };
-          return {
-            ...prev,
-            [discussionId]: {
-              ...currentReactions,
-              [reactionType]: (currentReactions[reactionType] || []).filter(id => id !== user.id)
-            }
-          };
-        });
+    // Organizar views por post
+    const viewsMap = {};
+    viewsData?.forEach(v => {
+      if (!viewsMap[v.post_id]) {
+        viewsMap[v.post_id] = [];
       }
-    } else {
-      // Adicionar reação
-      const { error } = await supabase
-        .from('discussion_reactions')
-        .insert({ discussion_id: discussionId, user_id: user.id, reaction_type: reactionType });
+      viewsMap[v.post_id].push(v.user_id);
+    });
+    setViews(viewsMap);
 
-      if (!error) {
-        setReactions(prev => {
-          const currentReactions = prev[discussionId] || { like: [], love: [], celebrate: [] };
-          return {
-            ...prev,
-            [discussionId]: {
-              ...currentReactions,
-              [reactionType]: [...(currentReactions[reactionType] || []), user.id]
-            }
-          };
-        });
-        toast({ title: 'Reação adicionada!', duration: 2000 });
+    // Registrar visualização dos posts se ainda não foi registrada
+    for (const postId of postIds) {
+      const hasViewed = viewsData?.some(v => v.post_id === postId && v.user_id === user.id);
+      if (!hasViewed) {
+        await supabase
+          .from('post_views')
+          .insert({ post_id: postId, user_id: user.id })
+          .select()
+          .maybeSingle();
       }
     }
   };
 
-  const handleAddComment = async (discussionId) => {
-    if (!user || !newComment[discussionId]?.trim()) return;
+  const handleLike = async (postId) => {
+    if (!user) return;
+
+    const postLikes = likes[postId] || [];
+    const hasLiked = postLikes.includes(user.id);
+
+    if (hasLiked) {
+      // Remover like
+      const { error } = await supabase
+        .from('post_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user.id);
+
+      if (!error) {
+        setLikes(prev => ({
+          ...prev,
+          [postId]: (prev[postId] || []).filter(id => id !== user.id)
+        }));
+      }
+    } else {
+      // Adicionar like
+      const { error } = await supabase
+        .from('post_likes')
+        .insert({ post_id: postId, user_id: user.id });
+
+      if (!error) {
+        setLikes(prev => ({
+          ...prev,
+          [postId]: [...(prev[postId] || []), user.id]
+        }));
+        toast({ title: '👍 Curtida adicionada!', duration: 2000 });
+      }
+    }
+  };
+
+  const handleAddComment = async (postId) => {
+    if (!user || !newComment[postId]?.trim()) return;
 
     const { data, error } = await supabase
-      .from('discussion_messages')
+      .from('post_comments')
       .insert({
-        discussion_id: discussionId,
-        user_id: user.id,
-        content: newComment[discussionId].trim()
+        post_id: postId,
+        author_id: user.id,
+        content: newComment[postId].trim()
       })
       .select(`
         id,
-        discussion_id,
+        post_id,
         content,
         created_at,
-        user_id,
-        profiles!discussion_messages_user_id_fkey (
+        author_id,
+        profiles!post_comments_author_id_fkey (
           id,
           full_name,
           avatar_url
@@ -156,17 +171,26 @@ const FeedTab = ({ posts, loading }) => {
     if (!error && data) {
       setComments(prev => ({
         ...prev,
-        [discussionId]: [...(prev[discussionId] || []), data]
+        [postId]: [...(prev[postId] || []), data]
       }));
-      setNewComment(prev => ({ ...prev, [discussionId]: '' }));
-      toast({ title: 'Comentário adicionado!', duration: 2000 });
+      setNewComment(prev => ({ ...prev, [postId]: '' }));
+      toast({ title: '💬 Comentário adicionado!', duration: 2000 });
     } else {
-      toast({ title: 'Erro ao adicionar comentário', variant: 'destructive' });
+      console.error('Erro ao adicionar comentário:', error);
+      toast({ title: 'Erro ao adicionar comentário', description: error?.message || 'Tente novamente', variant: 'destructive' });
     }
   };
 
-  const toggleComments = (discussionId) => {
-    setShowComments(prev => ({ ...prev, [discussionId]: !prev[discussionId] }));
+  const toggleComments = (postId) => {
+    setShowComments(prev => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
+  const getMediaType = (fileUrl) => {
+    if (!fileUrl) return null;
+    const ext = fileUrl.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
+    if (['mp4', 'webm', 'ogg'].includes(ext)) return 'video';
+    return 'file';
   };
 
   if (loading) {
@@ -259,67 +283,77 @@ const FeedTab = ({ posts, loading }) => {
                   </div>
                 )}
 
-                {/* Arquivo anexo */}
-                {post.file_url && (
-                  <a
-                    href={post.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    📎 Ver anexo
-                  </a>
-                )}
+                {/* Mídia (Imagem/Vídeo/Arquivo) */}
+                {post.file_url && (() => {
+                  const mediaType = getMediaType(post.file_url);
+                  if (mediaType === 'image') {
+                    return (
+                      <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <img 
+                          src={post.file_url} 
+                          alt={post.title}
+                          className="w-full h-auto max-h-[500px] object-contain bg-slate-50 dark:bg-slate-900"
+                          loading="lazy"
+                        />
+                      </div>
+                    );
+                  } else if (mediaType === 'video') {
+                    return (
+                      <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                        <video 
+                          controls 
+                          className="w-full h-auto max-h-[500px] bg-slate-900"
+                          preload="metadata"
+                        >
+                          <source src={post.file_url} />
+                          Seu navegador não suporta o elemento de vídeo.
+                        </video>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <a
+                        href={post.file_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Ver anexo
+                      </a>
+                    );
+                  }
+                })()}
 
-                {/* Reações e Comentários */}
+                {/* Likes, Views e Comentários */}
                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                  {/* Botões de Reação */}
+                  {/* Botões de Ação */}
                   <div className="flex items-center gap-2 flex-wrap">
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleReaction(post.id, 'like')}
+                      onClick={() => handleLike(post.id)}
                       className={`gap-1.5 ${
-                        reactions[post.id]?.like?.includes(user?.id)
+                        likes[post.id]?.includes(user?.id)
                           ? 'text-blue-600 bg-blue-50 dark:bg-blue-950/30'
                           : 'text-slate-600 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30'
                       }`}
                     >
                       <ThumbsUp className="w-4 h-4" />
                       <span className="text-xs font-medium">
-                        {reactions[post.id]?.like?.length || 0}
+                        {likes[post.id]?.length || 0}
                       </span>
                     </Button>
 
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleReaction(post.id, 'love')}
-                      className={`gap-1.5 ${
-                        reactions[post.id]?.love?.includes(user?.id)
-                          ? 'text-red-600 bg-red-50 dark:bg-red-950/30'
-                          : 'text-slate-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30'
-                      }`}
+                      className="gap-1.5 text-slate-600"
+                      disabled
                     >
-                      <Heart className="w-4 h-4" />
+                      <Eye className="w-4 h-4" />
                       <span className="text-xs font-medium">
-                        {reactions[post.id]?.love?.length || 0}
-                      </span>
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleReaction(post.id, 'celebrate')}
-                      className={`gap-1.5 ${
-                        reactions[post.id]?.celebrate?.includes(user?.id)
-                          ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-950/30'
-                          : 'text-slate-600 hover:text-yellow-600 hover:bg-yellow-50 dark:hover:bg-yellow-950/30'
-                      }`}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      <span className="text-xs font-medium">
-                        {reactions[post.id]?.celebrate?.length || 0}
+                        {views[post.id]?.length || 0} visualizações
                       </span>
                     </Button>
 

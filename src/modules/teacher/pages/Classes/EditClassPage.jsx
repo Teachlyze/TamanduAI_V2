@@ -13,10 +13,12 @@ import {
 } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { ClassService } from '@/shared/services/classService';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const EditClassPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,11 +56,11 @@ const EditClassPage = () => {
     try {
       setSaving(true);
       await ClassService.updateClass(classId, formData);
-      alert('Turma atualizada com sucesso!');
+      toast({ title: '✅ Turma atualizada!', description: 'As alterações foram salvas com sucesso.' });
       navigate(`/dashboard/classes/${classId}`);
     } catch (error) {
       logger.error('Erro ao salvar:', error)
-      alert('Erro ao salvar. Tente novamente.');
+      toast({ title: '❌ Erro ao salvar', description: 'Tente novamente em alguns instantes.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -69,11 +71,11 @@ const EditClassPage = () => {
     
     try {
       await ClassService.archiveClass(classId);
-      alert('Turma arquivada!');
+      toast({ title: '📦 Turma arquivada', description: 'A turma foi movida para arquivados.' });
       navigate('/dashboard/classes');
     } catch (error) {
       logger.error('Erro ao arquivar:', error)
-      alert('Erro ao arquivar. Tente novamente.');
+      toast({ title: '❌ Erro ao arquivar', description: 'Tente novamente.', variant: 'destructive' });
     }
   };
 
@@ -82,11 +84,11 @@ const EditClassPage = () => {
     
     try {
       await ClassService.deleteClass(classId);
-      alert('Turma deletada!');
+      toast({ title: '🗑️ Turma deletada', description: 'A turma foi removida permanentemente.' });
       navigate('/dashboard/classes');
     } catch (error) {
       logger.error('Erro ao deletar:', error)
-      alert('Erro ao deletar. Tente novamente.');
+      toast({ title: '❌ Erro ao deletar', description: 'Tente novamente.', variant: 'destructive' });
     }
   };
 
@@ -94,10 +96,10 @@ const EditClassPage = () => {
     try {
       const newCode = await ClassService.generateInviteCode(classId);
       setClassData(prev => ({ ...prev, invite_code: newCode }));
-      alert('Novo código gerado!');
+      toast({ title: '🔑 Novo código gerado!', description: 'O código anterior foi invalidado.' });
     } catch (error) {
       logger.error('Erro:', error)
-      alert('Erro ao gerar código.');
+      toast({ title: '❌ Erro ao gerar código', description: 'Tente novamente.', variant: 'destructive' });
     }
   };
 

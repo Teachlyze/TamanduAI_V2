@@ -1,0 +1,19 @@
+# Diretório de ícones PWA
+# Gere os ícones usando uma das opções abaixo:
+
+# OPÇÃO 1 - Online (Recomendado):
+# https://realfavicongenerator.net/
+
+# OPÇÃO 2 - CLI:
+# npm install -g pwa-asset-generator
+# pwa-asset-generator public/logo.svg public/icons --icon-only --favicon --type png
+
+# Tamanhos necessários:
+# - icon-72x72.png
+# - icon-96x96.png
+# - icon-128x128.png
+# - icon-144x144.png
+# - icon-152x152.png
+# - icon-192x192.png
+# - icon-384x384.png
+# - icon-512x512.png

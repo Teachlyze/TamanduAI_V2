@@ -84,14 +84,14 @@ const OpenQuestions = ({ questions, setQuestions, maxScore }) => {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold">Questões Abertas (Dissertativas)</h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <div className="text-sm text-gray-600 mt-1">
               {questions.length} questão(ões) • Total: {totalPoints.toFixed(1)} pontos
               {maxScore && Math.abs(totalPoints - maxScore) > 0.1 && (
                 <Badge variant="destructive" className="ml-2">
                   Meta: {maxScore} pontos
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
           <Button onClick={addQuestion}>
             <Plus className="w-4 h-4 mr-2" />

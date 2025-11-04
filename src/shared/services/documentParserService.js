@@ -2,10 +2,11 @@ import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
 import mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 
-// Configure PDF.js worker
+// Configure PDF.js worker (use local bundled worker, not CDN)
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
 /**
@@ -84,7 +85,8 @@ export const DocumentParserService = {
         .from('documents')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: false,
+          contentType: file.type || undefined
         });
       
       if (error) throw error;
@@ -97,7 +99,8 @@ export const DocumentParserService = {
       return publicUrl;
     } catch (error) {
       logger.error('Error uploading document:', error)
-      throw new Error('Erro ao fazer upload do arquivo');
+      // Não tornar upload bloqueante para o parsing – apenas retorne null
+      return null;
     }
   },
 
@@ -118,8 +121,15 @@ export const DocumentParserService = {
       throw new Error('Formato de arquivo não suportado. Use DOCX ou PDF.');
     }
     
-    // Upload original file
-    const fileUrl = await this.uploadDocument(file);
+    // Upload original file (não-fatal)
+    let fileUrl = null;
+    try {
+      fileUrl = await this.uploadDocument(file);
+    } catch (e) {
+      // uploadDocument já captura e retorna null, mas por segurança
+      logger.warn('Upload do arquivo original falhou, prosseguindo sem URL pública');
+      fileUrl = null;
+    }
     
     // Try to extract questions from text
     const questions = this.extractQuestions(parsed.text);
@@ -150,35 +160,82 @@ export const DocumentParserService = {
    */
   extractQuestions(text) {
     const questions = [];
-    
-    // Simple regex to find numbered questions
-    const questionPattern = /(\d+)[\.\)]\s*(.+?)(?=\n\d+[\.\)]|\n\n|$)/gs;
-    const matches = [...text.matchAll(questionPattern)];
-    
-    matches.forEach((match, index) => {
-      const questionText = match[2].trim();
-      
-      // Check if it looks like a multiple choice question
-      const hasOptions = /[A-E]\)\s*[^\n]+/i.test(questionText);
-      
-      questions.push({
-        id: `q_${index + 1}`,
-        order: index + 1,
-        question: questionText,
-        type: hasOptions ? 'multiple_choice' : 'short_answer',
-        points: 1,
-        required: true
-      });
+
+    if (!text || !text.trim()) return [];
+
+    // Normalize newlines
+    const normalized = text.replace(/\r\n?/g, '\n');
+
+    // Find question blocks starting with number like "1)" or "1." or "Questão 1:"
+    const blocks = [];
+    const pattern = /(^\s*(?:quest[aã]o\s*)?(\d+)\s*[\)\.:\-]\s*)([\s\S]*?)(?=\n\s*(?:quest[aã]o\s*)?\d+\s*[\)\.:\-]\s|$)/gim;
+    let m;
+    while ((m = pattern.exec(normalized)) !== null) {
+      const body = (m[3] || '').trim();
+      if (body) blocks.push(body);
+    }
+
+    const sourceBlocks = blocks.length > 0 ? blocks : [normalized.trim()];
+
+    sourceBlocks.forEach((block, idx) => {
+      // Split lines for detecting alternatives
+      const lines = block.split(/\n+/).map(l => l.trim()).filter(Boolean);
+      const joined = lines.join('\n');
+
+      // Detect alternatives like "A) ...", "B. ...", "C - ..."
+      const altRegex = /^\s*([A-H])\s*[\)\.\-]\s+(.+)/i;
+      const alternatives = [];
+      for (const line of lines) {
+        const altMatch = line.match(altRegex);
+        if (altMatch) {
+          const letter = altMatch[1].toUpperCase();
+          const altText = altMatch[2].trim();
+          alternatives.push({
+            id: `${Date.now()}_${idx}_${letter}`,
+            letter,
+            text: altText,
+            isCorrect: false
+          });
+        }
+      }
+
+      // Question stem: first line(s) before first alternative, or whole block if none
+      let stem = joined;
+      if (alternatives.length > 0) {
+        const firstAltIndex = lines.findIndex(l => altRegex.test(l));
+        stem = lines.slice(0, Math.max(0, firstAltIndex)).join('\n').trim();
+      }
+
+      if (alternatives.length >= 2) {
+        questions.push({
+          id: `q_${idx + 1}_${Date.now()}`,
+          type: 'closed',
+          text: stem || `Questão ${idx + 1}`,
+          points: 1,
+          alternatives: alternatives.map((a, i) => ({
+            ...a,
+            letter: String.fromCharCode(65 + i) // Reindex letters sequentially
+          })),
+          explanation: '',
+          hint: ''
+        });
+      } else {
+        questions.push({
+          id: `q_${idx + 1}_${Date.now()}`,
+          type: 'open',
+          text: stem,
+          points: 1,
+          maxLines: null,
+          maxCharacters: null,
+          image: null,
+          attachments: [],
+          rubric: [],
+          expectedAnswer: ''
+        });
+      }
     });
-    
-    return questions.length > 0 ? questions : [{
-      id: 'q_1',
-      order: 1,
-      question: 'Responda com base no documento fornecido',
-      type: 'paragraph',
-      points: 10,
-      required: true
-    }];
+
+    return questions;
   },
 
   /**

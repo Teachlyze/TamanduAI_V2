@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Settings, Edit, MoreVertical, Copy, Users, 
   LayoutDashboard, FileText, Megaphone, BookOpen, ClipboardList,
-  BarChart2, MessageSquare, CheckCircle, AlertCircle
+  BarChart2, MessageSquare, CheckCircle, AlertCircle, Calendar
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
@@ -31,6 +31,7 @@ import ActivitiesTab from './tabs/ActivitiesTab';
 import StudentsTab from './tabs/StudentsTab';
 import MetricsTab from './tabs/MetricsTab';
 import ChatbotTab from './tabs/ChatbotTab';
+import ScheduleTab from './tabs/ScheduleTab';
 
 /**
  * TeacherClassDetailsPage - PÁGINA MAIS COMPLEXA DO SISTEMA
@@ -185,7 +186,7 @@ const TeacherClassDetailsPage = () => {
   };
 
   /**
-   * Configuração das 8 tabs
+   * Configuração das 9 tabs
    */
   const tabs = [
     { 
@@ -217,6 +218,12 @@ const TeacherClassDetailsPage = () => {
       label: 'Atividades', 
       icon: ClipboardList,
       description: 'Gestão de atividades da turma'
+    },
+    { 
+      id: 'schedule', 
+      label: 'Horários', 
+      icon: Calendar,
+      description: 'Horários de aula da turma'
     },
     { 
       id: 'students', 
@@ -275,10 +282,10 @@ const TeacherClassDetailsPage = () => {
       {/* ==================== HEADER COM BANNER IMERSIVO ==================== */}
       <div className={`relative h-64 bg-gradient-to-r ${bannerGradient} overflow-hidden shadow-xl`}>
         {/* Grid Pattern Overlay */}
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px] pointer-events-none" />
         
         {/* Animated Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
         
         {/* Navegação (canto superior esquerdo) */}
         <div className="absolute top-4 left-6 z-10">
@@ -480,6 +487,11 @@ const TeacherClassDetailsPage = () => {
         )}
         {activeTab === 'activities' && (
           <ActivitiesTab 
+            classId={classId}
+          />
+        )}
+        {activeTab === 'schedule' && (
+          <ScheduleTab 
             classId={classId}
           />
         )}

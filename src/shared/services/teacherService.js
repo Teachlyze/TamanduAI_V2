@@ -255,8 +255,9 @@ export const updatePreferences = async (teacherId, preferences) => {
 export const uploadAvatar = async (teacherId, file) => {
   try {
     const fileExt = file.name.split('.').pop();
-    const fileName = `${teacherId}-${Date.now()}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const fileName = `${Date.now()}.${fileExt}`;
+    // Organizar por pasta do usuário: user-id/timestamp.ext
+    const filePath = `${teacherId}/${fileName}`;
 
     // Upload para Supabase Storage
     const { error: uploadError } = await supabase.storage

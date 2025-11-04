@@ -68,7 +68,8 @@ const StudentCalendarPage = () => {
       const end = endOfMonth(currentMonth);
 
       // 1. Buscar eventos do calendário
-      const { data: calendarEvents } = await supabase
+      // 1a. Eventos da turma
+      const { data: classCalendarEvents } = await supabase
         .from('calendar_events')
         .select(`
           id,
@@ -77,12 +78,54 @@ const StudentCalendarPage = () => {
           start_time,
           end_time,
           type,
+          modality,
+          location,
+          meeting_link,
           class_id,
           class:classes(id, name, subject)
         `)
         .in('class_id', classIds)
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString());
+
+      // 1b. Eventos onde o aluno é participante (attendees)
+      const { data: attendeeEvents } = await supabase
+        .from('calendar_events')
+        .select(`
+          id,
+          title,
+          description,
+          start_time,
+          end_time,
+          type,
+          modality,
+          location,
+          meeting_link,
+          attendees,
+          created_by,
+          class_id,
+          class:classes(id, name, subject)
+        `)
+        .contains('attendees', [user.id])
+        .gte('start_time', start.toISOString())
+        .lte('start_time', end.toISOString());
+
+      // Combinar eventos (remover duplicatas)
+      const eventIds = new Set();
+      const calendarEvents = [
+        ...(classCalendarEvents || []),
+        ...(attendeeEvents || [])
+      ].filter(event => {
+        if (eventIds.has(event.id)) return false;
+        eventIds.add(event.id);
+        return true;
+      });
+
+      logger.debug('[StudentCalendar] Eventos carregados:', {
+        classEvents: classCalendarEvents?.length || 0,
+        attendeeEvents: attendeeEvents?.length || 0,
+        total: calendarEvents.length
+      });
 
       // 2. Buscar reuniões
       const { data: meetings } = await supabase
@@ -146,6 +189,65 @@ const StudentCalendarPage = () => {
           maxScore: a.activity.max_score
         }));
 
+      // 4. Buscar horários recorrentes das turmas
+      const { data: classesData } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          name,
+          subject,
+          settings:class_settings(schedule)
+        `)
+        .in('id', classIds);
+
+      // Converter horários recorrentes em eventos do calendário
+      const scheduleEvents = [];
+      const daysMap = {
+        sunday: 0,
+        monday: 1,
+        tuesday: 2,
+        wednesday: 3,
+        thursday: 4,
+        friday: 5,
+        saturday: 6
+      };
+
+      classesData?.forEach(classItem => {
+        const schedules = classItem.settings?.schedule || [];
+        
+        schedules.forEach((schedule, scheduleIndex) => {
+          const targetDay = daysMap[schedule.day];
+          
+          // Encontrar todas as ocorrências desse dia no mês
+          const daysInMonth = eachDayOfInterval({ start, end });
+          daysInMonth.forEach(day => {
+            if (day.getDay() === targetDay) {
+              const [startHour, startMinute] = schedule.start_time.split(':');
+              const [endHour, endMinute] = schedule.end_time.split(':');
+              
+              const eventStart = new Date(day);
+              eventStart.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+              
+              const eventEnd = new Date(day);
+              eventEnd.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+              
+              scheduleEvents.push({
+                id: `schedule-${classItem.id}-${scheduleIndex}-${day.toISOString()}`,
+                title: classItem.name,
+                description: schedule.location || classItem.subject,
+                start: eventStart,
+                end: eventEnd,
+                type: 'aula',
+                className: classItem.name,
+                modality: schedule.modality,
+                location: schedule.location,
+                recurring: true
+              });
+            }
+          });
+        });
+      });
+
       // Normalizar todos os eventos
       const allEvents = [
         ...(calendarEvents || []).map(e => ({
@@ -167,6 +269,7 @@ const StudentCalendarPage = () => {
           className: m.class?.name,
           meetingUrl: m.meeting_url
         })),
+        ...scheduleEvents,
         ...deadlineEvents
       ];
 

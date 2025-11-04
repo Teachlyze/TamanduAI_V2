@@ -210,10 +210,8 @@ const StudentDashboard = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      logger.debug('[StudentDashboard] Carregando dados...')
       
       if (!user?.id) {
-        logger.debug('[StudentDashboard] Usuário não autenticado')
         setLoading(false);
         return;
       }
@@ -223,8 +221,6 @@ const StudentDashboard = () => {
       let classIds = [];
       
       try {
-        logger.debug('[StudentDashboard] 🔍 Buscando turmas para user:', user.id)
-        
         // Primeira query: Buscar apenas os IDs (rápido, sem JOIN)
         const { data: memberships, error: membershipError } = await supabase
           .from('class_members')
@@ -238,13 +234,8 @@ const StudentDashboard = () => {
         }
 
         classIds = memberships?.map(m => m.class_id) || [];
-        logger.debug('[StudentDashboard] 📊 Memberships encontrados:', memberships)
-        logger.debug('[StudentDashboard] 📋 IDs extraídos:', classIds)
         
-        if (classIds.length === 0) {
-          logger.debug('[StudentDashboard] ⚠️ Nenhuma turma encontrada para este usuário')
-        } else {
-          logger.debug('[StudentDashboard] ✅ IDs de turmas encontrados:', classIds.length)
+        if (classIds.length > 0) {
           
           // Segunda query: Buscar detalhes das turmas (rápido, query direta)
           const classesPromise = supabase
@@ -264,7 +255,6 @@ const StudentDashboard = () => {
           }
           
           classes = classesData || [];
-          logger.debug('[StudentDashboard] ✅ Turmas carregadas:', classes)
         }
       } catch (err) {
         logger.error('[StudentDashboard] ❌ Erro ao buscar turmas:', err)
@@ -358,8 +348,6 @@ const StudentDashboard = () => {
         publishedActivities = activitiesWithClass.filter(activity => 
           activity.is_published && activity.status === 'active'
         );
-        
-        logger.debug('[StudentDashboard] Atividades carregadas:', publishedActivities.length)
       } catch (err) {
         logger.error('[StudentDashboard] Timeout ou erro ao buscar atividades:', err.message)
       }
@@ -379,7 +367,6 @@ const StudentDashboard = () => {
 
         const { data } = await Promise.race([submissionsPromise, timeout]);
         submissions = data || [];
-        logger.debug('[StudentDashboard] Submissões carregadas:', submissions.length)
       } catch (err) {
         logger.error('[StudentDashboard] Timeout ou erro ao buscar submissões:', err.message)
       }
@@ -538,14 +525,11 @@ const StudentDashboard = () => {
         message: 'Tudo em dia! Continue assim!',
         action: ''
       }]);
-
-      logger.debug('[StudentDashboard] Dados carregados com sucesso')
     } catch (error) {
       logger.error('[StudentDashboard] Erro ao carregar dashboard:', error)
       // Manter valores padrão em caso de erro
     } finally {
       setLoading(false);
-      logger.debug('[StudentDashboard] Loading finalizado')
     }
   };
 

@@ -13,10 +13,12 @@ import {
 } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { ClassService } from '@/shared/services/classService';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const ClassAttendancePage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -90,12 +92,12 @@ const ClassAttendancePage = () => {
 
       logger.debug('Salvando frequência:', attendanceData)
 
-      alert('Frequência salva com sucesso!');
+      toast({ title: '✅ Frequência salva!', description: 'As presenças foram registradas com sucesso.' });
       navigate(`/dashboard/classes/${classId}`);
 
     } catch (error) {
       logger.error('Erro:', error)
-      alert('Erro ao salvar frequência.');
+      toast({ title: '❌ Erro ao salvar', description: 'Tente novamente.', variant: 'destructive' });
     } finally {
       setSaving(false);
     }

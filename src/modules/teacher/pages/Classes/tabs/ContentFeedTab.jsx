@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Plus, FileText, Video, Image as ImageIcon, Link as LinkIcon,
   MoreVertical, Eye, Edit, Trash2, Pin, Download,
-  Calendar, User, MessageSquare
+  Calendar, User, MessageSquare, ThumbsUp
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
@@ -49,10 +49,17 @@ const ContentFeedTab = ({ classId }) => {
   const [filterType, setFilterType] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, id: null, title: '' });
   const [editingPost, setEditingPost] = useState(null);
+  const [engagement, setEngagement] = useState({});
 
   useEffect(() => {
     loadPosts();
   }, [classId]);
+
+  useEffect(() => {
+    if (posts.length > 0) {
+      loadEngagement();
+    }
+  }, [posts]);
 
   /**
    * Carrega posts do mural (usando class_materials)
@@ -84,6 +91,48 @@ const ContentFeedTab = ({ classId }) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Carrega engagement (likes, views, comentários) dos posts
+   */
+  const loadEngagement = async () => {
+    try {
+      const postIds = posts.map(p => p.id);
+
+      // Carregar likes
+      const { data: likesData } = await supabase
+        .from('post_likes')
+        .select('post_id, user_id, profiles!post_likes_user_id_fkey(full_name, avatar_url)')
+        .in('post_id', postIds);
+
+      // Carregar views
+      const { data: viewsData } = await supabase
+        .from('post_views')
+        .select('post_id, user_id')
+        .in('post_id', postIds);
+
+      // Carregar comentários
+      const { data: commentsData } = await supabase
+        .from('post_comments')
+        .select('post_id, id')
+        .in('post_id', postIds)
+        .is('parent_comment_id', null);
+
+      // Organizar por post
+      const engagementMap = {};
+      postIds.forEach(id => {
+        engagementMap[id] = {
+          likes: likesData?.filter(l => l.post_id === id) || [],
+          views: viewsData?.filter(v => v.post_id === id) || [],
+          comments: commentsData?.filter(c => c.post_id === id) || []
+        };
+      });
+
+      setEngagement(engagementMap);
+    } catch (error) {
+      logger.error('Erro ao carregar engagement:', error);
     }
   };
 
@@ -462,12 +511,16 @@ const ContentFeedTab = ({ classId }) => {
                   <div className="flex items-center justify-between pt-4 border-t dark:border-slate-700">
                     <div className="flex items-center gap-4 text-sm text-slate-500">
                       <span className="flex items-center gap-1">
+                        <ThumbsUp className="w-4 h-4" />
+                        {engagement[post.id]?.likes?.length || 0} curtidas
+                      </span>
+                      <span className="flex items-center gap-1">
                         <Eye className="w-4 h-4" />
-                        {post.views || 0} visualizações
+                        {engagement[post.id]?.views?.length || 0} visualizações
                       </span>
                       <span className="flex items-center gap-1">
                         <MessageSquare className="w-4 h-4" />
-                        0 comentários
+                        {engagement[post.id]?.comments?.length || 0} comentários
                       </span>
                     </div>
                     

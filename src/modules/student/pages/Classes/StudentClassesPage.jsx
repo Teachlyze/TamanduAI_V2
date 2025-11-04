@@ -17,10 +17,12 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ClassService } from '@/shared/services/classService';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useToast } from '@/shared/components/ui/use-toast';
 
 const StudentClassesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState([]);
@@ -172,7 +174,10 @@ const StudentClassesPage = () => {
       await loadClasses();
       
       // Mostrar notificação de sucesso
-      alert(`🎉 Você entrou na turma "${classData.name}" com sucesso!\n\nA turma já aparece na sua lista.`);
+      toast({ 
+        title: '🎉 Bem-vindo(a)!', 
+        description: `Você entrou na turma "${classData.name}" com sucesso!` 
+      });
     } catch (error) {
       logger.error('Erro ao entrar na turma:', error)
       setError('Erro ao entrar na turma. Tente novamente.');

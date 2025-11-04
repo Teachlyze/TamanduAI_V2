@@ -119,24 +119,30 @@ serve(async (req) => {
 
     if (countError) {
       console.warn('Erro ao verificar limite:', countError);
-    } else if (count !== null && count >= 3) {
-      console.log('Limite diário atingido:', count);
+    }
+
+    const usageCount = count || 0;
+    const limitReached = usageCount >= 3;
+
+    if (limitReached) {
+      console.log('Limite diário atingido:', usageCount);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Daily limit reached',
-          message: 'Você já gerou 3 recomendações hoje. Limite diário atingido. Tente novamente amanhã!',
-          usageToday: count,
+          limitReached: true,
+          message: 'Você já gerou 3 recomendações hoje. Tente novamente amanhã!',
+          usageToday: usageCount,
+          dailyLimit: 3,
           limitReset: new Date(today.getTime() + 24 * 60 * 60 * 1000).toISOString()
         }),
         {
-          status: 429, // Too Many Requests
+          status: 200, // ✅ 200 em vez de 429 para UI tratar
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       );
     }
 
-    console.log('Uso hoje:', count, '/ 3');
+    console.log('Uso hoje:', usageCount, '/ 3');
 
     // Normalizar dados (garantir que números são números E preservar questões)
     const normalizedData: PerformanceData = {
@@ -266,7 +272,7 @@ Retorne APENAS um JSON válido no formato:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o-mini',  // ✅ Modelo mais recente e eficiente
         messages: [
           {
             role: 'system',
@@ -339,7 +345,7 @@ Retorne APENAS um JSON válido no formato:
         success: true,
         recommendations: formattedRecommendations,
         generatedAt: new Date().toISOString(),
-        usageToday: (count || 0) + 1,
+        usageToday: usageCount + 1,  // ✅ Incrementar contador
         dailyLimit: 3
       }),
       {

@@ -75,19 +75,31 @@ const ViewCodeModal = ({ isOpen, onClose, classData }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full">
-        <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-6 rounded-t-2xl">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full my-8 max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-500 p-4 md:p-6 rounded-t-2xl flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Código de Convite</h2>
-            <button onClick={onClose} className="text-white hover:bg-white/20 p-2 rounded-lg">
+            <div className="flex-1 min-w-0 mr-2">
+              <h2 className="text-xl md:text-2xl font-bold text-white truncate">Código de Convite</h2>
+              <p className="text-cyan-100 text-xs md:text-sm mt-1 truncate">{classData.name}</p>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Fechar"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-cyan-100 text-sm mt-1">{classData.name}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-y-auto">
           {/* Código */}
           <div className="text-center">
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
