@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { Clock, AlertCircle, CheckCircle2, FileText, Target } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2, FileText, Target, Calendar } from 'lucide-react';
 import { format, formatDistanceToNow, differenceInHours, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -66,10 +66,18 @@ export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
                  '📄 Atividade'}
               </Badge>
               
+              {/* Data de Postagem */}
+              {activity.assigned_at && (
+                <span className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
+                  <Calendar className="w-4 h-4" />
+                  Postada {formatDistanceToNow(new Date(activity.assigned_at), { locale: ptBR, addSuffix: true })}
+                </span>
+              )}
+              
               {/* Prazo */}
               <span className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
                 <Clock className="w-4 h-4" />
-                {format(dueDate, "dd/MM 'às' HH:mm", { locale: ptBR })}
+                Prazo: {format(dueDate, "dd/MM 'às' HH:mm", { locale: ptBR })}
               </span>
               
               {/* Pontos */}
@@ -125,9 +133,9 @@ export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
           
           {/* Botão de Ação */}
           <Button
-            onClick={isCompleted ? onView : onStart}
+            onClick={hasSubmission ? onView : onStart}
             className={`whitespace-nowrap ${
-              isCompleted 
+              hasSubmission
                 ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' 
                 : isLate
                 ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700'
@@ -135,7 +143,9 @@ export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
             } text-white shadow-md`}
             size="lg"
           >
-            {isCompleted ? 'Ver' : isLate ? 'Fazer' : 'Começar'}
+            {hasSubmission 
+              ? (submission?.grade !== null && submission?.grade !== undefined ? 'Ver Correção' : 'Ver Resposta')
+              : isLate ? 'Fazer' : 'Começar'}
           </Button>
         </div>
       </Card>

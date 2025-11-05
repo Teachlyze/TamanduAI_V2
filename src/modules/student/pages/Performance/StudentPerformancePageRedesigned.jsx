@@ -187,32 +187,60 @@ const StudentPerformancePageRedesigned = () => {
 
   const loadRecentGrades = async () => {
     try {
+      // Buscar turmas do aluno para filtrar
+      const { data: memberships } = await supabase
+        .from('class_members')
+        .select('class_id')
+        .eq('user_id', user.id)
+        .eq('role', 'student');
+
+      let classIds = memberships?.map(m => m.class_id) || [];
+
+      // Aplicar filtro de turma se selecionado
+      if (selectedClass !== 'all') {
+        classIds = classIds.filter(id => id === selectedClass);
+      }
+
+      if (classIds.length === 0) {
+        setRecentGrades([]);
+        return;
+      }
+
+      // Buscar atividades das turmas filtradas
+      const { data: assignments } = await supabase
+        .from('activity_class_assignments')
+        .select('activity_id, class_id')
+        .in('class_id', classIds);
+
+      const activityIds = assignments?.map(a => a.activity_id) || [];
+
+      if (activityIds.length === 0) {
+        setRecentGrades([]);
+        return;
+      }
+
+      // Buscar submissões com notas (limitado a 5)
       const { data: submissions } = await supabase
         .from('submissions')
         .select('id, grade, feedback, submitted_at, status, activity_id')
         .eq('student_id', user.id)
+        .in('activity_id', activityIds)
         .not('grade', 'is', null)
         .order('submitted_at', { ascending: false })
-        .limit(10);
+        .limit(5);
 
-      const activityIds = submissions?.map(s => s.activity_id) || [];
+      const submissionActivityIds = submissions?.map(s => s.activity_id) || [];
 
-      // Buscar atividades
+      // Buscar dados das atividades
       const { data: activities } = await supabase
         .from('activities')
         .select('id, title, max_score')
-        .in('id', activityIds);
+        .in('id', submissionActivityIds);
 
       const activitiesMap = {};
       activities?.forEach(a => { activitiesMap[a.id] = a; });
 
       // Buscar nomes das turmas
-      const { data: assignments } = await supabase
-        .from('activity_class_assignments')
-        .select('activity_id, class_id')
-        .in('activity_id', activityIds);
-
-      const classIds = assignments?.map(a => a.class_id).filter(Boolean) || [];
       const { data: classes } = await supabase
         .from('classes')
         .select('id, name')
@@ -223,14 +251,15 @@ const StudentPerformancePageRedesigned = () => {
 
       const assignmentsMap = {};
       assignments?.forEach(a => {
-        assignmentsMap[a.activity_id] = classesMap[a.class_id]?.name;
+        assignmentsMap[a.activity_id] = a.class_id;
       });
 
       const gradesWithClass = (submissions || []).map(s => ({
         ...s,
         activity_title: activitiesMap[s.activity_id]?.title,
         max_score: activitiesMap[s.activity_id]?.max_score,
-        class_name: assignmentsMap[s.activity_id]
+        class_id: assignmentsMap[s.activity_id],
+        class_name: classesMap[assignmentsMap[s.activity_id]]?.name
       }));
 
       setRecentGrades(gradesWithClass);
@@ -411,14 +440,15 @@ const StudentPerformancePageRedesigned = () => {
         completedActivities: stats.completedActivities,
         recentGrades: recentGrades.slice(0, 5).map(g => ({
           activityTitle: g.activity_title,
-          grade: g.submission?.grade,
-          maxScore: g.max_score,
-          submittedAt: g.submission?.submitted_at
+          grade: parseFloat(g.grade),
+          maxScore: parseFloat(g.max_score),
+          submittedAt: g.submitted_at,
+          subject: g.class_name
         })),
-        classPerformance: classPerformance.map(cp => ({
-          className: cp.className,
-          averageGrade: cp.averageGrade,
-          totalActivities: cp.totalActivities
+        classComparison: classPerformance.map(cp => ({
+          subject: cp.name,
+          studentAvg: cp.media,
+          classAvg: cp.media // TODO: Implementar média da turma quando disponível
         })),
         radarData
       };
@@ -479,25 +509,25 @@ const StudentPerformancePageRedesigned = () => {
         
         // Analisar desempenho por turma
         const weakClasses = classPerformance
-          .filter(c => c.averageGrade < 7)
-          .sort((a, b) => a.averageGrade - b.averageGrade);
+          .filter(c => c.media < 7)
+          .sort((a, b) => a.media - b.media);
         
         const strongClasses = classPerformance
-          .filter(c => c.averageGrade >= 8)
-          .sort((a, b) => b.averageGrade - a.averageGrade);
+          .filter(c => c.media >= 8)
+          .sort((a, b) => b.media - a.media);
 
         const improvementsRecommendations = [];
         if (weakClasses.length > 0) {
           weakClasses.slice(0, 2).forEach(cls => {
             improvementsRecommendations.push(
-              `Revisar conceitos de ${cls.className} onde as notas foram menores (média: ${cls.averageGrade.toFixed(1)})`
+              `Revisar conceitos de ${cls.name} onde as notas foram menores (média: ${cls.media.toFixed(1)})`
             );
           });
         } else {
           improvementsRecommendations.push('Manter o ritmo de estudos atual');
         }
 
-        if (recentGrades.some(g => !g.submission || g.submission.status === 'draft')) {
+        if (recentGrades.some(g => g.status === 'draft')) {
           improvementsRecommendations.push('Completar atividades pendentes antes do prazo');
         }
 
@@ -514,7 +544,7 @@ const StudentPerformancePageRedesigned = () => {
 
         if (strongClasses.length > 0) {
           strongClasses.slice(0, 2).forEach(cls => {
-            strengthsRecommendations.push(`Excelente em ${cls.className} (média: ${cls.averageGrade.toFixed(1)})`);
+            strengthsRecommendations.push(`Excelente em ${cls.name} (média: ${cls.media.toFixed(1)})`);
           });
         }
 
@@ -749,11 +779,79 @@ const StudentPerformancePageRedesigned = () => {
         />
       </div>
 
+      {/* Grid de Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Gráfico de Evolução */}
+        {evolutionData.length > 0 && (
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-green-600" />
+              Evolução das Notas
+            </h2>
+            <div className="overflow-x-auto">
+              <ResponsiveContainer width="100%" height={300} className="min-w-[400px]">
+                <LineChart data={evolutionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#64748b" domain={[0, 10]} tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="nota"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ fill: '#10b981', r: 6 }}
+                    name="Nota"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        )}
+
+        {/* Desempenho por Turma */}
+        {classPerformance.length > 0 && (
+          <Card className="p-6">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              📊 Por Turma
+            </h2>
+            <div className="overflow-x-auto">
+              <ResponsiveContainer width="100%" height={300} className="min-w-[300px]">
+                <BarChart data={classPerformance} layout="vertical" margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis type="number" stroke="#64748b" domain={[0, 10]} tick={{ fontSize: 12 }} />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    stroke="#64748b" 
+                    width={100}
+                    tick={{ fontSize: 11 }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar dataKey="media" fill="#3b82f6" radius={[0, 8, 8, 0]} name="Média" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        )}
+      </div>
+
       {/* Grid Principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        {/* Coluna Esquerda (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Últimas Notas */}
+        {/* Coluna Esquerda (2/3) - Últimas Notas */}
+        <div className="lg:col-span-2">
           <Card className="p-6">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
               📝 Últimas Notas
@@ -778,95 +876,29 @@ const StudentPerformancePageRedesigned = () => {
               />
             )}
           </Card>
-
-          {/* Gráfico de Evolução */}
-          {evolutionData.length > 0 && (
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-                Evolução das Notas
-              </h2>
-              <div className="overflow-x-auto">
-                <ResponsiveContainer width="100%" height={300} className="min-w-[400px]">
-                  <LineChart data={evolutionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 12 }} />
-                    <YAxis stroke="#64748b" domain={[0, 10]} tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="nota"
-                      stroke="#10b981"
-                      strokeWidth={3}
-                      dot={{ fill: '#10b981', r: 6 }}
-                      name="Nota"
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          )}
         </div>
 
-        {/* Coluna Direita (1/3) */}
-        <div className="space-y-8">
-          {/* Desempenho por Turma */}
-          {classPerformance.length > 0 && (
-            <Card className="p-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-                📊 Por Turma
-              </h2>
-              <div className="overflow-x-auto">
-                <ResponsiveContainer width="100%" height={250} className="min-w-[300px]">
-                  <BarChart data={classPerformance} layout="vertical" margin={{ left: 20, right: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis type="number" stroke="#64748b" domain={[0, 10]} />
-                    <YAxis 
-                      type="category" 
-                      dataKey="className" 
-                      stroke="#64748b" 
-                      width={120}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '8px'
-                      }}
-                    />
-                    <Bar dataKey="averageGrade" fill="#3b82f6" radius={[0, 8, 8, 0]} name="Média" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          )}
-
-          {/* Radar de Habilidades */}
+        {/* Coluna Direita (1/3) - Desempenho por Tipo */}
+        <div>
           {radarData.length > 0 && (
             <Card className="p-6">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
                 🎯 Por Tipo
               </h2>
-              <ResponsiveContainer width="100%" height={250}>
-                <RadarChart data={radarData}>
-                  <PolarGrid stroke="#e2e8f0" />
-                  <PolarAngleAxis dataKey="skill" stroke="#64748b" />
-                  <PolarRadiusAxis stroke="#64748b" />
-                  <Radar
-                    name="Desempenho"
-                    dataKey="value"
-                    stroke="#8b5cf6"
-                    fill="#8b5cf6"
-                    fillOpacity={0.6}
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={radarData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="skill" stroke="#64748b" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#64748b" domain={[0, 100]} tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
                   />
-                </RadarChart>
+                  <Bar dataKey="value" fill="#8b5cf6" radius={[8, 8, 0, 0]} name="Desempenho %" />
+                </BarChart>
               </ResponsiveContainer>
             </Card>
           )}

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ActivityCard, EmptyState } from '@/modules/student/components/redesigned';
-import { FileText, Search, Filter, Clock, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
+import { FileText, Search, Filter, Clock, CheckCircle2, AlertTriangle, Calendar, FilterX, ArrowUpDown } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
@@ -25,6 +25,8 @@ const StudentActivitiesPageRedesigned = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedType, setSelectedType] = useState('all');
+  const [showOnlyUnanswered, setShowOnlyUnanswered] = useState(false);
+  const [sortBy, setSortBy] = useState('deadline');
   const [classes, setClasses] = useState([]);
   const [stats, setStats] = useState({
     total: 0,
@@ -43,7 +45,7 @@ const StudentActivitiesPageRedesigned = () => {
 
   useEffect(() => {
     filterActivities();
-  }, [activities, activeTab, searchQuery, selectedClass, selectedType]);
+  }, [activities, activeTab, searchQuery, selectedClass, selectedType, showOnlyUnanswered, sortBy]);
 
   const loadClasses = async () => {
     try {
@@ -158,6 +160,8 @@ const StudentActivitiesPageRedesigned = () => {
             class_subject: classInfo?.subject,
             class_color: classInfo?.color,
             status,
+            submission: submission || null,
+            hasSubmission: !!submission,
             grade: submission?.grade,
             feedback: submission?.feedback,
             submitted_at: submission?.submitted_at,
@@ -196,6 +200,11 @@ const StudentActivitiesPageRedesigned = () => {
       filtered = filtered.filter(a => a.status === 'late');
     }
 
+    // Filtro por atividades não respondidas
+    if (showOnlyUnanswered) {
+      filtered = filtered.filter(a => a.status === 'pending');
+    }
+
     // Filtro por busca
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
@@ -216,13 +225,31 @@ const StudentActivitiesPageRedesigned = () => {
       filtered = filtered.filter(a => a.type === selectedType);
     }
 
-    // Ordenar por prazo
+    // Ordenação dinâmica
     filtered.sort((a, b) => {
+      // Prioridade sempre para atrasadas e urgentes independente da ordenação
       if (a.status === 'late' && b.status !== 'late') return -1;
       if (a.status !== 'late' && b.status === 'late') return 1;
       if (a.is_urgent && !b.is_urgent) return -1;
       if (!a.is_urgent && b.is_urgent) return 1;
-      return new Date(a.due_date) - new Date(b.due_date);
+      
+      // Ordenação selecionada
+      switch (sortBy) {
+        case 'deadline':
+          return new Date(a.due_date) - new Date(b.due_date);
+        case 'deadline_desc':
+          return new Date(b.due_date) - new Date(a.due_date);
+        case 'posted':
+          return new Date(b.assigned_at || 0) - new Date(a.assigned_at || 0);
+        case 'posted_asc':
+          return new Date(a.assigned_at || 0) - new Date(b.assigned_at || 0);
+        case 'title':
+          return (a.title || '').localeCompare(b.title || '');
+        case 'score':
+          return (b.max_score || 0) - (a.max_score || 0);
+        default:
+          return new Date(a.due_date) - new Date(b.due_date);
+      }
     });
 
     setFilteredActivities(filtered);
@@ -333,6 +360,32 @@ const StudentActivitiesPageRedesigned = () => {
                 <SelectItem value="mixed">🎯 Mista</SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Ordenação */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-full md:w-52">
+                <ArrowUpDown className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="deadline">⏰ Prazo (próximo)</SelectItem>
+                <SelectItem value="deadline_desc">⏰ Prazo (distante)</SelectItem>
+                <SelectItem value="posted">📅 Postagem (recente)</SelectItem>
+                <SelectItem value="posted_asc">📅 Postagem (antiga)</SelectItem>
+                <SelectItem value="title">🔤 Título (A-Z)</SelectItem>
+                <SelectItem value="score">⭐ Pontuação (maior)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filtro Não Respondidas */}
+            <Button
+              variant={showOnlyUnanswered ? 'default' : 'outline'}
+              onClick={() => setShowOnlyUnanswered(!showOnlyUnanswered)}
+              className="w-full md:w-auto"
+            >
+              <FilterX className="w-4 h-4 mr-2" />
+              Não Respondidas
+            </Button>
           </div>
         </Tabs>
       </Card>

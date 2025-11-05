@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ActivityCard, EmptyState, StatCard, GradeCard, MaterialCardPreview } from '@/modules/student/components/redesigned';
-import { BookOpen, FileText, Users, Star, ArrowLeft, Megaphone, Calendar, MessageCircle } from 'lucide-react'; 
+import { BookOpen, FileText, Users, Star, ArrowLeft, Megaphone, Calendar, MessageCircle, FilterX } from 'lucide-react'; 
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -29,6 +29,7 @@ const StudentClassDetailsPageRedesigned = () => {
   const [materials, setMaterials] = useState([]);
   const [grades, setGrades] = useState([]);
   const [students, setStudents] = useState([]);
+  const [showOnlyUnanswered, setShowOnlyUnanswered] = useState(false);
   const [stats, setStats] = useState({
     pendingActivities: 0,
     avgGrade: 0,
@@ -199,6 +200,11 @@ const StudentClassDetailsPageRedesigned = () => {
         .eq('class_id', classId);
       if (assignmentsError) logger.error('[ClassDetails] Erro assignments:', assignmentsError);
 
+      // Criar um mapa de assigned_at por activity_id
+      const assignmentMap = new Map(
+        assignmentsData?.map(a => [a.activity_id, a.assigned_at]) || []
+      );
+      
       const activities = assignmentsData?.map(a => a.activity).filter(Boolean) || [];
       const publishedActivities = activities.filter(act => act.status === 'published');
 
@@ -241,9 +247,11 @@ const StudentClassDetailsPageRedesigned = () => {
         const submission = submissionsMap.get(activity.id);
         const hasSubmission = !!submission;
         const isLate = !hasSubmission && activity.due_date && new Date(activity.due_date) < new Date();
+        const assigned_at = assignmentMap.get(activity.id);
         
         return {
           ...activity,
+          assigned_at,
           submission,
           hasSubmission,
           isCompleted: hasSubmission && submission.status === 'graded',
@@ -504,25 +512,54 @@ const StudentClassDetailsPageRedesigned = () => {
 
         {/* Tab: Atividades */}
         <TabsContent value="activities">
-          {activities.length > 0 ? (
-            <div className="space-y-4">
-              {activities.map((activity, index) => (
-                <ActivityCard
-                  key={activity.id}
-                  activity={activity}
-                  onStart={() => navigate(`/students/activities/${activity.id}`)}
-                  onView={() => navigate(`/students/activities/${activity.id}`)}
-                  index={index}
-                />
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              icon={FileText}
-              title="Nenhuma atividade"
-              description="Não há atividades disponíveis nesta turma ainda."
-            />
-          )}
+          {/* Filtro Não Respondidas */}
+          <div className="mb-4">
+            <Button
+              variant={showOnlyUnanswered ? 'default' : 'outline'}
+              onClick={() => setShowOnlyUnanswered(!showOnlyUnanswered)}
+              size="sm"
+            >
+              <FilterX className="w-4 h-4 mr-2" />
+              Não Respondidas
+            </Button>
+          </div>
+
+          {(() => {
+            // Filtrar atividades
+            let filteredActivities = [...activities];
+            
+            // Filtro por não respondidas
+            if (showOnlyUnanswered) {
+              filteredActivities = filteredActivities.filter(a => a.status === 'pending');
+            }
+            
+            // Ordenar por data de postagem (mais recentes primeiro)
+            filteredActivities.sort((a, b) => {
+              const dateA = a.assigned_at ? new Date(a.assigned_at) : new Date(0);
+              const dateB = b.assigned_at ? new Date(b.assigned_at) : new Date(0);
+              return dateB - dateA; // Ordem decrescente (mais recente primeiro)
+            });
+            
+            return filteredActivities.length > 0 ? (
+              <div className="space-y-4">
+                {filteredActivities.map((activity, index) => (
+                  <ActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    onStart={() => navigate(`/students/activities/${activity.id}`)}
+                    onView={() => navigate(`/students/activities/${activity.id}`)}
+                    index={index}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={FileText}
+                title={showOnlyUnanswered ? "Nenhuma atividade não respondida" : "Nenhuma atividade"}
+                description={showOnlyUnanswered ? "Você já respondeu todas as atividades disponíveis!" : "Não há atividades disponíveis nesta turma ainda."}
+              />
+            );
+          })()}
         </TabsContent>
 
         {/* Tab: Materiais */}

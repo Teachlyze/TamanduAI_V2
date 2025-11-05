@@ -88,7 +88,22 @@ const StudentClassesPageRedesigned = () => {
             .in('activity_id', activityIds);
 
           const submittedIds = new Set(submissions?.map(s => s.activity_id) || []);
-          const pendingActivities = activityIds.length - submittedIds.size;
+          
+          // Buscar detalhes das atividades para verificar prazos
+          const { data: activitiesData } = await supabase
+            .from('activities')
+            .select('id, due_date, status')
+            .in('id', activityIds)
+            .eq('status', 'published');
+          
+          const now = new Date();
+          
+          // Contar apenas atividades pendentes (não entregues e dentro do prazo)
+          const pendingActivitiesCount = activitiesData?.filter(act => {
+            const isSubmitted = submittedIds.has(act.id);
+            const isLate = act.due_date && new Date(act.due_date) < now;
+            return !isSubmitted && !isLate;
+          }).length || 0;
 
           // Calcular média
           const gradesData = submissions?.filter(s => s.grade !== null) || [];
@@ -105,18 +120,8 @@ const StudentClassesPageRedesigned = () => {
           
           const studentsCount = studentsList?.filter(s => !s.is_archived).length || 0;
 
-          // Verificar novas atividades (últimos 7 dias)
-          const sevenDaysAgo = new Date();
-          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-          const { data: newAssignments } = await supabase
-            .from('activity_class_assignments')
-            .select('activity_id, assigned_at')
-            .eq('class_id', classItem.id)
-            .gte('assigned_at', sevenDaysAgo.toISOString());
-
-          const newActivityIds = newAssignments?.map(a => a.activity_id) || [];
-          const newActivitiesCount = newActivityIds.filter(id => !submittedIds.has(id)).length;
+          // Novas atividades = atividades pendentes (não entregues e dentro do prazo)
+          const newActivitiesCount = pendingActivitiesCount;
 
           const teacher = teachersMap[classItem.created_by];
           
@@ -127,7 +132,7 @@ const StudentClassesPageRedesigned = () => {
             color: classItem.color || 'blue',
             teacher_name: teacher?.full_name || 'Professor',
             teacher_avatar: teacher?.avatar_url,
-            pendingActivities,
+            pendingActivities: pendingActivitiesCount,
             avgGrade,
             studentsCount: studentsCount || 0,
             newActivities: newActivitiesCount,
