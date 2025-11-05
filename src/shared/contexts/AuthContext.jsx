@@ -230,21 +230,33 @@ export const AuthProvider = ({ children }) => {
   // Sign Out
   const signOut = useCallback(async () => {
     try {
+      // 1. Limpar tema antes do logout para garantir que seja aplicado corretamente
+      if (typeof window !== 'undefined') {
+        const root = document.documentElement;
+        root.classList.remove('dark', 'light');
+        root.classList.add('light');
+        root.setAttribute('data-theme', 'tamanduai');
+      }
       
-      // 1. Sign out do Supabase
+      // 2. Sign out do Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // 2. Limpar estado do contexto
+      // 3. Limpar estado do contexto
       setUser(null);
       setProfile(null);
       
-      // 3. Limpar localStorage (mantém apenas preferências globais)
+      // 4. Limpar localStorage (incluindo tema)
       storageManager.clearUserData();
+      
+      // 5. Forçar recarregamento do tema
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('storage'));
+      }
       
       return { error: null };
     } catch (error) {
-      logger.error('[AuthContext] Sign out error:', error)
+      logger.error('[AuthContext] Sign out error:', error);
       return { error };
     }
   }, []);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { THEME_DARK, THEME_LIGHT, THEME_STORAGE_KEY } from '@/shared/constants/theme';
+import { storageManager } from '@/shared/services/storageManager';
 import ThemeContext from './ThemeContext';
 
 /**
@@ -10,15 +11,22 @@ import ThemeContext from './ThemeContext';
  */
 const ThemeProvider = ({ children }) => {
     const [theme, setTheme] = useState(() => {
-    if (typeof window === 'undefined') return THEME_LIGHT;
-    // Prefer unified key 'appTheme', then fallback to legacy THEME_STORAGE_KEY
-    const savedPrimary = localStorage.getItem('appTheme');
-    if (savedPrimary === THEME_LIGHT || savedPrimary === THEME_DARK) return savedPrimary;
-    const savedLegacy = localStorage.getItem(THEME_STORAGE_KEY);
-    if (savedLegacy === THEME_LIGHT || savedLegacy === THEME_DARK) return savedLegacy;
-    // Default to light, do NOT auto-apply system preference
-    return THEME_LIGHT;
-  });
+      if (typeof window === 'undefined') return THEME_LIGHT;
+      
+      // Usar storageManager para recuperar o tema
+      const savedTheme = storageManager.getTheme();
+      if (savedTheme === THEME_LIGHT || savedTheme === THEME_DARK) {
+        return savedTheme;
+      }
+      
+      // Usar preferência do sistema se não houver tema salvo
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        return THEME_DARK;
+      }
+      
+      // Default para light
+      return THEME_LIGHT;
+    });
 
   // Aplicar classe de tema ao elemento raiz
   useEffect(() => {
@@ -30,9 +38,8 @@ const ThemeProvider = ({ children }) => {
     // Adicionar a classe do tema atual
     root.classList.add(theme);
     
-    // Salvar no localStorage (unificado + legado para compatibilidade)
-    localStorage.setItem('appTheme', theme);
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
+    // Salvar preferência usando o storageManager
+    storageManager.setTheme(theme);
     
     // Para o modo escuro do Tailwind
     if (theme === THEME_DARK) {
@@ -52,10 +59,9 @@ const ThemeProvider = ({ children }) => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
     const handleChange = () => {
-      // Não alterar automaticamente se houver preferência salva em qualquer chave
-      const savedPrimary = localStorage.getItem('appTheme');
-      const savedLegacy = localStorage.getItem(THEME_STORAGE_KEY);
-      if (!savedPrimary && !savedLegacy) {
+      // Não alterar automaticamente se houver preferência salva
+      const savedTheme = storageManager.getTheme();
+      if (!savedTheme) {
         setTheme(mediaQuery.matches ? THEME_DARK : THEME_LIGHT);
       }
     };
@@ -68,7 +74,7 @@ const ThemeProvider = ({ children }) => {
   const toggleTheme = useCallback(() => {
     const newTheme = theme === THEME_LIGHT ? THEME_DARK : THEME_LIGHT;
     setTheme(newTheme);
-    localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    storageManager.setTheme(newTheme);
   }, [theme]);
 
   // Valor do contexto

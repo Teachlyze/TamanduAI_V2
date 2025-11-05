@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/shared/components/ui/dropdown-menu';
 import { useAuth } from '@/shared/hooks/useAuth';
-import useTheme from '@/shared/hooks/useTheme';
+import { useTheme } from '@/shared/contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import { useTour } from '@/providers/TourProvider';
 

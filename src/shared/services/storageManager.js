@@ -266,7 +266,9 @@ class StorageManager {
           key.startsWith(TEMP_PREFIX) ||
           key.startsWith('session_') ||
           key === 'sb-wapbwaimkurbuihatmix-auth-token' || // Supabase token
-          key === 'supabase.auth.token' // Supabase token alternativo
+          key === 'supabase.auth.token' || // Supabase token alternativo
+          key === STORAGE_KEYS.THEME || // Tema do usuário
+          key === STORAGE_KEYS.HIGH_CONTRAST // Preferência de alto contraste
         ) {
           keysToRemove.push(key);
         }

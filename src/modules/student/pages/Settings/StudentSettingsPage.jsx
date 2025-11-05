@@ -1,6 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTheme } from '@/shared/contexts/ThemeContext';
 import { supabase } from '@/shared/services/supabaseClient';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -20,9 +21,8 @@ const StudentSettingsPage = () => {
     phone: '',
     birth_date: ''
   });
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark';
-  });
+  // Usar o hook useTheme para gerenciar o tema
+  const { theme, toggleTheme, isDark } = useTheme();
 
   useEffect(() => {
     if (user?.id) {
@@ -83,19 +83,6 @@ const StudentSettingsPage = () => {
       toast({ title: '❌ Erro ao salvar', description: 'Tente novamente em alguns instantes.', variant: 'destructive' });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const toggleDarkMode = () => {
-    const newMode = !isDarkMode;
-    setIsDarkMode(newMode);
-    
-    if (newMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
     }
   };
 
@@ -228,7 +215,7 @@ const StudentSettingsPage = () => {
               {/* Dark Mode */}
               <div className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3">
-                  {isDarkMode ? (
+                  {isDark ? (
                     <Moon className="w-5 h-5 text-slate-600 dark:text-slate-400" />
                   ) : (
                     <Sun className="w-5 h-5 text-slate-600 dark:text-slate-400" />
@@ -238,19 +225,19 @@ const StudentSettingsPage = () => {
                       Tema Escuro
                     </p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {isDarkMode ? 'Ativado' : 'Desativado'}
+                      {isDark ? 'Ativado' : 'Desativado'}
                     </p>
                   </div>
                 </div>
                 <button
-                  onClick={toggleDarkMode}
+                  onClick={toggleTheme}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 ${
-                    isDarkMode ? 'bg-cyan-600' : 'bg-slate-200'
+                    isDark ? 'bg-cyan-600' : 'bg-slate-200'
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      isDarkMode ? 'translate-x-6' : 'translate-x-1'
+                      isDark ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>

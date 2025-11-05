@@ -6,6 +6,7 @@ import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTheme } from '@/shared/contexts/ThemeContext';
 import { supabase } from '@/shared/services/supabaseClient';
 import { Link } from 'react-router-dom';
 
@@ -18,15 +19,8 @@ export const StudentProfileCard = ({ className = '' }) => {
     avgGrade: 0
   });
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    // Verificar preferência salva ou sistema
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) return savedTheme === 'dark';
-      return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    return false;
-  });
+  // Usar o hook useTheme para gerenciar o tema
+  const { theme, toggleTheme, isDark } = useTheme();
 
   useEffect(() => {
     if (user?.id) {
@@ -38,16 +32,7 @@ export const StudentProfileCard = ({ className = '' }) => {
     }
   }, [user]);
 
-  useEffect(() => {
-    // Aplicar dark mode no documento
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+  // O hook useTheme já cuida de aplicar o tema no documento
 
   // Atualizar hora a cada segundo
   useEffect(() => {
@@ -137,10 +122,7 @@ export const StudentProfileCard = ({ className = '' }) => {
     }
   };
 
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // Aqui você pode integrar com seu sistema de tema global
-  };
+  // toggleTheme agora é fornecido pelo hook useTheme
 
   const getCurrentDateTime = () => {
     return currentTime.toLocaleString('pt-BR', {
@@ -194,18 +176,19 @@ export const StudentProfileCard = ({ className = '' }) => {
 
             {/* Ícones */}
             <div className="flex items-center gap-1.5">
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={toggleTheme}
-                className="p-1 rounded-md bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/50"
-                aria-label="Alternar tema claro/escuro"
-                title="Alternar tema"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={isDark ? 'Modo Claro' : 'Modo Escuro'}
               >
-                {isDarkMode ? (
-                  <Moon className="w-3.5 h-3.5 text-white" aria-hidden="true" />
+                {isDark ? (
+                  <Sun className="h-5 w-5" />
                 ) : (
-                  <Sun className="w-3.5 h-3.5 text-white" aria-hidden="true" />
+                  <Moon className="h-5 w-5" />
                 )}
-              </button>
+              </Button>
               <button
                 className="p-1 rounded-md bg-white/20 hover:bg-white/30 dark:bg-white/10 dark:hover:bg-white/20 transition-all duration-200 relative focus:outline-none focus:ring-2 focus:ring-white/50"
                 aria-label="3 notificações não lidas"

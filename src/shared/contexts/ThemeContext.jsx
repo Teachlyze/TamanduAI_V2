@@ -1,8 +1,10 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { storageManager } from '@/shared/services/storageManager';
+import { useAuth } from './AuthContext';
 
 const ThemeContext = createContext();
 
+// Hook para usar o tema
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {
@@ -12,86 +14,119 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(() => {
-    // Usar storageManager para recuperar preferência do usuário
-    // Se não houver (após logout), usa 'light' como padrão
-    return storageManager.getTheme();
-  });
-
-  const [highContrast, setHighContrast] = useState(() => {
-    return storageManager.getHighContrast();
-  });
-
+  const { isAuthenticated } = useAuth();
+  const [theme, setTheme] = useState('light');
+  
+  // Inicializar o tema
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Se o usuário não estiver autenticado, forçar tema claro
+    if (!isAuthenticated) {
+      setTheme('light');
+      storageManager.setTheme('light');
+      return;
+    }
+    
+    // Tenta carregar do storageManager
+    const savedTheme = storageManager.getTheme();
+    if (savedTheme === 'light' || savedTheme === 'dark') {
+      setTheme(savedTheme);
+      return;
+    }
+    
+    // Fallback para a preferência do sistema
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setTheme('dark');
+    } else {
+      setTheme('light');
+    }
+  }, [isAuthenticated]);
+
+  const [highContrast, setHighContrast] = useState(false);
+
+  // Aplicar tema ao documento
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const root = document.documentElement;
     
-    // Remove all theme classes
+    // Limpar classes antigas
     root.classList.remove('light', 'dark', 'high-contrast');
     
-    // Add current theme
+    // Aplicar tema atual
     root.classList.add(theme);
-    // Set daisyUI theme for visual tokens
-    // light -> 'tamanduai' (custom); dark -> 'dark'
+    
+    // Configurar atributo para acessibilidade
     root.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'tamanduai');
     
-    // Add high contrast if enabled
+    // Adicionar alto contraste se ativado
     if (highContrast) {
       root.classList.add('high-contrast');
     }
     
-    // Save to localStorage using storageManager (persiste após logout)
-    storageManager.setTheme(theme);
-    storageManager.setHighContrast(highContrast);
-  }, [theme, highContrast]);
+    // Salvar preferência usando o storageManager
+    if (isAuthenticated) {
+      storageManager.setTheme(theme);
+      storageManager.setHighContrast(highContrast);
+    }
+  }, [theme, highContrast, isAuthenticated]);
 
-  // Listen for system theme changes
+  // Ouvir mudanças no tema do sistema
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
+    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     
     const handleSystemThemeChange = (e) => {
-      // Only update if user hasn't manually set a preference
-      const saved = storageManager.getTheme();
-      if (!saved || saved === 'light') { // Se não tem preferência salva ou está no padrão
+      // Apenas atualizar se o usuário não tiver definido uma preferência
+      if (isAuthenticated) {
+        const saved = storageManager.getTheme();
+        if (!saved || saved === 'light') {
+          setTheme(e.matches ? 'dark' : 'light');
+        }
+      } else {
+        // Se não estiver autenticado, seguir o tema do sistema
         setTheme(e.matches ? 'dark' : 'light');
       }
     };
-
+    
     mediaQuery.addEventListener('change', handleSystemThemeChange);
-
+    
     return () => {
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
     };
-  }, []);
+  }, [isAuthenticated]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
-
-  const toggleHighContrast = () => {
+  }, []);
+  
+  const toggleHighContrast = useCallback(() => {
     setHighContrast(prev => !prev);
-  };
+  }, []);
+  
+  const setLightTheme = useCallback(() => setTheme('light'), []);
+  const setDarkTheme = useCallback(() => setTheme('dark'), []);
 
-  const setLightTheme = () => setTheme('light');
-  const setDarkTheme = () => setTheme('dark');
+  // Criando o valor do contexto diretamente para evitar problemas com useMemo
+  const value = {
+    theme,
+    highContrast,
+    toggleTheme,
+    toggleHighContrast,
+    setLightTheme,
+    setDarkTheme,
+    isDark: theme === 'dark',
+    isLight: theme === 'light',
+  };
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme,
-        highContrast,
-        toggleTheme,
-        toggleHighContrast,
-        setLightTheme,
-        setDarkTheme,
-        isDark: theme === 'dark',
-        isLight: theme === 'light',
-      }}
-    >
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );
 };
 
+// Exportar o contexto para uso em outros arquivos
 export default ThemeContext;

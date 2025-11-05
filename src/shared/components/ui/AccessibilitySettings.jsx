@@ -17,7 +17,7 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import { useLanguageDetection } from '@/shared/hooks/useLanguageDetection';
-import useTheme from '@/shared/hooks/useTheme';
+import { useTheme } from '@/shared/contexts/ThemeContext';
 
 export const [loading, setLoading] = useState(true);
   const AccessibilitySettings = () => {
