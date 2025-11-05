@@ -42,7 +42,7 @@ const SubmissionRow = ({ submission, onCorrect, isSelected, onSelect }) => {
   return (
     <Card className={cn(
       "p-4 hover:shadow-md transition-all duration-200",
-      submission.flagged_for_review && "border-l-4 border-l-red-500",
+      submission.status === 'needs_review' && "border-l-4 border-l-red-500",
       isSelected && "ring-2 ring-blue-500 bg-blue-50"
     )}>
       <div className="flex items-center gap-4">

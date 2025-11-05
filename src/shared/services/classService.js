@@ -725,9 +725,31 @@ export const ClassService = {
   },
 
   /**
+   * Get classes by teacher ID
+   * @param {string} teacherId - The ID of the teacher
+   * @returns {Promise<Array>} - Array of classes
+   */
+  async getTeacherClasses(teacherId) {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('created_by', teacherId)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      logger.error('Error fetching teacher classes:', error);
+      throw error;
+    }
+  },
+
+  /**
    * Get class by invite code
    * @param {string} inviteCode - The invite code
-   * @returns {Promise<Object>} - The class object
+   * @returns {Promise<Object>} - The class object with teacher info
    */
   async getClassByInviteCode(inviteCode) {
     const { data, error } = await supabase
@@ -741,7 +763,8 @@ export const ClassService = {
       .single();
 
     if (error || !data) {
-      throw new Error('Código de turma inválido');
+      logger.error('Error fetching class by invite code:', error);
+      throw new Error(error?.message || 'Código de turma inválido');
     }
 
     return data;

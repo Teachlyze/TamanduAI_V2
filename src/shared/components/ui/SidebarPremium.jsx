@@ -29,10 +29,10 @@ const teacherNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Turmas', href: '/dashboard/classes', icon: Users },
   { name: 'Atividades', href: '/dashboard/activities', icon: BookOpen },
+  { name: 'Submissões', href: '/dashboard/corrections', icon: FileText },
   { name: 'Alunos', href: '/dashboard/students', icon: GraduationCap },
   { name: 'Agenda', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Chatbot', href: '/dashboard/chatbot', icon: MessageCircle },
   { name: 'Perfil', href: '/dashboard/profile', icon: Settings },
 ];

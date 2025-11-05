@@ -7,6 +7,42 @@ import NotificationOrchestrator from '@/shared/services/notificationOrchestrator
  * Handles all activity-related operations with Supabase
  */
 
+/**
+ * Get activities by class
+ * @param {string} classId - Class ID
+ * @returns {Promise<Array>} - Array of activities
+ */
+const getActivitiesByClass = async (classId) => {
+  try {
+    const { data, error } = await supabase
+      .from('activity_class_assignments')
+      .select(`
+        activity:activities (
+          id,
+          title,
+          description,
+          created_at,
+          due_date,
+          status,
+          max_score
+        )
+      `)
+      .eq('class_id', classId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // Mapeia os dados para o formato esperado
+    return data.map(item => ({
+      ...item.activity,
+      class_assignment_id: item.id
+    }));
+  } catch (error) {
+    logger.error('Error fetching activities by class:', error);
+    throw error;
+  }
+};
+
 export const ActivityService = {
   /**
    * Create a new activity
@@ -272,6 +308,35 @@ export const ActivityService = {
     }
 
     return true;
+  },
+
+  /**
+   * Get activities by class
+   * @param {string} classId - Class ID
+   * @returns {Promise<Array>} - Array of activities
+   */
+  async getActivitiesByClass(classId) {
+    const { data, error } = await supabase
+      .from('activity_class_assignments')
+      .select(`
+        activity_id,
+        activity:activities(
+          id,
+          title,
+          description,
+          due_date,
+          created_at,
+          created_by_user:profiles!activities_created_by_fkey(id, full_name, avatar_url)
+        )
+      `)
+      .eq('class_id', classId);
+
+    if (error) {
+      logger.error('Error fetching activities:', error)
+      throw error;
+    }
+
+    return data.map(a => a.activity);
   },
 
   /**

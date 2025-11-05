@@ -1,8 +1,8 @@
 import { logger } from '@/shared/utils/logger';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, CheckCircle, TrendingUp, AlertCircle, Filter, Download, FileText, Users, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, TrendingUp, AlertCircle, Filter, Download, FileText, Users, Calendar, Search } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
@@ -13,6 +13,8 @@ import { DashboardHeader, StatsCard, EmptyState, gradients } from '@/shared/desi
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { getSubmissionsForCorrection, getCorrectionMetrics } from '@/shared/services/correctionService';
+import ClassService from '@/shared/services/classService';
+import ActivityService from '@/shared/services/activityService';
 import CorrectionModal from './components/CorrectionModal';
 import SubmissionRow from './components/SubmissionRow';
 import BulkCorrectionModal from './components/BulkCorrectionModal';
@@ -35,10 +37,18 @@ const TeacherCorrectionsPage = () => {
   const [showCompareModal, setShowCompareModal] = useState(false);
   
   // Filtros
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('oldest');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Filtros de turma e atividade
+  const [classes, setClasses] = useState([]);
+  const [selectedClass, setSelectedClass] = useState('');
+  const [activities, setActivities] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState('all');
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [loadingActivities, setLoadingActivities] = useState(false);
   
   // Estatísticas
   const [stats, setStats] = useState({
@@ -48,24 +58,144 @@ const TeacherCorrectionsPage = () => {
     avgTime: 0
   });
 
-  useEffect(() => {
-    loadSubmissions();
-    loadMetrics();
+  // Carregar turmas do professor
+  const loadTeacherClasses = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoadingClasses(true);
+      const teacherClasses = await ClassService.getTeacherClasses(user.id);
+      setClasses(teacherClasses);
+      
+      // Se houver apenas uma turma, seleciona automaticamente
+      if (teacherClasses.length === 1) {
+        setSelectedClass(teacherClasses[0].id);
+      }
+    } catch (error) {
+      logger.error('Erro ao carregar turmas:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as turmas.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingClasses(false);
+    }
   }, [user]);
 
+  // Carregar atividades da turma selecionada
+  const loadClassActivities = useCallback(async (classId) => {
+    if (!classId) {
+      setActivities([]);
+      setSelectedActivity('all');
+      return;
+    }
+    
+    try {
+      setLoadingActivities(true);
+      const classActivities = await ActivityService.getActivitiesByClass(classId);
+      
+      // Certifica-se de que temos um array válido e mapeia para o formato esperado
+      const formattedActivities = Array.isArray(classActivities) 
+        ? classActivities.map(activity => ({
+            id: activity.id,
+            title: activity.title,
+            description: activity.description,
+            due_date: activity.due_date,
+            created_at: activity.created_at,
+            status: activity.status,
+            max_score: activity.max_score
+          }))
+        : [];
+      
+      setActivities(formattedActivities);
+      
+      // Se houver apenas uma atividade, seleciona automaticamente
+      if (formattedActivities.length === 1) {
+        setSelectedActivity(formattedActivities[0].id);
+      } else {
+        setSelectedActivity('all');
+      }
+    } catch (error) {
+      logger.error('Erro ao carregar atividades:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível carregar as atividades desta turma.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingActivities(false);
+    }
+  }, []);
+
+  // Efeito para carregar turmas ao montar o componente
   useEffect(() => {
-    applyFilters();
-  }, [submissions, statusFilter, searchQuery, sortBy]);
+    loadTeacherClasses();
+    loadMetrics();
+  }, [loadTeacherClasses]);
+
+  // Efeito para carregar atividades quando uma turma é selecionada
+  useEffect(() => {
+    if (selectedClass) {
+      loadClassActivities(selectedClass);
+    } else {
+      setActivities([]);
+      setSelectedActivity('');
+    }
+  }, [selectedClass, loadClassActivities]);
+
+  // Efeito para carregar submissões quando os filtros mudam
+  useEffect(() => {
+    if (selectedClass) {
+      loadSubmissions();
+    }
+  }, [selectedClass, selectedActivity, statusFilter]);
+
+  // Efeito para filtrar as submissões quando os filtros ou a lista mudar
+  useEffect(() => {
+    if (!submissions || submissions.length === 0) {
+      setFilteredSubmissions([]);
+      return;
+    }
+
+    let result = [...submissions];
+
+    // Aplicar filtro de busca
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(submission => 
+        submission.student?.full_name?.toLowerCase().includes(query) ||
+        submission.activity?.title?.toLowerCase().includes(query)
+      );
+    }
+
+    // Aplicar ordenação
+    if (sortBy === 'newest') {
+      result.sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at));
+    } else if (sortBy === 'oldest') {
+      result.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+    } else if (sortBy === 'grade_asc') {
+      result.sort((a, b) => (a.grade || 0) - (b.grade || 0));
+    } else if (sortBy === 'grade_desc') {
+      result.sort((a, b) => (b.grade || 0) - (a.grade || 0));
+    }
+
+    setFilteredSubmissions(result);
+  }, [submissions, searchQuery, sortBy]);
 
   const loadSubmissions = async () => {
-    if (!user) return;
+    if (!user || !selectedClass) return;
 
     try {
       setLoading(true);
 
       const filters = {
-        classId: searchParams.get('classId'),
-        activityId: searchParams.get('activityId'),
+        classId: selectedClass,
+        activityId: selectedActivity !== 'all' ? selectedActivity : null,
+        status: statusFilter === 'all' ? null :
+                statusFilter === 'pending' ? 'submitted' : 
+                statusFilter === 'graded' ? 'graded' : 
+                statusFilter === 'flagged' ? 'needs_review' : null,
         sortBy
       };
 
@@ -119,7 +249,7 @@ const TeacherCorrectionsPage = () => {
     } else if (statusFilter === 'graded') {
       filtered = filtered.filter(s => s.status === 'graded');
     } else if (statusFilter === 'flagged') {
-      filtered = filtered.filter(s => s.flagged_for_review);
+      filtered = filtered.filter(s => s.status === 'needs_review');
     }
 
     // Busca textual
@@ -241,45 +371,126 @@ const TeacherCorrectionsPage = () => {
 
       {/* Filtros e Busca */}
       <Card className="p-6 mb-6">
-        <div className="space-y-4">
-          {/* Linha 1: Tabs e Busca */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <Tabs value={statusFilter} onValueChange={setStatusFilter} className="flex-1">
-              <TabsList>
-                <TabsTrigger value="all">Todas</TabsTrigger>
-                <TabsTrigger value="pending">Pendentes</TabsTrigger>
-                <TabsTrigger value="graded">Corrigidas</TabsTrigger>
-                <TabsTrigger value="flagged">Marcadas</TabsTrigger>
-              </TabsList>
-            </Tabs>
+        <div className="space-y-6">
+          {/* Cabeçalho e Filtros */}
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">Correções</h1>
+                <p className="text-muted-foreground">
+                  {statusFilter === 'all' 
+                    ? 'Todas as submissões' 
+                    : statusFilter === 'pending' 
+                      ? 'Submissões aguardando correção' 
+                      : statusFilter === 'graded' 
+                        ? 'Submissões já corrigidas' 
+                        : 'Submissões sinalizadas'}
+                </p>
+              </div>
+            </div>
 
-            <Input
-              placeholder="Buscar por aluno ou atividade..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="md:w-64"
-            />
+            {/* Filtros de Turma e Atividade */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Turma</label>
+                <Select 
+                  value={selectedClass} 
+                  onValueChange={setSelectedClass}
+                  disabled={loadingClasses}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingClasses ? 'Carregando turmas...' : 'Selecione uma turma'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((classItem) => (
+                      <SelectItem key={classItem.id} value={classItem.id}>
+                        {classItem.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Atividade</label>
+                <Select 
+                  value={selectedActivity} 
+                  onValueChange={setSelectedActivity}
+                  disabled={!selectedClass || loadingActivities}
+                >
+                  <SelectTrigger>
+                    <SelectValue 
+                      placeholder={
+                        !selectedClass 
+                          ? 'Selecione uma turma primeiro' 
+                          : loadingActivities 
+                            ? 'Carregando atividades...' 
+                            : 'Todas as atividades'
+                      } 
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas as atividades</SelectItem>
+                    {activities.map((activity) => (
+                      <SelectItem key={activity.id} value={activity.id}>
+                        {activity.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium leading-none">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    <SelectItem value="pending">Pendentes</SelectItem>
+                    <SelectItem value="graded">Corrigidas</SelectItem>
+                    <SelectItem value="flagged">Sinalizadas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Barra de pesquisa e filtros adicionais */}
+            <div className="flex flex-col sm:flex-row gap-2 w-full">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por aluno ou atividade..."
+                  className="pl-9 w-full"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="oldest">Mais antigas primeiro</SelectItem>
+                  <SelectItem value="newest">Mais recentes primeiro</SelectItem>
+                  <SelectItem value="grade_asc">Nota: menor para maior</SelectItem>
+                  <SelectItem value="grade_desc">Nota: maior para menor</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="w-full sm:w-auto"
+              >
+                <Filter className="mr-2 h-4 w-4" />
+                Mais filtros
+              </Button>
+            </div>
           </div>
 
           {/* Linha 2: Ordenação e Ações */}
           <div className="flex flex-wrap gap-3">
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="oldest">Mais Antigas Primeiro</SelectItem>
-                <SelectItem value="newest">Mais Recentes Primeiro</SelectItem>
-                <SelectItem value="student">Por Aluno (A-Z)</SelectItem>
-                <SelectItem value="grade">Por Nota</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button variant="outline" onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}>
-              <Filter className="w-4 h-4 mr-2" />
-              Filtros Avançados
-            </Button>
-
             <Button variant="outline" onClick={handleExport}>
               <Download className="w-4 h-4 mr-2" />
               Exportar

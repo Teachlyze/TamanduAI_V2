@@ -125,7 +125,6 @@ export const AuthProvider = ({ children }) => {
           created_at: session.user.created_at
         };
         
-        logger.debug('[AuthContext] Using user_metadata profile:', immediateProfile.role)
         setProfile(immediateProfile);
         setLoading(false);
         

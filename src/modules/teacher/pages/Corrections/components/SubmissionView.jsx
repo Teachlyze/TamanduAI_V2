@@ -8,16 +8,6 @@ const SubmissionView = ({ submission }) => {
   const questions = submission.activity?.content?.questions || [];
   const answers = submission.answers || [];
 
-  console.log('🔍 SubmissionView Debug:', {
-    activityType: submission.activity?.type,
-    hasQuestions: questions.length > 0,
-    questionsCount: questions.length,
-    answersCount: answers.length,
-    content: content,
-    questions: questions,
-    answers: answers
-  });
-
   // Se tem questões estruturadas, mostrar como quiz independente do tipo
   if (questions.length > 0 && answers.length > 0) {
     return (

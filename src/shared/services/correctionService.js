@@ -62,7 +62,8 @@ export const getSubmissionsForCorrection = async (filters = {}) => {
     }
 
     if (filters.flagged) {
-      query = query.eq('flagged_for_review', true);
+      // Usando o status 'needs_review' para identificar submissões que precisam de atenção
+      query = query.eq('status', 'needs_review');
     }
 
     if (filters.plagiarism && filters.plagiarism < 100) {
@@ -427,30 +428,54 @@ export const getCorrectionMetrics = async (teacherId, period = 'week') => {
 
     if (error) throw error;
 
+    // Se não houver métricas, retornar valores padrão
+    if (!metrics || metrics.length === 0) {
+      return {
+        data: {
+          corrections_count: 0,
+          total_time_seconds: 0,
+          avg_grade: 0,
+          avg_feedback_length: 0,
+          avg_time_per_correction: 0,
+          daily_metrics: []
+        },
+        error: null
+      };
+    }
+
     // Calcular totais
-    const totals = metrics?.reduce((acc, day) => ({
-      corrections_count: acc.corrections_count + (day.corrections_count || 0),
-      total_time_seconds: acc.total_time_seconds + (day.total_time_seconds || 0),
-      avg_grade_given: [...acc.grades, day.avg_grade_given || 0],
-      feedback_avg_length: [...acc.lengths, day.feedback_avg_length || 0]
-    }), {
+    const initialTotals = {
       corrections_count: 0,
       total_time_seconds: 0,
       grades: [],
       lengths: []
-    });
+    };
+
+    const totals = metrics.reduce((acc, day) => {
+      const correctionsCount = Number(day.corrections_count) || 0;
+      const totalSeconds = Number(day.total_time_seconds) || 0;
+      const avgGrade = Number(day.avg_grade_given) || 0;
+      const avgLength = Number(day.feedback_avg_length) || 0;
+
+      return {
+        corrections_count: acc.corrections_count + correctionsCount,
+        total_time_seconds: acc.total_time_seconds + totalSeconds,
+        grades: [...acc.grades, avgGrade],
+        lengths: [...acc.lengths, avgLength]
+      };
+    }, initialTotals);
 
     // Calcular médias
     const avgGrade = totals.grades.length > 0
-      ? totals.grades.reduce((a, b) => a + b, 0) / totals.grades.length
+      ? parseFloat((totals.grades.reduce((a, b) => a + b, 0) / totals.grades.length).toFixed(1))
       : 0;
 
     const avgLength = totals.lengths.length > 0
-      ? totals.lengths.reduce((a, b) => a + b, 0) / totals.lengths.length
+      ? Math.round(totals.lengths.reduce((a, b) => a + b, 0) / totals.lengths.length)
       : 0;
 
     const avgTimePerCorrection = totals.corrections_count > 0
-      ? totals.total_time_seconds / totals.corrections_count
+      ? Math.round(totals.total_time_seconds / totals.corrections_count)
       : 0;
 
     return {
