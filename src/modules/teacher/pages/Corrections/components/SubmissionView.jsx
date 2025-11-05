@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
+import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
 
 const SubmissionView = ({ submission }) => {
   const content = submission.content;
@@ -48,7 +49,10 @@ const SubmissionView = ({ submission }) => {
               {/* Enunciado da Questão */}
               <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
                 <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO:</p>
-                <p className="text-sm font-medium leading-relaxed">{question.text || question.question || question.prompt}</p>
+                <TextWithLineBreaks 
+                  text={question.text || question.question || question.prompt}
+                  className="font-medium leading-relaxed"
+                />
                 {question.maxScore && (
                   <p className="text-xs text-gray-500 mt-2">Valor: {question.maxScore} pontos</p>
                 )}
@@ -58,13 +62,19 @@ const SubmissionView = ({ submission }) => {
               <div className="space-y-3 mb-3">
                 <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
                   <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">👤 RESPOSTA DO ALUNO:</p>
-                  <p className="text-sm font-medium">{studentAnswer || 'Não respondeu'}</p>
+                  <TextWithLineBreaks 
+                    text={studentAnswer || 'Não respondeu'}
+                    className="font-medium"
+                  />
                 </div>
                 
                 {correctAnswer && (
                   <div className="p-4 bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 rounded">
                     <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">✓ RESPOSTA CORRETA:</p>
-                    <p className="text-sm font-medium">{correctAnswer}</p>
+                    <TextWithLineBreaks 
+                      text={correctAnswer}
+                      className="font-medium"
+                    />
                   </div>
                 )}
               </div>
@@ -81,7 +91,7 @@ const SubmissionView = ({ submission }) => {
                         'bg-gray-50 dark:bg-gray-800'
                       }`}
                     >
-                      {opt}
+                      <TextWithLineBreaks text={opt} />
                     </div>
                   ))}
                 </div>
@@ -89,7 +99,13 @@ const SubmissionView = ({ submission }) => {
               
               {question.explanation && (
                 <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded text-sm">
-                  <strong>Explicação:</strong> {question.explanation}
+                  <div className="space-y-1">
+                    <strong>Explicação:</strong>
+                    <TextWithLineBreaks 
+                      text={question.explanation}
+                      className="block mt-1"
+                    />
+                  </div>
                 </div>
               )}
             </Card>
@@ -103,12 +119,25 @@ const SubmissionView = ({ submission }) => {
   const renderContent = () => {
     if (!content) return 'Sem conteúdo';
     
-    // Se for string, mostrar direto
-    if (typeof content === 'string') return content;
+    const textStyle = {
+      whiteSpace: 'pre-wrap',
+      wordBreak: 'break-word',
+      overflowWrap: 'break-word',
+      wordWrap: 'break-word',
+      maxWidth: '100%',
+      overflow: 'hidden',
+      display: 'block',
+      lineHeight: '1.5'
+    };
+    
+    // Se for string, mostrar com quebra de linha
+    if (typeof content === 'string') {
+      return <div style={textStyle}>{content}</div>;
+    }
     
     // Se for objeto, tentar extrair o texto
-    if (content.text) return content.text;
-    if (content.answer) return content.answer;
+    if (content.text) return <div style={textStyle}>{content.text}</div>;
+    if (content.answer) return <div style={textStyle}>{content.answer}</div>;
     
     // Se for um objeto com timestamp keys (respostas de quiz antigo)
     const keys = Object.keys(content);
@@ -120,7 +149,9 @@ const SubmissionView = ({ submission }) => {
           {keys.map(key => (
             <div key={key} className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded border">
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Resposta:</p>
-              <p className="font-mono text-sm font-medium">{content[key]}</p>
+              <div style={textStyle}>
+                {content[key]}
+              </div>
             </div>
           ))}
         </div>
@@ -129,9 +160,9 @@ const SubmissionView = ({ submission }) => {
     
     // Fallback: mostrar JSON formatado
     return (
-      <pre className="text-xs overflow-auto bg-gray-100 dark:bg-gray-800 p-3 rounded">
-        {JSON.stringify(content, null, 2)}
-      </pre>
+      <div className="text-xs overflow-auto bg-gray-100 dark:bg-gray-800 p-3 rounded">
+        <TextWithLineBreaks text={JSON.stringify(content, null, 2)} />
+      </div>
     );
   };
 
@@ -145,14 +176,25 @@ const SubmissionView = ({ submission }) => {
         {activityDescription && (
           <div className="p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
             <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO DA ATIVIDADE:</p>
-            <p className="text-sm font-medium leading-relaxed whitespace-pre-wrap">{activityDescription}</p>
+            <TextWithLineBreaks 
+              text={activityDescription}
+              className="font-medium leading-relaxed"
+            />
           </div>
         )}
         
         {/* Resposta do Aluno */}
         <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
           <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-3">👤 RESPOSTA DO ALUNO:</p>
-          <div className="text-sm font-medium whitespace-pre-wrap">
+          <div style={{
+            width: '100%',
+            maxWidth: '100%',
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-wrap',
+            overflowWrap: 'break-word',
+            wordWrap: 'break-word',
+            overflow: 'hidden'
+          }}>
             {renderContent()}
           </div>
         </div>
@@ -211,7 +253,10 @@ const SubmissionView = ({ submission }) => {
               {/* Enunciado da Questão */}
               <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
                 <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO:</p>
-                <p className="text-sm font-medium leading-relaxed">{question.text || question.question || question.prompt}</p>
+                <TextWithLineBreaks 
+                  text={question.text || question.question || question.prompt}
+                  className="font-medium leading-relaxed"
+                />
                 {question.maxScore && (
                   <p className="text-xs text-gray-500 mt-2">Valor: {question.maxScore} pontos</p>
                 )}
@@ -221,13 +266,19 @@ const SubmissionView = ({ submission }) => {
               <div className="space-y-3 mb-3">
                 <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
                   <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">👤 RESPOSTA DO ALUNO:</p>
-                  <p className="text-sm font-medium">{studentAnswer || 'Não respondeu'}</p>
+                  <TextWithLineBreaks 
+                    text={studentAnswer || 'Não respondeu'}
+                    className="font-medium"
+                  />
                 </div>
                 
                 {correctAnswer && (
                   <div className="p-4 bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 rounded">
                     <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">✓ RESPOSTA CORRETA:</p>
-                    <p className="text-sm font-medium">{correctAnswer}</p>
+                    <TextWithLineBreaks 
+                      text={correctAnswer}
+                      className="font-medium"
+                    />
                   </div>
                 )}
               </div>
@@ -244,7 +295,7 @@ const SubmissionView = ({ submission }) => {
                         'bg-gray-50 dark:bg-gray-800'
                       }`}
                     >
-                      {opt}
+                      <TextWithLineBreaks text={opt} />
                     </div>
                   ))}
                 </div>
@@ -252,7 +303,13 @@ const SubmissionView = ({ submission }) => {
               
               {question.explanation && (
                 <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded text-sm">
-                  <strong>Explicação:</strong> {question.explanation}
+                  <div className="space-y-1">
+                    <strong>Explicação:</strong>
+                    <TextWithLineBreaks 
+                      text={question.explanation}
+                      className="block mt-1"
+                    />
+                  </div>
                 </div>
               )}
             </Card>

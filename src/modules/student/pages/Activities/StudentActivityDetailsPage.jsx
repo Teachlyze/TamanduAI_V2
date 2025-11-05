@@ -1,6 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -600,7 +601,14 @@ const StudentActivityDetailsPage = () => {
       return (
         <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-blue-50/30 to-purple-50/20 dark:from-slate-900 dark:via-blue-950/20 dark:to-purple-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-blue-400/60 dark:hover:border-blue-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10">
           {questionHeader}
-          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
+          {question.description && (
+            <div className="w-full max-w-full break-words">
+              <TextWithLineBreaks 
+                text={question.description} 
+                className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap break-words w-full"
+              />
+            </div>
+          )}
           
           <div className="space-y-3">
             {question.options.map((option, idx) => (
@@ -658,7 +666,14 @@ const StudentActivityDetailsPage = () => {
       return (
         <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-purple-50/30 to-pink-50/20 dark:from-slate-900 dark:via-purple-950/20 dark:to-pink-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-purple-400/60 dark:hover:border-purple-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/10">
           {questionHeader}
-          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
+          {question.description && (
+            <div className="w-full max-w-full break-words">
+              <TextWithLineBreaks 
+                text={question.description} 
+                className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap break-words w-full"
+              />
+            </div>
+          )}
           <div className="space-y-3">
             {question.options.map((option, idx) => (
               <label
@@ -691,7 +706,14 @@ const StudentActivityDetailsPage = () => {
       return (
         <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/20 dark:from-slate-900 dark:via-emerald-950/20 dark:to-teal-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-emerald-400/60 dark:hover:border-emerald-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/10">
           {questionHeader}
-          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
+          {question.description && (
+            <div className="w-full max-w-full break-words">
+              <TextWithLineBreaks 
+                text={question.description} 
+                className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap break-words w-full"
+              />
+            </div>
+          )}
           <Input
             type="number"
             value={value ?? ''}
@@ -708,7 +730,14 @@ const StudentActivityDetailsPage = () => {
       return (
         <Card key={question.id} className="group p-6 space-y-4 bg-gradient-to-br from-white via-amber-50/30 to-orange-50/20 dark:from-slate-900 dark:via-amber-950/20 dark:to-orange-950/10 border-2 border-slate-200/60 dark:border-slate-700/40 hover:border-amber-400/60 dark:hover:border-amber-500/40 transition-all duration-300 hover:shadow-xl hover:shadow-amber-500/10">
           {questionHeader}
-          {question.description && <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">{question.description}</p>}
+          {question.description && (
+            <div className="w-full max-w-full break-words">
+              <TextWithLineBreaks 
+                text={question.description} 
+                className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap break-words w-full"
+              />
+            </div>
+          )}
           <Input
             type="date"
             value={value ?? ''}
@@ -781,9 +810,10 @@ const StudentActivityDetailsPage = () => {
               <PieChart className="w-5 h-5 text-sky-500" />
               Progresso
             </h3>
-            <p className="text-sm text-slate-500">
-              {questionStats.answered} de {questionStats.total} perguntas respondidas
-            </p>
+            <TextWithLineBreaks 
+              text={`${questionStats.answered} de ${questionStats.total} perguntas respondidas`}
+              className="text-sm text-slate-500"
+            />
           </div>
           <Badge className="bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200">
             {questionStats.percent}%
@@ -802,18 +832,25 @@ const StudentActivityDetailsPage = () => {
       </h3>
       <div className="space-y-4">
         {timelineEvents.length === 0 && (
-          <p className="text-sm text-slate-500">Sem eventos registrados ainda.</p>
+          <TextWithLineBreaks 
+            text="Sem eventos registrados ainda." 
+            className="text-sm text-slate-500"
+          />
         )}
         {timelineEvents.map((event) => (
           <div key={event.key} className="flex gap-3">
             <div className={`w-2 h-2 mt-2 rounded-full ${event.accent || 'bg-slate-300'}`} />
             <div>
-              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{event.label}</p>
-              <p className="text-xs text-slate-500">
-                {event.timestamp
-                  ? formatDistanceToNow(new Date(event.timestamp), { addSuffix: true, locale: ptBR })
-                  : '—'}
-              </p>
+              <div className="w-full max-w-full break-words">
+                <TextWithLineBreaks 
+                  text={event.label}
+                  className="text-sm font-medium text-slate-900 dark:text-slate-100 whitespace-pre-wrap break-words w-full"
+                />
+              </div>
+              <TextWithLineBreaks 
+                text={event.timestamp ? formatDistanceToNow(new Date(event.timestamp), { addSuffix: true, locale: ptBR }) : '—'}
+                className="text-xs text-slate-500"
+              />
             </div>
           </div>
         ))}
@@ -832,9 +869,10 @@ const StudentActivityDetailsPage = () => {
             <MessageSquare className="w-5 h-5 text-slate-400 mt-1" />
             <div>
               <h4 className="font-semibold text-slate-900 dark:text-white">Aguardando correção</h4>
-              <p className="text-sm text-slate-500">
-                Assim que o professor corrigir, seu feedback aparecerá aqui.
-              </p>
+              <TextWithLineBreaks 
+                text="Assim que o professor corrigir, seu feedback aparecerá aqui."
+                className="text-sm text-slate-500"
+              />
             </div>
           </div>
         </Card>
@@ -859,9 +897,12 @@ const StudentActivityDetailsPage = () => {
               <MessageSquare className="w-4 h-4" />
               Feedback do professor
             </h4>
-            <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
-              {/* Feedback é salvo como TEXT direto no campo submission.feedback */}
-              {submission?.feedback || 'Sem comentários adicionais.'}
+            <div className="w-full max-w-full break-words">
+              <TextWithLineBreaks 
+                text={submission?.feedback || 'Sem comentários adicionais.'} 
+                className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words w-full"
+                preserveWhitespace={true}
+              />
             </div>
           </div>
         </div>
@@ -877,9 +918,10 @@ const StudentActivityDetailsPage = () => {
         <div className="flex items-start justify-between">
           <div>
             <h3 className="font-semibold text-lg">Tentativas</h3>
-            <p className="text-sm text-slate-500">
-              {attemptsUsed} de {maxAttempts} tentativas utilizadas.
-            </p>
+            <TextWithLineBreaks 
+              text={`${attemptsUsed} de ${maxAttempts} tentativas utilizadas.`}
+              className="text-sm text-slate-500"
+            />
           </div>
           <Badge className="bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {maxAttempts - attemptsUsed} restantes
@@ -893,14 +935,14 @@ const StudentActivityDetailsPage = () => {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                    Tentativa {attempts.indexOf(attempt) + 1}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {attempt.status === 'submitted' ? 'Enviada' : attempt.status === 'graded' ? 'Corrigida' : 'Rascunho'}
-                    {' • '}
-                    {attempt.created_at ? formatDistanceToNow(new Date(attempt.created_at), { addSuffix: true, locale: ptBR }) : '—'}
-                  </p>
+                  <TextWithLineBreaks 
+                    text={`Tentativa ${attempts.indexOf(attempt) + 1}`}
+                    className="text-sm font-semibold text-slate-900 dark:text-white"
+                  />
+                  <TextWithLineBreaks 
+                    text={`${attempt.status === 'submitted' ? 'Enviada' : attempt.status === 'graded' ? 'Corrigida' : 'Rascunho'} • ${attempt.created_at ? formatDistanceToNow(new Date(attempt.created_at), { addSuffix: true, locale: ptBR }) : '—'}`}
+                    className="text-xs text-slate-500"
+                  />
                 </div>
                 <Button
                   variant="ghost"
@@ -930,9 +972,10 @@ const StudentActivityDetailsPage = () => {
           </div>
           <div>
             <h3 className="font-semibold">Assistente da Atividade</h3>
-            <p className="text-sm text-slate-500">
-              Faça perguntas sobre as instruções ou peça ajuda com conceitos. As respostas usam o contexto desta atividade.
-            </p>
+            <TextWithLineBreaks 
+              text="Faça perguntas sobre as instruções ou peça ajuda com conceitos. As respostas usam o contexto desta atividade."
+              className="text-sm text-slate-500"
+            />
           </div>
         </div>
         <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
@@ -948,9 +991,10 @@ const StudentActivityDetailsPage = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="space-y-1">
             <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Instruções</h3>
-            <p className="text-sm text-slate-500">
-              Por {activity?.created_by_user?.name || 'Professor'}
-            </p>
+            <TextWithLineBreaks 
+              text={`Por ${activity?.created_by_user?.name || 'Professor'}`}
+              className="text-sm text-slate-500"
+            />
           </div>
           <div className="flex flex-col items-end gap-1">
             <Badge className={statusBadge.className}>{statusBadge.label}</Badge>
@@ -961,15 +1005,27 @@ const StudentActivityDetailsPage = () => {
             )}
           </div>
         </div>
-        <div className="prose prose-sm dark:prose-invert max-w-none">
-          <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{activity?.description || 'Sem descrição disponível.'}</p>
+        <div className="prose prose-sm dark:prose-invert max-w-none w-full">
+          <div className="w-full max-w-full break-words">
+            <TextWithLineBreaks 
+              text={activity?.description || 'Sem descrição disponível.'} 
+              className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words w-full"
+              preserveWhitespace={true}
+            />
+          </div>
           {activity?.instructions && (
             <Card className="mt-4 bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800">
               <div className="flex items-start gap-3">
                 <BookOpen className="w-5 h-5 text-sky-500 mt-1" />
                 <div>
                   <h4 className="text-sm font-semibold text-slate-900 dark:text-white">Instruções adicionais</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{activity.instructions}</p>
+                  <div className="w-full max-w-full break-words">
+                    <TextWithLineBreaks 
+                      text={activity.instructions} 
+                      className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words w-full"
+                      preserveWhitespace={true}
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
@@ -1149,7 +1205,11 @@ const StudentActivityDetailsPage = () => {
                 )}
               </div>
               <h1 className="text-4xl font-bold text-white mb-3 drop-shadow-lg">{activity?.title}</h1>
-              <p className="text-white/90 text-lg">{activity?.description || 'Sem descrição'}</p>
+              <TextWithLineBreaks 
+                text={activity?.description || 'Sem descrição'} 
+                className="text-white/90 text-lg"
+                preserveWhitespace={true}
+              />
               <div className="flex items-center gap-4 mt-4 text-white/80">
                 <div className="flex items-center gap-2">
                   <div className="p-2 bg-white/20 rounded-lg">

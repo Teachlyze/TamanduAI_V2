@@ -21,6 +21,7 @@ import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { format, isPast, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
 
 const StudentActivityDetailsPageRedesigned = () => {
   const { activityId } = useParams();
@@ -390,7 +391,13 @@ const StudentActivityDetailsPageRedesigned = () => {
                     <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
                       ✓ Atividade enviada em {format(new Date(submission.submitted_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                     </p>
-                    <p className="whitespace-pre-wrap">{answer}</p>
+                    <div className="w-full max-w-full break-words">
+                      <TextWithLineBreaks 
+                        text={answer} 
+                        className="whitespace-pre-wrap break-words w-full"
+                        preserveWhitespace={true}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <>

@@ -9,6 +9,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { useTheme } from '@/shared/contexts/ThemeContext';
 import { supabase } from '@/shared/services/supabaseClient';
 import { Link } from 'react-router-dom';
+import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
 
 export const StudentProfileCard = ({ className = '' }) => {
   const { user } = useAuth();
@@ -219,12 +220,18 @@ export const StudentProfileCard = ({ className = '' }) => {
             </div>
 
             <div className="flex-1 min-w-0">
-              <h2 className="text-base font-bold text-white dark:text-white truncate">
-                {profile?.full_name || 'Estudante'}
-              </h2>
-              <p className="text-white/80 dark:text-white/70 text-xs truncate">
-                {user?.email || 'email@example.com'}
-              </p>
+              <div className="min-w-0">
+                <TextWithLineBreaks 
+                  text={profile?.full_name || 'Estudante'}
+                  className="text-base font-bold text-white dark:text-white"
+                  style={{ WebkitLineClamp: 1, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                />
+                <TextWithLineBreaks 
+                  text={user?.email || 'email@example.com'}
+                  className="text-white/80 dark:text-white/70 text-xs"
+                  style={{ WebkitLineClamp: 1, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                />
+              </div>
             </div>
           </div>
 
@@ -232,9 +239,11 @@ export const StudentProfileCard = ({ className = '' }) => {
           <div className="grid grid-cols-3 gap-2 mb-3">
             <div className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/30 dark:border-white/20 text-center hover:bg-white/25 dark:hover:bg-white/15 transition-colors">
               <BookOpen className="w-4 h-4 text-yellow-300 dark:text-yellow-400 mx-auto mb-1" aria-hidden="true" />
-              <p className="text-base font-bold text-white dark:text-white" aria-label={`${stats.completedActivities} atividades concluídas`}>
-                {stats.completedActivities}
-              </p>
+              <TextWithLineBreaks
+                text={stats.completedActivities.toString()}
+                className="text-base font-bold text-white dark:text-white"
+                aria-label={`${stats.completedActivities} atividades concluídas`}
+              />
               <p className="text-[10px] text-white/80 dark:text-white/70 font-medium leading-tight">
                 Concluídas
               </p>
@@ -242,9 +251,11 @@ export const StudentProfileCard = ({ className = '' }) => {
 
             <div className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/30 dark:border-white/20 text-center hover:bg-white/25 dark:hover:bg-white/15 transition-colors">
               <TrendingUp className="w-4 h-4 text-orange-300 dark:text-orange-400 mx-auto mb-1" aria-hidden="true" />
-              <p className="text-base font-bold text-white dark:text-white" aria-label={`${stats.pendingActivities} atividades pendentes`}>
-                {stats.pendingActivities}
-              </p>
+              <TextWithLineBreaks
+                text={stats.pendingActivities.toString()}
+                className="text-base font-bold text-white dark:text-white"
+                aria-label={`${stats.pendingActivities} atividades pendentes`}
+              />
               <p className="text-[10px] text-white/80 dark:text-white/70 font-medium leading-tight">
                 Pendentes
               </p>
@@ -252,9 +263,11 @@ export const StudentProfileCard = ({ className = '' }) => {
 
             <div className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-lg p-2 border border-white/30 dark:border-white/20 text-center hover:bg-white/25 dark:hover:bg-white/15 transition-colors">
               <Award className="w-4 h-4 text-cyan-300 dark:text-cyan-400 mx-auto mb-1" aria-hidden="true" />
-              <p className="text-base font-bold text-white dark:text-white" aria-label={`Nota média ${stats.avgGrade.toFixed(1)}`}>
-                {stats.avgGrade.toFixed(1)}
-              </p>
+              <TextWithLineBreaks
+                text={stats.avgGrade.toFixed(1)}
+                className="text-base font-bold text-white dark:text-white"
+                aria-label={`Nota média ${stats.avgGrade.toFixed(1)}`}
+              />
               <p className="text-[10px] text-white/80 dark:text-white/70 font-medium leading-tight">
                 Média
               </p>

@@ -44,9 +44,18 @@ const GradingPage = () => {
     if (typeof submission.content === 'string') {
       return (
         <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
-          <pre className="whitespace-pre-wrap font-sans text-sm">
+          <div style={{
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            maxWidth: '100%',
+            overflow: 'hidden',
+            fontFamily: 'inherit',
+            fontSize: '0.875rem',
+            lineHeight: '1.5'
+          }}>
             {submission.content}
-          </pre>
+          </div>
         </div>
       );
     }
@@ -74,9 +83,17 @@ const GradingPage = () => {
                     <p className="text-sm font-medium text-slate-900 dark:text-white mb-1">
                       Questão {index + 1}
                     </p>
-                    <p className="text-sm text-slate-700 dark:text-slate-300">
-                      <span className="font-semibold">Resposta:</span> {Array.isArray(answer) ? answer.join(', ') : answer}
-                    </p>
+                    <div className="text-sm text-slate-700 dark:text-slate-300" style={{
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      lineHeight: '1.5'
+                    }}>
+                      <span className="font-semibold">Resposta: </span>
+                      {Array.isArray(answer) ? answer.join(', ') : answer}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -126,18 +143,38 @@ const GradingPage = () => {
                     {/* Resposta do aluno */}
                     <div className="mb-2">
                       <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Resposta do aluno:</span>
-                      <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                      <div 
+                        className="text-sm font-medium text-slate-900 dark:text-white mt-1"
+                        style={{
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          maxWidth: '100%',
+                          overflow: 'hidden',
+                          lineHeight: '1.5'
+                        }}
+                      >
                         {Array.isArray(studentAnswer) ? studentAnswer.join(', ') : studentAnswer || 'Sem resposta'}
-                      </p>
+                      </div>
                     </div>
 
                     {/* Gabarito (se existir) */}
                     {correctAnswer && (
                       <div>
                         <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Gabarito:</span>
-                        <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mt-1">
+                        <div 
+                          className="text-sm font-medium text-emerald-600 dark:text-emerald-400 mt-1"
+                          style={{
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            maxWidth: '100%',
+                            overflow: 'hidden',
+                            lineHeight: '1.5'
+                          }}
+                        >
                           {Array.isArray(correctAnswer) ? correctAnswer.join(', ') : correctAnswer}
-                        </p>
+                        </div>
                       </div>
                     )}
 
@@ -162,9 +199,20 @@ const GradingPage = () => {
       // Se falhar o parse, mostrar raw
       return (
         <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
-          <pre className="whitespace-pre-wrap font-sans text-sm">
+          <div 
+            style={{
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              maxWidth: '100%',
+              overflow: 'auto',
+              fontFamily: 'monospace',
+              fontSize: '0.875rem',
+              lineHeight: '1.5'
+            }}
+          >
             {JSON.stringify(submission.content, null, 2)}
-          </pre>
+          </div>
         </div>
       );
     }
