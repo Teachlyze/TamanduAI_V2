@@ -81,18 +81,29 @@ const PostActivityModal = ({ open, onClose, activity, onSuccess }) => {
     try {
       setLoading(true);
 
-      // Combinar data e hora
+      // Combinar data e hora para due_date
       const dueDatetime = `${dueDate}T${dueTime}:00`;
 
-      // Criar assignment na tabela activity_class_assignments
+      // 1. Atualizar a atividade com due_date
+      const { error: activityError } = await supabase
+        .from('activities')
+        .update({
+          due_date: dueDatetime
+        })
+        .eq('id', activity.id);
+
+      if (activityError) {
+        logger.error('Erro ao atualizar atividade:', activityError);
+        throw activityError;
+      }
+
+      // 2. Criar assignment na tabela activity_class_assignments (apenas relacionamento)
       const { data: assignment, error: assignmentError } = await supabase
         .from('activity_class_assignments')
         .insert({
           activity_id: activity.id,
           class_id: selectedClass,
-          assigned_by: user.id,
-          due_date: dueDatetime,
-          is_published: true
+          assigned_at: new Date().toISOString()
         })
         .select()
         .single();

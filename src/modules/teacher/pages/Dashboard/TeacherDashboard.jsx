@@ -168,43 +168,52 @@ const TeacherDashboard = () => {
 
       if (todayError) throw todayError;
 
-      // 6. Buscar eventos próximos (com filtro de dias)
+      // 6. Buscar eventos próximos e de hoje
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       const eventEndDate = addDays(new Date(), eventFilter);
-      const { data: events, error: eventsError } = await supabase
+
+      logger.debug('[Dashboard] Buscando eventos de hoje:', {
+        todayStart: todayStart.toISOString(),
+        todayEnd: todayEnd.toISOString()
+      });
+
+      // Buscar todos os eventos próximos com informação de postagem
+      const { data: allEvents, error: eventsError } = await supabase
         .from('calendar_events')
-        .select('*')
+        .select(`
+          *,
+          activity_assignments:activity_class_assignments(
+            id,
+            class_id,
+            assigned_at
+          )
+        `)
         .eq('created_by', user.id)
-        .gte('start_time', new Date().toISOString())
+        .gte('start_time', todayStart.toISOString())
         .lte('start_time', eventEndDate.toISOString())
-        .order('start_time', { ascending: true })
-        .limit(4);
+        .order('start_time', { ascending: true });
 
-      if (!eventsError && events) {
-        setUpcomingEvents(events);
-        setTodayEvents(events.filter(e => isToday(new Date(e.start_time))));
-      }
-
-      // 7. Buscar reuniões (calendar_events do tipo meeting/reunião)
-      const { data: meetings, error: meetingsError } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('created_by', user.id)
-        .in('type', ['meeting', 'reunião'])
-        .gte('start_time', new Date().toISOString())
-        .lte('start_time', addDays(new Date(), eventFilter).toISOString())
-        .order('start_time', { ascending: true })
-        .limit(4);
-
-      if (!meetingsError && meetings) {
-        const meetingsAsEvents = meetings.map(m => ({
-          ...m,
-          title: m.title,
-          start_time: m.start_time,
-          type: 'meeting'
-        }));
-        setUpcomingEvents(prev => [...prev, ...meetingsAsEvents].sort((a, b) => 
-          new Date(a.start_time) - new Date(b.start_time)
-        ).slice(0, 4));
+      if (!eventsError && allEvents) {
+        logger.debug('[Dashboard] Eventos retornados:', allEvents.length);
+        
+        // Filtrar eventos de hoje
+        const eventsToday = allEvents.filter(e => {
+          const eventDate = new Date(e.start_time);
+          const isToday = eventDate >= todayStart && eventDate <= todayEnd;
+          if (isToday) {
+            logger.debug('[Dashboard] Evento de hoje:', e.title, eventDate.toISOString());
+          }
+          return isToday;
+        });
+        
+        logger.debug('[Dashboard] Eventos de hoje filtrados:', eventsToday.length);
+        
+        setTodayEvents(eventsToday);
+        setUpcomingEvents(allEvents.slice(0, 4));
+      } else if (eventsError) {
+        logger.error('[Dashboard] Erro ao buscar eventos:', eventsError);
       }
 
       // 8. Identificar alunos em alerta
@@ -244,12 +253,24 @@ const TeacherDashboard = () => {
         setAlertStudents(alerts);
       }
 
-      // 9. Atividades agendadas para hoje
+      // 9. Atividades agendadas para hoje (eventos com atividade linkada)
+      const todayActivities = allEvents?.filter(e => 
+        e.activity_id && 
+        new Date(e.start_time) >= todayStart && 
+        new Date(e.start_time) <= todayEnd
+      ) || [];
+      
       const { data: scheduled, error: scheduledError } = await supabase
         .from('activities')
-        .select('*')
+        .select(`
+          *,
+          activity_assignments:activity_class_assignments(
+            id,
+            class_id,
+            assigned_at
+          )
+        `)
         .eq('created_by', user.id)
-        .eq('status', 'draft')
         .gte('created_at', today.toISOString())
         .lt('created_at', tomorrow.toISOString());
 
@@ -558,12 +579,19 @@ const TeacherDashboard = () => {
                             size="sm" 
                             onClick={(e) => {
                               e.stopPropagation();
-                              setActivityToPost({ id: event.activity_id, title: event.title });
-                              setShowPostModal(true);
+                              if (!event.activity_assignments || event.activity_assignments.length === 0) {
+                                setActivityToPost({ id: event.activity_id, title: event.title });
+                                setShowPostModal(true);
+                              }
                             }}
-                            className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md"
+                            disabled={event.activity_assignments && event.activity_assignments.length > 0}
+                            className={`shadow-md ${
+                              event.activity_assignments && event.activity_assignments.length > 0
+                                ? 'bg-slate-400 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+                            } text-white`}
                           >
-                            Postar
+                            {event.activity_assignments && event.activity_assignments.length > 0 ? 'Postado' : 'Postar'}
                           </Button>
                         )}
                       </div>
@@ -593,16 +621,28 @@ const TeacherDashboard = () => {
                       <p className="font-medium text-slate-900 dark:text-white text-sm">
                         {activity.title}
                       </p>
+                      {activity.activity_assignments && activity.activity_assignments.length > 0 && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Postado em {activity.activity_assignments.length} turma{activity.activity_assignments.length > 1 ? 's' : ''}
+                        </p>
+                      )}
                     </div>
                     <Button 
                       size="sm" 
-                      className="bg-gradient-to-r from-blue-600 to-cyan-600"
+                      disabled={activity.activity_assignments && activity.activity_assignments.length > 0}
+                      className={
+                        activity.activity_assignments && activity.activity_assignments.length > 0
+                          ? 'bg-slate-400 cursor-not-allowed'
+                          : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
+                      }
                       onClick={() => {
-                        setActivityToPost(activity);
-                        setShowPostModal(true);
+                        if (!activity.activity_assignments || activity.activity_assignments.length === 0) {
+                          setActivityToPost(activity);
+                          setShowPostModal(true);
+                        }
                       }}
                     >
-                      Postar
+                      {activity.activity_assignments && activity.activity_assignments.length > 0 ? 'Postado' : 'Postar'}
                     </Button>
                   </div>
                 ))}
@@ -901,11 +941,8 @@ const TeacherDashboard = () => {
             // Navegar para editar evento
             navigate('/dashboard/calendar');
           }}
-          onDelete={async () => {
-            // Deletar evento e recarregar
-            await supabase.from('calendar_events').delete().eq('id', selectedEvent.id);
-            setShowEventDetailsModal(false);
-            setSelectedEvent(null);
+          onDelete={() => {
+            // Recarregar dados após deletar evento (o delete já é feito no modal)
             loadDashboardData();
           }}
         />

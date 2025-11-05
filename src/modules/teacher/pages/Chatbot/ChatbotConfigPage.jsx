@@ -69,11 +69,13 @@ const ChatbotConfigPage = () => {
       
       setClassData(classInfo);
 
-      // Set default name
-      setConfig(prev => ({
-        ...prev,
-        name: `Assistente de ${classInfo.subject || classInfo.name || 'Turma'}`
-      }));
+      // Set default name - com null check
+      if (classInfo) {
+        setConfig(prev => ({
+          ...prev,
+          name: `Assistente de ${classInfo.subject || classInfo.name || 'Turma'}`
+        }));
+      }
 
       // Load activities
       const { data: acts } = await supabase

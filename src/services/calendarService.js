@@ -122,13 +122,13 @@ const CalendarService = {
     return events || [];
   },
 
-  // Subscribe to changes in calendar_events and event_attendees for a user
+  // Subscribe to changes in calendar_events and meeting_attendees for a user
   subscribeUserCalendar(userId, cb) {
     const channel = supabase.channel(`calendar-user-${userId}`);
 
     channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events' }, () => cb('calendar_events'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_attendees', filter: `user_id=eq.${userId}` }, () => cb('event_attendees'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meeting_attendees', filter: `user_id=eq.${userId}` }, () => cb('meeting_attendees'))
       .subscribe();
 
     return () => {
@@ -142,7 +142,7 @@ const CalendarService = {
 
     channel
       .on('postgres_changes', { event: '*', schema: 'public', table: 'calendar_events', filter: `class_id=eq.${classId}` }, () => cb('calendar_events'))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'event_attendees' }, () => cb('event_attendees'))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'meeting_attendees' }, () => cb('meeting_attendees'))
       .subscribe();
 
     return () => {

@@ -439,10 +439,15 @@ const TeacherCalendarPage = () => {
           onClose={() => {
             setShowCreateModal(false);
             setSelectedDate(null);
+            setSelectedEvent(null);
           }}
-          onSuccess={loadEvents}
+          onSuccess={() => {
+            loadEvents();
+            setSelectedEvent(null);
+          }}
           selectedDate={selectedDate}
           teacherId={user?.id}
+          editEvent={selectedEvent}
         />
       )}
 
@@ -454,8 +459,9 @@ const TeacherCalendarPage = () => {
             setSelectedEvent(null);
           }}
           event={selectedEvent}
-          onEdit={() => {
+          onEdit={(event) => {
             setShowDetailsModal(false);
+            setSelectedEvent(event);
             setShowCreateModal(true);
           }}
           onDelete={loadEvents}

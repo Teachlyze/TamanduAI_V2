@@ -8,12 +8,13 @@ import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { redisCache } from '@/shared/services/redisCache';
 
-const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId }) => {
+const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId, editEvent = null }) => {
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState([]);
   const [students, setStudents] = useState([]);
   const [activities, setActivities] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const isEditMode = !!editEvent;
   
   const [formData, setFormData] = useState({
     title: '',
@@ -36,6 +37,49 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
     loadClasses();
     loadActivities();
   }, [teacherId]);
+
+  // Preencher formulário quando editando
+  useEffect(() => {
+    if (isEditMode && editEvent && isOpen) {
+      const eventStart = new Date(editEvent.start_time);
+      const eventEnd = new Date(editEvent.end_time);
+      
+      setFormData({
+        title: editEvent.title || '',
+        description: editEvent.description || '',
+        type: editEvent.type || 'event',
+        start_date: format(eventStart, 'yyyy-MM-dd'),
+        start_time: format(eventStart, 'HH:mm'),
+        end_time: format(eventEnd, 'HH:mm'),
+        modality: editEvent.modality || 'online',
+        meeting_link: editEvent.meeting_link || '',
+        location: editEvent.location || '',
+        selected_classes: editEvent.class_id ? [editEvent.class_id] : [],
+        selected_students: editEvent.attendees || [],
+        invite_type: editEvent.attendees?.length > 0 ? 'individuals' : (editEvent.class_id ? 'classes' : 'all'),
+        color: editEvent.color || '#3B82F6',
+        activity_id: editEvent.activity_id || null
+      });
+    } else if (!isEditMode && isOpen) {
+      // Resetar formulário quando criar novo
+      setFormData({
+        title: '',
+        description: '',
+        type: 'event',
+        start_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+        start_time: '08:00',
+        end_time: '09:00',
+        modality: 'online',
+        meeting_link: '',
+        location: '',
+        selected_classes: [],
+        selected_students: [],
+        invite_type: 'all',
+        color: '#3B82F6',
+        activity_id: null
+      });
+    }
+  }, [isEditMode, editEvent, isOpen, selectedDate]);
 
   useEffect(() => {
     if (formData.selected_classes.length > 0 && formData.invite_type === 'individuals') {
@@ -149,6 +193,49 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
     try {
       setLoading(true);
 
+      // Se estiver editando, fazer UPDATE
+      if (isEditMode && editEvent) {
+        const startDateTime = new Date(`${formData.start_date}T${formData.start_time}`);
+        const endDateTime = new Date(`${formData.start_date}T${formData.end_time}`);
+
+        const updateData = {
+          title: formData.title,
+          description: formData.description,
+          type: formData.type,
+          start_time: startDateTime.toISOString(),
+          end_time: endDateTime.toISOString(),
+          modality: formData.modality,
+          meeting_link: formData.modality === 'online' ? formData.meeting_link : null,
+          location: formData.modality === 'presential' ? formData.location : null,
+          attendees: formData.invite_type === 'individuals' ? formData.selected_students : null,
+          color: formData.color,
+          activity_id: formData.activity_id || null,
+          updated_at: new Date().toISOString()
+        };
+
+        const { error: updateError } = await supabase
+          .from('calendar_events')
+          .update(updateData)
+          .eq('id', editEvent.id);
+
+        if (updateError) {
+          logger.error('Erro ao atualizar evento:', updateError)
+          throw new Error(updateError.message || 'Erro ao atualizar evento');
+        }
+
+        // Invalidar cache
+        await redisCache.deletePattern(`calendar:${teacherId}:*`);
+
+        toast({
+          title: '✅ Evento atualizado!',
+          description: `${formData.title} foi atualizado com sucesso`
+        });
+
+        if (onSuccess) onSuccess();
+        onClose();
+        return;
+      }
+
       // Criar timestamps
       const startDateTime = new Date(`${formData.start_date}T${formData.start_time}`);
       const endDateTime = new Date(`${formData.start_date}T${formData.end_time}`);
@@ -247,7 +334,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
         {/* Header */}
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-500 p-6 rounded-t-2xl">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-white">Novo Evento</h2>
+            <h2 className="text-2xl font-bold text-white">{isEditMode ? 'Editar Evento' : 'Novo Evento'}</h2>
             <button
               onClick={onClose}
               className="text-white hover:bg-white/20 p-2 rounded-lg transition-colors"
@@ -624,7 +711,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId 
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Criar Evento
+                  {isEditMode ? 'Salvar Alterações' : 'Criar Evento'}
                 </>
               )}
             </Button>

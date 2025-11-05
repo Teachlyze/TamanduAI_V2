@@ -89,7 +89,7 @@ export const checkSubmissionForPlagiarism = async (submissionId, text, options =
       .select(`
         id,
         activity_id,
-        user_id,
+        student_id,
         activities (
           id,
           class_id,
@@ -216,7 +216,7 @@ export const getPlagiarismChecksForActivity = async (activityId) => {
         *,
         submissions (
           id,
-          user_id,
+          student_id,
           profiles (full_name)
         )
       `)
@@ -260,7 +260,7 @@ export const getPlagiarismChecksForClass = async (classId) => {
         submissions (
           id,
           activity_id,
-          user_id,
+          student_id,
           profiles (full_name)
         )
       `)

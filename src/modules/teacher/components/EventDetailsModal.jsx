@@ -26,13 +26,13 @@ const EventDetailsModal = ({ open, onClose, event }) => {
       // Carregar participantes (se for reunião)
       if (event.type === 'reunião' || event.type === 'meeting') {
         const { data: attendeesData, error: attendeesError } = await supabase
-          .from('event_attendees')
+          .from('meeting_attendees')
           .select(`
             user_id,
             status,
-            profiles:profiles!event_attendees_user_id_fkey(id, full_name, email)
+            profiles:profiles!meeting_attendees_user_id_fkey(id, full_name, email)
           `)
-          .eq('event_id', event.id);
+          .eq('meeting_id', event.id);
 
         if (attendeesError) throw attendeesError;
         setAttendees(attendeesData || []);

@@ -8,6 +8,7 @@ import { Badge } from '@/shared/components/ui/badge';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import { redisCache } from '@/shared/services/redisCache';
 
 const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
   const [loading, setLoading] = useState(false);
@@ -30,13 +31,13 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
       // Carregar participantes (se for reunião)
       if (event.type === 'meeting' || event.type === 'reunião') {
         const { data: attendeesData, error: attendeesError } = await supabase
-          .from('event_attendees')
+          .from('meeting_attendees')
           .select(`
             user_id,
             status,
-            profiles:profiles!event_attendees_user_id_fkey(id, full_name, email)
+            profiles:profiles!meeting_attendees_user_id_fkey(id, full_name, email)
           `)
-          .eq('event_id', event.id);
+          .eq('meeting_id', event.id);
 
         if (attendeesError) throw attendeesError;
         setAttendees(attendeesData || []);
@@ -77,26 +78,48 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
     try {
       setLoading(true);
 
-      // Deletar evento (cascade irá deletar relacionamentos)
+      // Get user auth to invalidate cache
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+
+      // Deletar evento
       const { error: eventError } = await supabase
         .from('calendar_events')
         .delete()
         .eq('id', event.id);
 
-      if (eventError) throw eventError;
+      if (eventError) {
+        logger.error('Erro ao deletar evento:', eventError)
+        throw eventError;
+      }
+
+      // Invalidar cache do calendário
+      if (userId) {
+        try {
+          await redisCache.deletePattern(`calendar:${userId}:*`);
+          logger.debug('Cache de calendário invalidado após exclusão');
+        } catch (cacheError) {
+          logger.warn('Erro ao invalidar cache:', cacheError);
+        }
+      }
 
       toast({
-        title: 'Evento excluído!',
+        title: '✅ Evento excluído!',
         description: 'O evento foi removido com sucesso.'
       });
 
-      onDelete();
+      // Fechar modal primeiro para evitar flash
       onClose();
+      
+      // Recarregar eventos com pequeno delay
+      setTimeout(() => {
+        if (onDelete) onDelete();
+      }, 100);
     } catch (error) {
       logger.error('Erro ao excluir evento:', error)
       toast({
-        title: 'Erro ao excluir',
-        description: 'Não foi possível excluir o evento.',
+        title: '❌ Erro ao excluir',
+        description: error.message || 'Não foi possível excluir o evento.',
         variant: 'destructive'
       });
     } finally {
@@ -342,7 +365,7 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
-              onClick={onEdit}
+              onClick={() => onEdit(event)}
               className="flex-1"
             >
               <Edit className="w-4 h-4 mr-2" />
