@@ -55,12 +55,24 @@ const ChatbotConfigPage = () => {
       setLoading(true);
 
       const classInfo = await ClassService.getClassById(classId);
+      
+      if (!classInfo) {
+        logger.error('Turma não encontrada:', classId);
+        toast({
+          title: 'Erro',
+          description: 'Turma não encontrada',
+          variant: 'destructive'
+        });
+        navigate('/dashboard/classes');
+        return;
+      }
+      
       setClassData(classInfo);
 
       // Set default name
       setConfig(prev => ({
         ...prev,
-        name: `Assistente de ${classInfo.subject || classInfo.name}`
+        name: `Assistente de ${classInfo.subject || classInfo.name || 'Turma'}`
       }));
 
       // Load activities

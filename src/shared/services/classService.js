@@ -23,7 +23,7 @@ export const ClassService = {
         .select(`
           *,
           members:class_members(*, user:profiles(*)),
-          meetings:meetings(*)
+          meetings!inner(*)
         `)
         .order('name', { ascending: true });
 
@@ -79,7 +79,7 @@ export const ClassService = {
         .select(`
           *,
           members:class_members(*, user:profiles(*)),
-          meetings:meetings(*)
+          meetings!inner(*)
         `)
         .eq('id', classId)
         .single();
