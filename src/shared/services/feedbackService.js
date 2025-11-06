@@ -122,6 +122,12 @@ export const useFeedbackTemplate = async (templateId) => {
 
 /**
  * Sugere feedback com IA usando Edge Function
+ * @param {Object} submissionData - Dados da submissão
+ * @param {string} submissionData.content - Resposta do aluno
+ * @param {number} submissionData.grade - Nota atribuída
+ * @param {string} submissionData.activityType - Tipo da atividade
+ * @param {string} submissionData.activityTitle - Título da atividade
+ * @param {string} submissionData.activityDescription - Descrição/enunciado da atividade
  */
 export const suggestFeedbackWithAI = async (submissionData) => {
   try {
@@ -135,21 +141,32 @@ export const suggestFeedbackWithAI = async (submissionData) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        submissionData: submissionData.content,
-        grade: submissionData.grade,
+        submissionData: submissionData.content || submissionData || '',
+        grade: submissionData.grade !== null && submissionData.grade !== undefined ? submissionData.grade : null,
         activityType: submissionData.activityType || 'assignment',
+        activityTitle: submissionData.activityTitle || '',
+        activityDescription: submissionData.activityDescription || '',
+        maxGrade: submissionData.maxGrade || submissionData.maxScore || 10,
       }),
     });
 
     if (!response.ok) {
-      throw new Error('Erro ao gerar feedback com IA');
+      const errorText = await response.text();
+      logger.error('Edge Function error:', { status: response.status, error: errorText });
+      throw new Error(`Edge Function retornou ${response.status}`);
     }
 
     const data = await response.json();
+    
+    // Garantir que feedback é sempre string
+    const feedbackText = typeof data.feedback === 'string' 
+      ? data.feedback 
+      : (data.feedback?.text || JSON.stringify(data.feedback) || 'Feedback não disponível');
 
     return {
       data: {
-        suggestion: data.feedback,
+        suggestion: feedbackText,
+        suggestedGrade: data.suggestedGrade,
         isAI: true,
         warning: data.warning || 'Esta é uma sugestão gerada por IA. Revise e personalize antes de usar.'
       },

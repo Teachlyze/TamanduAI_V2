@@ -26,30 +26,13 @@ const ChatbotAnalyticsPage = () => {
   const [period, setPeriod] = useState('7');
   const [exporting, setExporting] = useState(false);
   const [analytics, setAnalytics] = useState({
-    totalConversations: 145,
-    activeStudents: 28,
-    satisfaction: 92,
-    avgResponseTime: 2.3,
-    topQuestions: [
-      { question: 'Como resolver questão de equações?', count: 45, activity: 'Exercícios Cap. 3', resolved: true },
-      { question: 'O que é função quadrática?', count: 38, activity: 'Introdução', needsAttention: true },
-      { question: 'Qual a diferença entre X e Y?', count: 29, activity: 'Teoria', resolved: true }
-    ],
-    difficultTopics: [
-      { topic: 'Equações de 2º grau', questions: 67, satisfaction: 78 },
-      { topic: 'Funções trigonométricas', questions: 42, satisfaction: 85 },
-      { topic: 'Logaritmos', questions: 35, satisfaction: 91 }
-    ],
-    recentConversations: [
-      { id: '1', student: 'João Silva', question: 'Como calcular derivada?', status: 'resolved', timestamp: '2h atrás' },
-      { id: '2', student: 'Maria Santos', question: 'O que é integral?', status: 'resolved', timestamp: '5h atrás' },
-      { id: '3', student: 'Pedro Costa', question: 'Dúvida sobre limite', status: 'needs_attention', timestamp: '1 dia atrás' }
-    ],
-    insights: [
-      { type: 'warning', message: '5 alunos fizeram a mesma pergunta sobre "Equações de 2º grau"', suggestion: 'Considere fazer uma revisão' },
-      { type: 'info', message: 'Uso aumentou 40% esta semana', detail: 'Proximidade de prova detectada' },
-      { type: 'success', message: '3 alunos avaliaram positivamente a explicação sobre "funções"' }
-    ]
+    totalConversations: 0,
+    activeStudents: 0,
+    satisfaction: 0,
+    avgResponseTime: 0,
+    topQuestions: [],
+    difficultTopics: [],
+    insights: []
   });
 
   useEffect(() => {
@@ -117,26 +100,42 @@ const ChatbotAnalyticsPage = () => {
         ? (messagesWithTime.reduce((sum, m) => sum + m.response_time_ms, 0) / messagesWithTime.length / 1000).toFixed(1)
         : 0;
 
-      // Extrair perguntas mais frequentes (agrupar similares com IA seria ideal)
-      const topQuestions = messages
-        ?.slice(0, 5)
-        .map(m => ({
-          question: m.message,
-          count: 1,
-          activity: m.metadata?.activity_title || 'Geral',
-          resolved: !m.was_helpful === false
-        })) || [];
+      // Buscar análise diária processada pela IA
+      const today = new Date().toISOString().split('T')[0];
+      const { data: dailyAnalysis } = await supabase
+        .from('chatbot_daily_analysis')
+        .select('frequent_questions, difficult_topics, processed_at')
+        .eq('class_id', classId)
+        .eq('analysis_date', today)
+        .maybeSingle();
 
-      // Conversas recentes
-      const recentConversations = conversations
-        ?.slice(0, 5)
-        .map(c => ({
-          id: c.id,
-          student: 'Aluno',
-          question: c.message_count > 0 ? `${c.message_count} mensagens` : 'Nova conversa',
-          status: c.resolved ? 'resolved' : 'needs_attention',
-          timestamp: new Date(c.started_at).toLocaleString('pt-BR')
-        })) || [];
+      // Se não há análise de hoje, buscar a mais recente
+      const { data: latestAnalysis } = !dailyAnalysis ? await supabase
+        .from('chatbot_daily_analysis')
+        .select('frequent_questions, difficult_topics, processed_at, analysis_date')
+        .eq('class_id', classId)
+        .order('analysis_date', { ascending: false })
+        .limit(1)
+        .maybeSingle() : { data: null };
+
+      const analysis = dailyAnalysis || latestAnalysis;
+
+      // Perguntas frequentes processadas pela IA
+      const topQuestions = analysis?.frequent_questions?.map(fq => ({
+        question: fq.theme,
+        count: fq.count,
+        activity: fq.activity || 'Geral',
+        resolved: true,
+        examples: fq.examples
+      })) || [];
+
+      // Tópicos difíceis processados pela IA
+      const difficultTopics = analysis?.difficult_topics?.map(dt => ({
+        topic: dt.topic,
+        questions: dt.questions_count,
+        satisfaction: 100 - dt.difficulty_score, // Inverter: maior dificuldade = menor satisfação
+        reason: dt.reason
+      })) || [];
 
       // Gerar insights baseados em dados reais
       const insights = [];
@@ -190,8 +189,7 @@ const ChatbotAnalyticsPage = () => {
         satisfaction,
         avgResponseTime,
         topQuestions,
-        difficultTopics: [], // TODO: Implementar análise de tópicos com IA
-        recentConversations,
+        difficultTopics,
         insights
       });
     } catch (error) {
@@ -400,37 +398,6 @@ const ChatbotAnalyticsPage = () => {
           </div>
         </Card>
       </div>
-
-        {/* Recent Conversations */}
-        <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <span className="text-2xl">💬</span>
-            Conversas Recentes
-          </h3>
-          <div className="space-y-3">
-          {analytics.recentConversations.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">
-              Nenhuma conversa recente. Quando os alunos começarem a usar o chatbot, as interações aparecerão aqui.
-            </p>
-          ) : analytics.recentConversations.map(conv => (
-            <div key={conv.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white font-bold">
-                  {conv.student[0]}
-                </div>
-                <div>
-                  <div className="font-semibold">{conv.student}</div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">{conv.question}</div>
-                  <div className="text-xs text-slate-500">{conv.timestamp}</div>
-                </div>
-              </div>
-              <Badge className={conv.status === 'resolved' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}>
-                {conv.status === 'resolved' ? '✅ Resolvida' : '⚠️ Precisa atenção'}
-              </Badge>
-            </div>
-          ))}
-        </div>
-      </Card>
 
         {/* Actions */}
         <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">

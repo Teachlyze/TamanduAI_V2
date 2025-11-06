@@ -261,26 +261,10 @@ const StudentPerformancePage = () => {
         .order('submitted_at', { ascending: false })
         .limit(5);
 
-      // Debug: ver estrutura das submissions
-      logger.debug('🔍 Total de Submissions encontradas:', detailedSubmissions?.length)
-      logger.debug('🔍 Detailed Submissions:', JSON.stringify(detailedSubmissions, null, 2));
-
       // Processar submissões com questões detalhadas
       const recentGradesWithDetails = (detailedSubmissions || []).map((submission, idx) => {
         const activity = submission.activity;
         const subject = activity?.activity_class_assignments?.[0]?.class?.subject || 'Geral';
-        
-        // Debug: ver conteúdo de CADA atividade
-        console.log(`\n📝 Activity ${idx + 1}/${detailedSubmissions.length}:`, {
-          title: activity?.title,
-          grade: submission.grade,
-          hasContent: !!activity?.content,
-          contentKeys: activity?.content ? Object.keys(activity.content) : [],
-          questionsCount: Array.isArray(activity?.content?.questions) ? activity.content.questions.length : 0,
-          questions: activity?.content?.questions,
-          answersCount: submission.answers?.length || 0,
-          answers: submission.answers
-        });
         
         // Extrair questões e comparar com respostas do aluno
         const questions = [];
@@ -328,10 +312,6 @@ const StudentPerformancePage = () => {
         }))
       };
 
-      // Debug: verificar se questões estão sendo enviadas
-      logger.debug('📊 Performance Summary:', JSON.stringify(performanceSummary, null, 2));
-      logger.debug('❓ Total de questões encontradas:', recentGradesWithDetails.reduce((sum, g) => sum + (g.questions?.length || 0), 0));
-
       // Chamar Edge Function da OpenAI
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -339,8 +319,6 @@ const StudentPerformancePage = () => {
         logger.error('Erro ao obter sessão:', sessionError)
         throw new Error('Erro de autenticação');
       }
-
-      logger.debug('Session token:', session?.access_token ? 'Token presente' : 'Token ausente')
 
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-study-recommendations`, {
         method: 'POST',

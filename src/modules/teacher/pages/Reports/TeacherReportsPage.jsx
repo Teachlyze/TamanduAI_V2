@@ -166,7 +166,6 @@ const TeacherReportsPage = () => {
       if (error) throw error;
       
       setRecentReports(data || []);
-      console.log(`✅ [Reports] ${data?.length || 0} relatórios carregados do histórico`);
     } catch (error) {
       logger.error('Erro ao carregar histórico:', error);
       setRecentReports([]);
@@ -185,14 +184,11 @@ const TeacherReportsPage = () => {
       // Tentar buscar do cache
       const cached = await cacheService.get(cacheKey);
       if (cached) {
-        console.log('✅ [Reports] Dados carregados do cache');
         setClasses(cached.classes || []);
         setStudents(cached.students || []);
         setLoadingData(false);
         return;
       }
-      
-      console.log('🔄 [Reports] Buscando dados do banco...');
       
       // Buscar turmas do professor
       const { data: classesData, error: classesError } = await supabase
@@ -240,8 +236,6 @@ const TeacherReportsPage = () => {
         classes: classesData || [],
         students: uniqueStudents
       }, 300);
-      
-      console.log('💾 [Reports] Dados salvos no cache (TTL: 5min)');
       
     } catch (error) {
       logger.error('Erro ao carregar dados:', error)
@@ -384,8 +378,6 @@ const TeacherReportsPage = () => {
         
         if (historyError) {
           logger.error('Erro ao salvar histórico:', historyError);
-        } else {
-          console.log('✅ Relatório salvo no histórico');
         }
       } catch (error) {
         logger.error('Erro ao salvar histórico:', error);

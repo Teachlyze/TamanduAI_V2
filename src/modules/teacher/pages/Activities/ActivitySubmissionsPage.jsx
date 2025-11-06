@@ -105,11 +105,17 @@ const ActivitySubmissionsPage = () => {
   };
 
   const handleViewSubmission = (submission) => {
-    navigate(`/dashboard/grading/${submission.id}`);
+    // Criar array de IDs para navegação
+    const submissionIds = filteredSubmissions.map(s => s.id);
+    const submissionsParam = encodeURIComponent(JSON.stringify(submissionIds));
+    navigate(`/dashboard/corrections/${submission.id}?submissions=${submissionsParam}`);
   };
 
   const handleGradeSubmission = (submission) => {
-    navigate(`/dashboard/grading/${submission.id}`);
+    // Criar array de IDs para navegação
+    const submissionIds = filteredSubmissions.map(s => s.id);
+    const submissionsParam = encodeURIComponent(JSON.stringify(submissionIds));
+    navigate(`/dashboard/corrections/${submission.id}?submissions=${submissionsParam}`);
   };
 
   if (loading) {

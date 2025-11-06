@@ -28,6 +28,7 @@ const TeacherChatbotPage = React.lazy(() => import('./pages/Chatbot/TeacherChatb
 const ChatbotConfigPage = React.lazy(() => import('./pages/Chatbot/ChatbotConfigPage'));
 const ChatbotAnalyticsPage = React.lazy(() => import('./pages/Chatbot/ChatbotAnalyticsPage'));
 const TeacherCorrectionsPage = React.lazy(() => import('./pages/Corrections/TeacherCorrectionsPage'));
+const CorrectionPage = React.lazy(() => import('./pages/Corrections/CorrectionPage'));
 const TeacherAnalyticsPage = React.lazy(() => import('./pages/Analytics/TeacherAnalyticsPage'));
 const TeacherReportsPage = React.lazy(() => import('./pages/Reports/TeacherReportsPage'));
 
@@ -63,6 +64,7 @@ const TeacherRoutes = () => {
       
       {/* Corrections */}
       <Route path="corrections" element={<TeacherCorrectionsPage />} />
+      <Route path="corrections/:submissionId" element={<CorrectionPage />} />
       
       {/* Analytics & Reports */}
       <Route path="analytics" element={<TeacherAnalyticsPage />} />

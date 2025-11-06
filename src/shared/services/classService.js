@@ -754,7 +754,7 @@ export const ClassService = {
       .from('classes')
       .select(`
         *,
-        teacher:profiles!classes_created_by_fkey(id, full_name, name, avatar_url)
+        teacher:profiles!classes_created_by_fkey(id, full_name, avatar_url)
       `)
       .eq('invite_code', inviteCode)
       .eq('is_active', true)

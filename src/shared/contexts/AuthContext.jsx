@@ -83,12 +83,11 @@ export const AuthProvider = ({ children }) => {
           .single()
           .then(({ data: profileData, error: profileError }) => {
             if (mounted && profileData && !profileError) {
-              logger.debug('[AuthContext] Profile atualizado do DB:', profileData.role)
               setProfile(profileData);
             }
           })
           .catch(err => {
-            logger.debug('[AuthContext] Profile fetch em background falhou (ignorado):', err.message);
+            // Profile fetch em background falhou (ignorado)
           });
 
       } catch (err) {

@@ -45,13 +45,6 @@ export const AuthProvider = ({ children }) => {
           sessionPromise,
           timeoutPromise
         ]);
-        const sessionTime = performance.now() - startTime;
-
-        console.log('[AuthContext] Session check:', {
-          hasSession: !!session,
-          error: sessionError,
-          timeMs: sessionTime.toFixed(2)
-        });
 
         if (!mounted) return;
 

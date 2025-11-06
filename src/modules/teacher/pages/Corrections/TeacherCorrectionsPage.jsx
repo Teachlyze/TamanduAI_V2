@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, CheckCircle, TrendingUp, AlertCircle, Filter, Download, FileText, Users, Calendar, Search } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -25,6 +25,7 @@ const TeacherCorrectionsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
   const [submissions, setSubmissions] = useState([]);
@@ -265,9 +266,11 @@ const TeacherCorrectionsPage = () => {
   };
 
   const handleOpenCorrection = (submission, index = 0) => {
-    setSelectedSubmission(submission);
-    setCurrentSubmissionIndex(index);
-    setShowCorrectionModal(true);
+    // Criar array de IDs das submissões filtradas para navegação
+    const submissionIds = filteredSubmissions.map(s => s.id);
+    const submissionsParam = encodeURIComponent(JSON.stringify(submissionIds));
+    
+    navigate(`/dashboard/corrections/${submission.id}?submissions=${submissionsParam}`);
   };
 
   const handleNavigateSubmission = (direction) => {

@@ -87,8 +87,6 @@ const TeacherDashboard = () => {
       setLoading(true);
       setError(null);
 
-      logger.debug('[TeacherDashboard] Carregando dados...')
-
       // 1. Buscar turmas do professor
       const { data: classes, error: classesError } = await supabase
         .from('classes')
@@ -180,11 +178,6 @@ const TeacherDashboard = () => {
       const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       const eventEndDate = addDays(new Date(), 30); // Carregar 30 dias
 
-      logger.debug('[Dashboard] Buscando eventos de hoje:', {
-        todayStart: todayStart.toISOString(),
-        todayEnd: todayEnd.toISOString()
-      });
-
       // Buscar todos os eventos próximos
       const { data: allEvents, error: eventsError } = await supabase
         .from('calendar_events')
@@ -195,27 +188,13 @@ const TeacherDashboard = () => {
         .order('start_time', { ascending: true });
 
       if (!eventsError && allEvents) {
-        logger.debug('[Dashboard] Eventos retornados:', allEvents.length);
-        
         // Filtrar eventos de hoje
         const eventsToday = allEvents.filter(e => {
           const eventDate = new Date(e.start_time);
-          const isToday = eventDate >= todayStart && eventDate <= todayEnd;
-          if (isToday) {
-            logger.debug('[Dashboard] Evento de hoje:', e.title, eventDate.toISOString());
-          }
-          return isToday;
+          return eventDate >= todayStart && eventDate <= todayEnd;
         });
-        
-        logger.debug('[Dashboard] Eventos de hoje filtrados:', eventsToday.length);
         
         setTodayEvents(eventsToday);
-        
-        // Salvar TODOS os eventos (o useEffect vai chamar filterEvents() automaticamente)
-        logger.debug('[Dashboard] Salvando todos os eventos:', {
-          total: allEvents.length,
-          primeiros: allEvents.slice(0, 3).map(e => ({ title: e.title, start: e.start_time }))
-        });
         setAllUpcomingEvents(allEvents);
       } else if (eventsError) {
         logger.error('[Dashboard] Erro ao buscar eventos:', eventsError);
@@ -299,7 +278,7 @@ const TeacherDashboard = () => {
       setRecentActivities(activitiesWithClass.slice(0, 5));
       setPendingSubmissions(submissionsFormatted);
       
-      logger.debug('[TeacherDashboard] Dados carregados com sucesso')
+      // Dados carregados
     } catch (error) {
       logger.error('Erro ao carregar dashboard:', error)
       setError('Erro ao carregar dados do dashboard. Tente novamente.');
@@ -322,13 +301,6 @@ const TeacherDashboard = () => {
     const filtered = allUpcomingEvents.filter(event => {
       const eventDate = new Date(event.start_time);
       return eventDate >= todayStart && eventDate <= filterDate;
-    });
-
-    logger.debug('[Dashboard filterEvents] Filtrados:', {
-      total: allUpcomingEvents.length,
-      filtered: filtered.length,
-      eventFilter,
-      filterDate: filterDate.toISOString()
     });
 
     setUpcomingEvents(filtered.slice(0, 4));

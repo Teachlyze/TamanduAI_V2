@@ -87,7 +87,7 @@ serve(async (req)=>{
         persistSession: false
       }
     });
-    const openaiKey = Deno.env.get('VITE_OPENAI_API_KEY');
+    const openaiKey = Deno.env.get('VITE_OPENAI_API_KEY') || Deno.env.get('OPENAI_API_KEY');
     if (!openaiKey) {
       throw new Error('OpenAI API key not configured');
     }

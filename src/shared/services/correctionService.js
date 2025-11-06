@@ -117,6 +117,8 @@ export const getSubmissionDetails = async (submissionId) => {
           created_by,
           activity_class_assignments(
             class:classes(
+              id,
+              name,
               grading_system
             )
           )
@@ -131,20 +133,32 @@ export const getSubmissionDetails = async (submissionId) => {
       `)
       .eq('id', submissionId)
       .single();
-
+    
     if (error) throw error;
+    
+    // Extrair dados da classe do relacionamento aninhado
+    if (data.activity?.activity_class_assignments?.length > 0) {
+      data.class = data.activity.activity_class_assignments[0].class;
+    }
 
     // Buscar verificação de plágio se existir
     if (data.activity.plagiarism_enabled) {
-      const { data: plagiarism } = await supabase
-        .from('plagiarism_checks')
-        .select('*')
-        .eq('submission_id', submissionId)
-        .order('checked_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      data.plagiarism_check = plagiarism;
+      try {
+        const { data: plagiarism } = await supabase
+          .from('plagiarism_checks')
+          .select('*')
+          .eq('submission_id', submissionId)
+          .order('checked_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (plagiarism) {
+          data.plagiarism_score = Math.round(100 - plagiarism.plagiarism_percentage);
+        }
+      } catch (plagiarismError) {
+        // Tabela pode não existir, ignorar erro silenciosamente
+        logger.warn('Não foi possível buscar dados de plágio:', plagiarismError);
+      }
     }
 
     return { data, error: null };
@@ -167,14 +181,6 @@ export const saveCorrection = async (submissionId, correctionData) => {
       teacherId
     } = correctionData;
 
-    console.log('📝 Salvando correção:', {
-      submissionId,
-      grade: grade,
-      gradeType: typeof grade,
-      feedback: feedback?.substring(0, 50),
-      status
-    });
-
     // ⚠️ IMPORTANTE: O banco SEMPRE armazena em escala 0-10 (constraint CHECK)
     // Mas a UI pode usar outras escalas (0-100, A-F, etc)
     
@@ -195,20 +201,12 @@ export const saveCorrection = async (submissionId, correctionData) => {
     const maxScore = submissionData?.activity?.max_score || 10;
     const gradingSystem = submissionData?.activity?.activity_class_assignments?.[0]?.class?.grading_system || '0-10';
     
-    console.log('📊 Convertendo nota:', {
-      gradeInput: grade,
-      gradingSystem: gradingSystem,
-      maxScore: maxScore
-    });
-    
     // Converter nota da escala da UI para escala do banco (0-10)
     let gradeNormalized;
     const originalGrade = grade;
     
     try {
       gradeNormalized = convertToDatabase(grade, gradingSystem);
-      
-      logger.debug(`✅ Conversão: "${grade}" (${gradingSystem}) → ${gradeNormalized.toFixed(2)}/10`);
     } catch (error) {
       logger.error('❌ Erro na conversão:', error)
       throw new Error(`Nota inválida para o sistema ${gradingSystem}: ${grade}`);
@@ -235,8 +233,6 @@ export const saveCorrection = async (submissionId, correctionData) => {
       graded_at: new Date().toISOString()
     };
 
-    logger.debug('📤 Update payload:', updatePayload)
-
     const { data: submission, error: updateError } = await supabase
       .from('submissions')
       .update(updatePayload)
@@ -248,8 +244,6 @@ export const saveCorrection = async (submissionId, correctionData) => {
       logger.error('❌ Erro no update:', updateError)
       throw updateError;
     }
-    
-    logger.debug('✅ Correção salva com sucesso')
 
     // Salvar scores de rubrica se houver
     if (rubricScores.length > 0) {
@@ -267,18 +261,23 @@ export const saveCorrection = async (submissionId, correctionData) => {
       if (rubricError) throw rubricError;
     }
 
-    // Registrar no histórico
-    await supabase
-      .from('correction_history')
-      .insert({
-        submission_id: submissionId,
-        teacher_id: teacherId,
-        action: 'corrected',
-        new_grade: gradeNormalized,
-        notes: gradingSystem !== '0-10'
-          ? `Correção realizada: "${originalGrade}" (${gradingSystem}) = ${gradeNormalized.toFixed(2)}/10`
-          : `Correção realizada: ${gradeNormalized} pontos`
-      });
+    // Registrar no histórico (ignorar erro se tabela não existir)
+    try {
+      await supabase
+        .from('correction_history')
+        .insert({
+          submission_id: submissionId,
+          teacher_id: teacherId,
+          action: 'corrected',
+          new_grade: gradeNormalized,
+          notes: gradingSystem !== '0-10'
+            ? `Correção realizada: "${originalGrade}" (${gradingSystem}) = ${gradeNormalized.toFixed(2)}/10`
+            : `Correção realizada: ${gradeNormalized} pontos`
+        });
+    } catch (historyError) {
+      // Ignorar erro do histórico - não é crítico
+      logger.warn('Não foi possível registrar no histórico:', historyError.message);
+    }
 
     return { 
       data: submission, 
@@ -291,7 +290,14 @@ export const saveCorrection = async (submissionId, correctionData) => {
     };
   } catch (error) {
     logger.error('Erro ao salvar correção:', error)
-    return { data: null, error };
+    return { 
+      data: null, 
+      error: {
+        message: error.message || error.toString(),
+        code: error.code,
+        details: error.details
+      }
+    };
   }
 };
 
@@ -324,6 +330,11 @@ export const saveCorrectionDraft = async (submissionId, teacherId, draftData) =>
  */
 export const getCorrectionDraft = async (submissionId, teacherId) => {
   try {
+    // Validar parâmetros
+    if (!submissionId || !teacherId) {
+      return { data: null, error: null };
+    }
+
     const { data, error } = await supabase
       .from('correction_drafts')
       .select('*')
@@ -518,16 +529,16 @@ export const updateCorrectionMetrics = async (teacherId, correctionTime, grade, 
       ? ((existing.feedback_avg_length * existing.corrections_count) + feedbackLength) / newCorrectionsCount
       : feedbackLength;
 
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from('correction_metrics')
       .upsert({
         teacher_id: teacherId,
         date: today,
-        corrections_count: newCorrectionsCount,
-        total_time_seconds: newTotalTime,
+        corrections_count: Math.round(newCorrectionsCount),
+        total_time_seconds: Math.round(newTotalTime),
         avg_time_per_correction: Math.round(newTotalTime / newCorrectionsCount),
-        avg_grade_given: newAvgGrade,
-        feedback_avg_length: newAvgLength
+        avg_grade_given: Math.round(newAvgGrade * 100) / 100, // 2 casas decimais
+        feedback_avg_length: Math.round(newAvgLength)
       }, {
         onConflict: 'teacher_id,date'
       });

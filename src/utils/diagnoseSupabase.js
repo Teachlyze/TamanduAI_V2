@@ -92,10 +92,10 @@ export async function diagnoseSupabase() {
   return results;
 }
 
-// Executar diagnóstico automaticamente se estiver em modo dev
-if (import.meta.env.DEV) {
-  // Aguardar um pouco para não interferir com o bootstrap
-  setTimeout(() => {
-    diagnoseSupabase();
-  }, 1000);
-}
+// DIAGNÓSTICO DESABILITADO - Vazava dados sensíveis no console
+// Para habilitar manualmente, chame diagnoseSupabase() no console do navegador
+// if (import.meta.env.DEV) {
+//   setTimeout(() => {
+//     diagnoseSupabase();
+//   }, 1000);
+// }

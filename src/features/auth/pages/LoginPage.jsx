@@ -36,29 +36,17 @@ const LoginPage = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    console.log('[LoginPage] Auth state:', { 
-      hasUser: !!user, 
-      hasProfile: !!profile, 
-      authLoading,
-      profileRole: profile?.role 
-    });
-    
     if (user && profile && !authLoading) {
-      logger.debug('[LoginPage] ✅ All conditions met, redirecting to:', profile.role)
-      
+      // Redirecting to dashboard
       const userRole = profile.role;
       
       if (userRole === 'student') {
-        logger.debug('[LoginPage] Navigating to /students/dashboard')
         navigate('/students/dashboard');
       } else if (userRole === 'teacher') {
-        logger.debug('[LoginPage] Navigating to /dashboard')
         navigate('/dashboard');
       } else if (userRole === 'school') {
-        logger.debug('[LoginPage] Navigating to /school')
         navigate('/school');
       } else {
-        logger.debug('[LoginPage] Fallback: Navigating to /dashboard')
         navigate('/dashboard');
       }
     }

@@ -278,7 +278,7 @@ export const ActivityService = {
       .from('submissions')
       .select(`
         *,
-        student:profiles!submissions_student_id_fkey(id, full_name, name, avatar_url)
+        student:profiles!submissions_student_id_fkey(id, full_name, avatar_url)
       `)
       .eq('activity_id', activityId)
       .order('submitted_at', { ascending: false });

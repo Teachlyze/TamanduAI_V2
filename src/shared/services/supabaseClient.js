@@ -13,8 +13,6 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Supabase credentials missing');
 }
 
-logger.debug('✅ Supabase client initialized with URL:', supabaseUrl.substring(0, 30) + '...');
-
 // ✅ Criar cliente Supabase com configurações otimizadas
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {

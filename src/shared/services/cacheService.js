@@ -21,10 +21,9 @@ class CacheService {
     // Verificar se credenciais estão configuradas
     if (this.url && this.token) {
       this.enabled = true;
-      console.log('[Cache] ✅ Upstash Redis configurado');
     } else {
-      console.warn('[Cache] ⚠️  Upstash Redis não configurado - cache desabilitado');
-      console.warn('[Cache] Configure VITE_UPSTASH_REDIS_REST_URL e VITE_UPSTASH_REDIS_REST_TOKEN');
+      // Cache desabilitado - configure VITE_UPSTASH_REDIS_REST_URL e VITE_UPSTASH_REDIS_REST_TOKEN
+      this.enabled = false;
     }
   }
 

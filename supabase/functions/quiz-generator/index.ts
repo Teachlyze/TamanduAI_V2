@@ -12,12 +12,12 @@ serve(async (req)=>{
     });
   }
   try {
-    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const OPENAI_API_KEY = Deno.env.get("VITE_OPENAI_API_KEY") || Deno.env.get("OPENAI_API_KEY");
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
     if (!OPENAI_API_KEY) {
       return new Response(JSON.stringify({
-        error: "OPENAI_API_KEY not set"
+        error: "OpenAI API key not configured"
       }), {
         status: 500,
         headers: {
