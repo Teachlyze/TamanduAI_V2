@@ -104,15 +104,31 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
             if (updateError) throw updateError;
           }
 
-          // Criar assignment com o activity_id correto
-          const { error: assignError } = await supabase
+          // Verificar se já existe assignment para esta turma específica
+          const { data: existingForClass } = await supabase
             .from('activity_class_assignments')
-            .insert({
-              activity_id: activityIdToUse,
-              class_id: classId
-            });
+            .select('id')
+            .eq('activity_id', activityIdToUse)
+            .eq('class_id', classId)
+            .single();
 
-          if (assignError) throw assignError;
+          // Só criar assignment se não existir para esta turma
+          if (!existingForClass) {
+            const { error: assignError } = await supabase
+              .from('activity_class_assignments')
+              .insert({
+                activity_id: activityIdToUse,
+                class_id: classId,
+                assigned_at: new Date().toISOString()
+              });
+
+            if (assignError) {
+              logger.error('Erro ao criar assignment:', assignError);
+              throw assignError;
+            }
+          } else {
+            logger.debug('[PostActivity] Assignment já existe para esta turma, pulando...');
+          }
 
           // Notificar alunos se marcado
           if (notifyStudents) {

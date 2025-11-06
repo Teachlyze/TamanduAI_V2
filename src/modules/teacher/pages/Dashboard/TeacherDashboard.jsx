@@ -58,6 +58,7 @@ const TeacherDashboard = () => {
   const [recentClasses, setRecentClasses] = useState([]);
   const [recentActivities, setRecentActivities] = useState([]);
   const [pendingSubmissions, setPendingSubmissions] = useState([]);
+  const [allUpcomingEvents, setAllUpcomingEvents] = useState([]); // Todos os eventos (sem filtro)
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [todayEvents, setTodayEvents] = useState([]);
   const [alertStudents, setAlertStudents] = useState([]);
@@ -70,6 +71,11 @@ const TeacherDashboard = () => {
   useEffect(() => {
     loadDashboardData();
   }, []);
+
+  useEffect(() => {
+    // Filtrar eventos quando eventFilter mudar
+    filterEvents();
+  }, [eventFilter, allUpcomingEvents]);
 
   const loadDashboardData = async () => {
     if (!user?.id) {
@@ -168,28 +174,21 @@ const TeacherDashboard = () => {
 
       if (todayError) throw todayError;
 
-      // 6. Buscar eventos próximos e de hoje
+      // 6. Buscar eventos próximos (carregar 30 dias)
       const now = new Date();
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
       const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const eventEndDate = addDays(new Date(), eventFilter);
+      const eventEndDate = addDays(new Date(), 30); // Carregar 30 dias
 
       logger.debug('[Dashboard] Buscando eventos de hoje:', {
         todayStart: todayStart.toISOString(),
         todayEnd: todayEnd.toISOString()
       });
 
-      // Buscar todos os eventos próximos com informação de postagem
+      // Buscar todos os eventos próximos
       const { data: allEvents, error: eventsError } = await supabase
         .from('calendar_events')
-        .select(`
-          *,
-          activity_assignments:activity_class_assignments(
-            id,
-            class_id,
-            assigned_at
-          )
-        `)
+        .select('*')
         .eq('created_by', user.id)
         .gte('start_time', todayStart.toISOString())
         .lte('start_time', eventEndDate.toISOString())
@@ -211,7 +210,13 @@ const TeacherDashboard = () => {
         logger.debug('[Dashboard] Eventos de hoje filtrados:', eventsToday.length);
         
         setTodayEvents(eventsToday);
-        setUpcomingEvents(allEvents.slice(0, 4));
+        
+        // Salvar TODOS os eventos (o useEffect vai chamar filterEvents() automaticamente)
+        logger.debug('[Dashboard] Salvando todos os eventos:', {
+          total: allEvents.length,
+          primeiros: allEvents.slice(0, 3).map(e => ({ title: e.title, start: e.start_time }))
+        });
+        setAllUpcomingEvents(allEvents);
       } else if (eventsError) {
         logger.error('[Dashboard] Erro ao buscar eventos:', eventsError);
       }
@@ -301,6 +306,32 @@ const TeacherDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterEvents = () => {
+    // Filtrar eventos baseado no eventFilter sem fazer nova requisição
+    if (!allUpcomingEvents || allUpcomingEvents.length === 0) {
+      setUpcomingEvents([]);
+      return;
+    }
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const filterDate = addDays(todayStart, eventFilter);
+    
+    const filtered = allUpcomingEvents.filter(event => {
+      const eventDate = new Date(event.start_time);
+      return eventDate >= todayStart && eventDate <= filterDate;
+    });
+
+    logger.debug('[Dashboard filterEvents] Filtrados:', {
+      total: allUpcomingEvents.length,
+      filtered: filtered.length,
+      eventFilter,
+      filterDate: filterDate.toISOString()
+    });
+
+    setUpcomingEvents(filtered.slice(0, 4));
   };
 
   const statsCards = [
@@ -413,21 +444,21 @@ const TeacherDashboard = () => {
             <Button
               size="sm"
               variant={eventFilter === 1 ? 'default' : 'outline'}
-              onClick={() => { setEventFilter(1); loadDashboardData(); }}
+              onClick={() => setEventFilter(1)}
             >
               Hoje
             </Button>
             <Button
               size="sm"
               variant={eventFilter === 3 ? 'default' : 'outline'}
-              onClick={() => { setEventFilter(3); loadDashboardData(); }}
+              onClick={() => setEventFilter(3)}
             >
               3 dias
             </Button>
             <Button
               size="sm"
               variant={eventFilter === 7 ? 'default' : 'outline'}
-              onClick={() => { setEventFilter(7); loadDashboardData(); }}
+              onClick={() => setEventFilter(7)}
             >
               7 dias
             </Button>

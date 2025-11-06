@@ -26,6 +26,18 @@ const StudentPerformancePageRedesigned = () => {
   const [aiRecommendations, setAiRecommendations] = useState(null);
   const [dailyAIUsageCount, setDailyAIUsageCount] = useState(0);
   const [loadingUsageCount, setLoadingUsageCount] = useState(true);
+  
+  // Dados brutos (sem filtro)
+  const [allStats, setAllStats] = useState({
+    avgGrade: 0,
+    totalActivities: 0,
+    completedActivities: 0,
+    ranking: null
+  });
+  const [allRecentGrades, setAllRecentGrades] = useState([]);
+  const [allEvolutionData, setAllEvolutionData] = useState([]);
+  
+  // Dados filtrados (exibidos)
   const [stats, setStats] = useState({
     avgGrade: 0,
     totalActivities: 0,
@@ -36,6 +48,7 @@ const StudentPerformancePageRedesigned = () => {
   const [evolutionData, setEvolutionData] = useState([]);
   const [classPerformance, setClassPerformance] = useState([]);
   const [radarData, setRadarData] = useState([]);
+  
   const [selectedClass, setSelectedClass] = useState('all');
   const [selectedPeriod, setSelectedPeriod] = useState('all');
   const [classes, setClasses] = useState([]);
@@ -45,7 +58,12 @@ const StudentPerformancePageRedesigned = () => {
       loadPerformanceData();
       loadDailyAIUsageCount();
     }
-  }, [user, selectedClass, selectedPeriod]);
+  }, [user]);
+
+  useEffect(() => {
+    // Aplicar filtros sem recarregar dados
+    applyFilters();
+  }, [selectedClass, selectedPeriod]);
 
   const loadDailyAIUsageCount = async () => {
     try {
@@ -92,6 +110,99 @@ const StudentPerformancePageRedesigned = () => {
     }
   };
 
+  const applyFilters = () => {
+    // Filtrar stats
+    if (!allStats.submissions) return;
+
+    let filteredSubmissions = [...allStats.submissions];
+    let filteredAssignments = [...(allStats.assignments || [])];
+
+    // Filtro de turma
+    if (selectedClass !== 'all') {
+      filteredSubmissions = filteredSubmissions.filter(s => s.class_id === selectedClass);
+      filteredAssignments = filteredAssignments.filter(a => a.class_id === selectedClass);
+    }
+
+    // Filtro de período
+    if (selectedPeriod !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (selectedPeriod === 'week') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (selectedPeriod === 'month') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (selectedPeriod === 'semester') {
+        startDate.setMonth(now.getMonth() - 6);
+      }
+
+      filteredSubmissions = filteredSubmissions.filter(s => 
+        new Date(s.submitted_at) >= startDate
+      );
+    }
+
+    // Recalcular stats com dados filtrados
+    const completedActivities = filteredSubmissions.length;
+    const totalActivities = filteredAssignments.map(a => a.activity_id).filter((v, i, a) => a.indexOf(v) === i).length;
+    const gradesData = filteredSubmissions.filter(s => s.grade !== null);
+    const avgGrade = gradesData.length > 0
+      ? gradesData.reduce((sum, s) => sum + parseFloat(s.grade), 0) / gradesData.length
+      : 0;
+
+    setStats({
+      avgGrade,
+      totalActivities,
+      completedActivities,
+      ranking: null
+    });
+
+    // Filtrar recentGrades
+    let filteredGrades = [...allRecentGrades];
+    if (selectedClass !== 'all') {
+      filteredGrades = filteredGrades.filter(g => g.class_id === selectedClass);
+    }
+    if (selectedPeriod !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (selectedPeriod === 'week') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (selectedPeriod === 'month') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (selectedPeriod === 'semester') {
+        startDate.setMonth(now.getMonth() - 6);
+      }
+
+      filteredGrades = filteredGrades.filter(g => 
+        new Date(g.submitted_at) >= startDate
+      );
+    }
+    setRecentGrades(filteredGrades.slice(0, 5));
+
+    // Filtrar evolutionData
+    let filteredEvolution = [...allEvolutionData];
+    if (selectedClass !== 'all') {
+      filteredEvolution = filteredEvolution.filter(e => e.class_id === selectedClass);
+    }
+    if (selectedPeriod !== 'all') {
+      const now = new Date();
+      let startDate = new Date();
+      
+      if (selectedPeriod === 'week') {
+        startDate.setDate(now.getDate() - 7);
+      } else if (selectedPeriod === 'month') {
+        startDate.setMonth(now.getMonth() - 1);
+      } else if (selectedPeriod === 'semester') {
+        startDate.setMonth(now.getMonth() - 6);
+      }
+
+      filteredEvolution = filteredEvolution.filter(e => 
+        new Date(e.submitted_at) >= startDate
+      );
+    }
+    setEvolutionData(filteredEvolution.slice(-20));
+  };
+
   const loadClasses = async () => {
     try {
       const { data: memberships } = await supabase
@@ -121,64 +232,58 @@ const StudentPerformancePageRedesigned = () => {
         .eq('user_id', user.id)
         .eq('role', 'student');
 
-      let classIds = memberships?.map(m => m.class_id) || [];
-
-      if (selectedClass !== 'all') {
-        classIds = classIds.filter(id => id === selectedClass);
-      }
+      const classIds = memberships?.map(m => m.class_id) || [];
 
       if (classIds.length === 0) {
+        setAllStats({ avgGrade: 0, totalActivities: 0, completedActivities: 0, ranking: null });
         setStats({ avgGrade: 0, totalActivities: 0, completedActivities: 0, ranking: null });
         return;
       }
 
-      // Buscar atividades
+      // Buscar todas as atividades
       const { data: assignments } = await supabase
         .from('activity_class_assignments')
-        .select('activity_id')
+        .select('activity_id, class_id')
         .in('class_id', classIds);
 
       const activityIds = assignments?.map(a => a.activity_id) || [];
       const totalActivities = activityIds.length;
 
-      // Buscar submissões
-      let submissionsQuery = supabase
+      // Buscar todas as submissões (sem filtro de período)
+      const { data: submissions } = await supabase
         .from('submissions')
         .select('activity_id, status, grade, submitted_at')
         .eq('student_id', user.id)
         .in('activity_id', activityIds);
 
-      // Filtro de período
-      if (selectedPeriod !== 'all') {
-        const now = new Date();
-        let startDate = new Date();
-        
-        if (selectedPeriod === 'week') {
-          startDate.setDate(now.getDate() - 7);
-        } else if (selectedPeriod === 'month') {
-          startDate.setMonth(now.getMonth() - 1);
-        } else if (selectedPeriod === 'semester') {
-          startDate.setMonth(now.getMonth() - 6);
-        }
-
-        submissionsQuery = submissionsQuery.gte('submitted_at', startDate.toISOString());
-      }
-
-      const { data: submissions } = await submissionsQuery;
+      // Salvar dados brutos com informação de turma
+      const submissionsWithClass = (submissions || []).map(sub => ({
+        ...sub,
+        class_id: assignments.find(a => a.activity_id === sub.activity_id)?.class_id
+      }));
 
       const completedActivities = submissions?.length || 0;
-
-      // Calcular média
       const gradesData = submissions?.filter(s => s.grade !== null) || [];
       const avgGrade = gradesData.length > 0
         ? gradesData.reduce((sum, s) => sum + parseFloat(s.grade), 0) / gradesData.length
         : 0;
 
+      // Salvar nos estados "all" (sem filtro)
+      setAllStats({
+        avgGrade,
+        totalActivities,
+        completedActivities,
+        ranking: null,
+        submissions: submissionsWithClass,
+        assignments
+      });
+      
+      // Inicialmente, dados filtrados = dados completos
       setStats({
         avgGrade,
         totalActivities,
         completedActivities,
-        ranking: null // TODO: Implementar ranking real
+        ranking: null
       });
     } catch (error) {
       logger.error('Erro ao carregar stats:', error);
@@ -187,26 +292,21 @@ const StudentPerformancePageRedesigned = () => {
 
   const loadRecentGrades = async () => {
     try {
-      // Buscar turmas do aluno para filtrar
       const { data: memberships } = await supabase
         .from('class_members')
         .select('class_id')
         .eq('user_id', user.id)
         .eq('role', 'student');
 
-      let classIds = memberships?.map(m => m.class_id) || [];
-
-      // Aplicar filtro de turma se selecionado
-      if (selectedClass !== 'all') {
-        classIds = classIds.filter(id => id === selectedClass);
-      }
+      const classIds = memberships?.map(m => m.class_id) || [];
 
       if (classIds.length === 0) {
+        setAllRecentGrades([]);
         setRecentGrades([]);
         return;
       }
 
-      // Buscar atividades das turmas filtradas
+      // Buscar todas as atividades (sem filtro de turma)
       const { data: assignments } = await supabase
         .from('activity_class_assignments')
         .select('activity_id, class_id')
@@ -215,19 +315,19 @@ const StudentPerformancePageRedesigned = () => {
       const activityIds = assignments?.map(a => a.activity_id) || [];
 
       if (activityIds.length === 0) {
+        setAllRecentGrades([]);
         setRecentGrades([]);
         return;
       }
 
-      // Buscar submissões com notas (limitado a 5)
+      // Buscar TODAS as submissões com notas (sem limite)
       const { data: submissions } = await supabase
         .from('submissions')
         .select('id, grade, feedback, submitted_at, status, activity_id')
         .eq('student_id', user.id)
         .in('activity_id', activityIds)
         .not('grade', 'is', null)
-        .order('submitted_at', { ascending: false })
-        .limit(5);
+        .order('submitted_at', { ascending: false });
 
       const submissionActivityIds = submissions?.map(s => s.activity_id) || [];
 
@@ -262,7 +362,10 @@ const StudentPerformancePageRedesigned = () => {
         class_name: classesMap[assignmentsMap[s.activity_id]]?.name
       }));
 
-      setRecentGrades(gradesWithClass);
+      // Salvar TODOS os dados
+      setAllRecentGrades(gradesWithClass);
+      // Inicialmente mostrar primeiras 5
+      setRecentGrades(gradesWithClass.slice(0, 5));
     } catch (error) {
       logger.error('Erro ao carregar notas recentes:', error);
     }
@@ -270,21 +373,44 @@ const StudentPerformancePageRedesigned = () => {
 
   const loadEvolutionData = async () => {
     try {
+      // Buscar turmas do aluno
+      const { data: memberships } = await supabase
+        .from('class_members')
+        .select('class_id')
+        .eq('user_id', user.id)
+        .eq('role', 'student');
+
+      const classIds = memberships?.map(m => m.class_id) || [];
+
+      // Buscar atividades
+      const { data: assignments } = await supabase
+        .from('activity_class_assignments')
+        .select('activity_id, class_id')
+        .in('class_id', classIds);
+
+      const activityIds = assignments?.map(a => a.activity_id) || [];
+
+      // Buscar TODAS as submissões (sem limit)
       const { data: submissions } = await supabase
         .from('submissions')
-        .select('grade, submitted_at, activity:activities(max_score)')
+        .select('grade, submitted_at, activity_id, activity:activities(max_score)')
         .eq('student_id', user.id)
+        .in('activity_id', activityIds)
         .not('grade', 'is', null)
-        .order('submitted_at', { ascending: true })
-        .limit(20);
+        .order('submitted_at', { ascending: true });
 
-      const data = (submissions || []).map(s => ({
+      const submissionsWithClass = (submissions || []).map(s => ({
+        ...s,
+        class_id: assignments.find(a => a.activity_id === s.activity_id)?.class_id,
         date: format(new Date(s.submitted_at), 'dd/MM', { locale: ptBR }),
         nota: parseFloat(s.grade) || 0,
         maxScore: s.activity?.max_score || 10
       }));
 
-      setEvolutionData(data);
+      // Salvar TODOS os dados
+      setAllEvolutionData(submissionsWithClass);
+      // Inicialmente mostrar últimas 20
+      setEvolutionData(submissionsWithClass.slice(-20));
     } catch (error) {
       logger.error('Erro ao carregar evolução:', error);
     }

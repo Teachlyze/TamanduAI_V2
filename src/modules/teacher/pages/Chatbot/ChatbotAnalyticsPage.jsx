@@ -122,102 +122,124 @@ const ChatbotAnalyticsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/dashboard/chatbot')}
-        className="mb-4"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar
-      </Button>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-4 md:p-6 pb-12">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header Section */}
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/dashboard/chatbot')}
+          className="mb-2"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
 
-      <div className="flex items-center justify-between mb-8">
-        <DashboardHeader
-          title={`Analytics - ${classData?.name}`}
-          subtitle="Análise do uso do chatbot"
-          role="teacher"
-        />
-        <div className="flex items-center gap-2">
-          <Badge className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
-            ✅ Ativo
-          </Badge>
-          <select
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-          >
-            <option value="7">Últimos 7 dias</option>
-            <option value="30">Últimos 30 dias</option>
-            <option value="90">Últimos 90 dias</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Total de Conversas"
-          value={analytics.totalConversations}
-          icon={MessageSquare}
-          gradient="from-blue-500 to-cyan-500"
-          delay={0}
-        />
-        <StatsCard
-          title="Alunos Ativos"
-          value={analytics.activeStudents}
-          icon={Users}
-          gradient="from-cyan-500 to-blue-500"
-          delay={0.1}
-        />
-        <StatsCard
-          title="Taxa de Satisfação"
-          value={`${analytics.satisfaction}%`}
-          icon={Star}
-          gradient="from-amber-500 to-yellow-500"
-          format="text"
-          delay={0.2}
-        />
-        <StatsCard
-          title="Tempo Médio Resposta"
-          value={`${analytics.avgResponseTime}s`}
-          icon={Clock}
-          gradient="from-blue-500 to-cyan-500"
-          format="text"
-          delay={0.3}
-        />
-      </div>
-
-      {/* Insights */}
-      <Card className="p-6 bg-white dark:bg-slate-900 mb-8">
-        <h3 className="text-lg font-bold mb-4">💡 Insights Automáticos</h3>
-        <div className="space-y-3">
-          {analytics.insights.map((insight, idx) => (
-            <div
-              key={idx}
-              className={`p-4 rounded-lg border-l-4 ${
-                insight.type === 'warning' ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/30' :
-                insight.type === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-950/30' :
-                'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
-              }`}
-            >
-              <p className="font-semibold text-sm mb-1">{insight.message}</p>
-              {insight.suggestion && (
-                <p className="text-sm text-slate-600 dark:text-slate-400">💡 {insight.suggestion}</p>
-              )}
-              {insight.detail && (
-                <p className="text-sm text-slate-600 dark:text-slate-400">{insight.detail}</p>
-              )}
+        {/* Title Card with Gradient */}
+        <Card className="relative overflow-hidden border-0">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 opacity-90"></div>
+          <div className="relative z-10 p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
+                  Analytics - {classData?.name}
+                </h1>
+                <p className="text-blue-100">Análise do uso do chatbot</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 px-3 py-1">
+                  ✅ Ativo
+                </Badge>
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="px-4 py-2 rounded-lg border-0 bg-white/20 backdrop-blur-sm text-white font-medium focus:ring-2 focus:ring-white/50 focus:outline-none"
+                >
+                  <option value="7" className="text-slate-900">Últimos 7 dias</option>
+                  <option value="30" className="text-slate-900">Últimos 30 dias</option>
+                  <option value="90" className="text-slate-900">Últimos 90 dias</option>
+                </select>
+              </div>
             </div>
-          ))}
-        </div>
-      </Card>
+          </div>
+        </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Top Questions */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <h3 className="text-lg font-bold mb-4">❓ Perguntas Mais Frequentes</h3>
-          <div className="space-y-4">
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <StatsCard
+            title="Total de Conversas"
+            value={analytics.totalConversations}
+            icon={MessageSquare}
+            gradient="from-blue-500 to-cyan-500"
+            delay={0}
+          />
+          <StatsCard
+            title="Alunos Ativos"
+            value={analytics.activeStudents}
+            icon={Users}
+            gradient="from-cyan-500 to-blue-500"
+            delay={0.1}
+          />
+          <StatsCard
+            title="Taxa de Satisfação"
+            value={`${analytics.satisfaction}%`}
+            icon={Star}
+            gradient="from-amber-500 to-yellow-500"
+            format="text"
+            delay={0.2}
+          />
+          <StatsCard
+            title="Tempo Médio Resposta"
+            value={`${analytics.avgResponseTime}s`}
+            icon={Clock}
+            gradient="from-blue-500 to-cyan-500"
+            format="text"
+            delay={0.3}
+          />
+        </div>
+
+        {/* Insights */}
+        <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <span className="text-2xl">💡</span>
+            Insights Automáticos
+          </h3>
+          <div className="space-y-3">
+            {analytics.insights.map((insight, idx) => (
+              <div
+                key={idx}
+                className={`p-4 rounded-xl border-l-4 transition-all hover:shadow-md ${
+                  insight.type === 'warning' 
+                    ? 'border-amber-500 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-amber-950/30 dark:to-amber-950/10' 
+                    : insight.type === 'success' 
+                    ? 'border-green-500 bg-gradient-to-r from-green-50 to-green-50/50 dark:from-green-950/30 dark:to-green-950/10' 
+                    : 'border-blue-500 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-blue-950/30 dark:to-blue-950/10'
+                }`}
+              >
+                <p className="font-semibold text-sm text-slate-900 dark:text-white mb-1">
+                  {insight.message}
+                </p>
+                {insight.suggestion && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 flex items-start gap-1">
+                    <span>💡</span>
+                    <span>{insight.suggestion}</span>
+                  </p>
+                )}
+                {insight.detail && (
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{insight.detail}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Questions */}
+          <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <span className="text-2xl">❓</span>
+              Perguntas Mais Frequentes
+            </h3>
+            <div className="space-y-4">
             {analytics.topQuestions.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-8">
                 Nenhuma conversa registrada ainda. As perguntas aparecerão aqui quando os alunos começarem a usar o chatbot.
@@ -245,10 +267,13 @@ const ChatbotAnalyticsPage = () => {
           </div>
         </Card>
 
-        {/* Difficult Topics */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <h3 className="text-lg font-bold mb-4">📚 Tópicos Mais Difíceis</h3>
-          <div className="space-y-4">
+          {/* Difficult Topics */}
+          <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <span className="text-2xl">📚</span>
+              Tópicos Mais Difíceis
+            </h3>
+            <div className="space-y-4">
             {analytics.difficultTopics.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-8">
                 Nenhum tópico analisado ainda. Os dados aparecerão conforme os alunos interagirem com o chatbot.
@@ -288,10 +313,13 @@ const ChatbotAnalyticsPage = () => {
         </Card>
       </div>
 
-      {/* Recent Conversations */}
-      <Card className="p-6 bg-white dark:bg-slate-900 mb-8">
-        <h3 className="text-lg font-bold mb-4">💬 Conversas Recentes</h3>
-        <div className="space-y-3">
+        {/* Recent Conversations */}
+        <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <span className="text-2xl">💬</span>
+            Conversas Recentes
+          </h3>
+          <div className="space-y-3">
           {analytics.recentConversations.length === 0 ? (
             <p className="text-sm text-slate-500 text-center py-8">
               Nenhuma conversa recente. Quando os alunos começarem a usar o chatbot, as interações aparecerão aqui.
@@ -316,56 +344,64 @@ const ChatbotAnalyticsPage = () => {
         </div>
       </Card>
 
-      {/* Actions */}
-      <Card className="p-6 bg-white dark:bg-slate-900">
-        <div className="flex gap-4">
-          <Button
-            variant="outline"
-            onClick={() => navigate(`/dashboard/chatbot/${classId}/config`)}
-            className="flex-1"
-          >
-            <Edit className="w-4 h-4 mr-2" />
-            Editar Treinamento
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-          >
-            <Pause className="w-4 h-4 mr-2" />
-            Pausar Chatbot
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={async () => {
-              try {
-                setExporting(true);
-                exportAnalyticsReportToPDF(classData, analytics);
-                toast({
-                  title: '✅ Relatório exportado!',
-                  description: 'Download do PDF iniciado.'
-                });
-              } catch (error) {
-                logger.error('Erro ao exportar:', error)
-                toast({
-                  title: '❌ Erro ao exportar',
-                  description: error.message,
-                  variant: 'destructive'
-                });
-              } finally {
-                setExporting(false);
-              }
-            }}
-            disabled={exporting}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            {exporting ? 'Exportando...' : 'Exportar Relatório'}
-          </Button>
-        </div>
-        <p className="text-xs text-slate-600 dark:text-slate-400 text-center mt-4">
-          💎 Upgrade para PRO: Histórico completo e análise avançada com IA
-        </p>
-      </Card>
+        {/* Actions */}
+        <Card className="p-6 bg-white dark:bg-slate-900 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
+            ⚙️ Ações Rápidas
+          </h3>
+          <div className="flex flex-col md:flex-row gap-3">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/dashboard/chatbot/${classId}/config`)}
+              className="flex-1 hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-500 transition-all"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Editar Treinamento
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:border-amber-500 transition-all"
+            >
+              <Pause className="w-4 h-4 mr-2" />
+              Pausar Chatbot
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-500 transition-all"
+              onClick={async () => {
+                try {
+                  setExporting(true);
+                  exportAnalyticsReportToPDF(classData, analytics);
+                  toast({
+                    title: '✅ Relatório exportado!',
+                    description: 'Download do PDF iniciado.'
+                  });
+                } catch (error) {
+                  logger.error('Erro ao exportar:', error)
+                  toast({
+                    title: '❌ Erro ao exportar',
+                    description: error.message,
+                    variant: 'destructive'
+                  });
+                } finally {
+                  setExporting(false);
+                }
+              }}
+              disabled={exporting}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              {exporting ? 'Exportando...' : 'Exportar Relatório'}
+            </Button>
+          </div>
+          <div className="mt-6 p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <p className="text-sm text-center text-slate-700 dark:text-slate-300 flex items-center justify-center gap-2">
+              <span className="text-xl">💎</span>
+              <span className="font-medium">Upgrade para PRO:</span>
+              <span>Histórico completo e análise avançada com IA</span>
+            </p>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };

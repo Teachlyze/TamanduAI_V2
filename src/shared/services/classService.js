@@ -22,8 +22,7 @@ export const ClassService = {
         .from('classes')
         .select(`
           *,
-          members:class_members(*, user:profiles(*)),
-          meetings!inner(*)
+          members:class_members(*, user:profiles(*))
         `)
         .order('name', { ascending: true });
 
@@ -78,8 +77,7 @@ export const ClassService = {
         .from('classes')
         .select(`
           *,
-          members:class_members(*, user:profiles(*)),
-          meetings!inner(*)
+          members:class_members(*, user:profiles(*))
         `)
         .eq('id', classId)
         .single();

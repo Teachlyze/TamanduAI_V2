@@ -2,7 +2,7 @@ import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bot, MessageSquare, Users, Star, Settings, BarChart3, Pause, Play } from 'lucide-react';
+import { Bot, MessageSquare, Users, Star, Settings, BarChart3, Pause, Play, Search, Filter } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
@@ -21,7 +21,10 @@ const TeacherChatbotPage = () => {
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
-  const [classes, setClasses] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
+  const [filteredClasses, setFilteredClasses] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [stats, setStats] = useState({
     activeBots: 0,
     totalConversations: 0,
@@ -32,6 +35,35 @@ const TeacherChatbotPage = () => {
   useEffect(() => {
     loadData();
   }, [user]);
+
+  // Aplicar filtros client-side com debounce na busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      applyFilters();
+    }, 300); // 300ms de debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, statusFilter, allClasses]);
+
+  const applyFilters = () => {
+    let filtered = [...allClasses];
+
+    // Filtro de busca
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(cls => 
+        cls.name.toLowerCase().includes(query) ||
+        cls.subject?.toLowerCase().includes(query)
+      );
+    }
+
+    // Filtro de status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(cls => cls.chatbot.status === statusFilter);
+    }
+
+    setFilteredClasses(filtered);
+  };
 
   const loadData = async () => {
     if (!user) return;
@@ -80,7 +112,8 @@ const TeacherChatbotPage = () => {
         })
       );
 
-      setClasses(classesWithBots);
+      setAllClasses(classesWithBots);
+      setFilteredClasses(classesWithBots);
 
       // Calculate stats
       const activeBots = classesWithBots.filter(c => c.chatbot.status === 'active').length;
@@ -160,7 +193,7 @@ const TeacherChatbotPage = () => {
       </div>
 
       {/* Help Section */}
-      <Card className="p-6 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 mb-8">
+      <Card className="p-6 bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 mb-6">
         <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-2">❓ Como funciona o chatbot?</h3>
         <p className="text-sm text-blue-800 dark:text-blue-200 mb-3">
           Configure um assistente IA para cada turma. O chatbot aprende com as atividades e materiais que você seleciona, 
@@ -172,14 +205,97 @@ const TeacherChatbotPage = () => {
         </div>
       </Card>
 
+      {/* Filters Bar */}
+      {allClasses.length > 0 && (
+        <Card className="p-4 mb-6 bg-white dark:bg-slate-900 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nome ou matéria..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white transition-all"
+              />
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-slate-400 hidden md:block" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white transition-all"
+              >
+                <option value="all">Todos os status</option>
+                <option value="active">✅ Ativos</option>
+                <option value="paused">⏸️ Pausados</option>
+                <option value="not_configured">⚙️ Não configurados</option>
+              </select>
+            </div>
+
+            {/* Results Counter */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg whitespace-nowrap">
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {filteredClasses.length} de {allClasses.length}
+              </span>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(searchQuery || statusFilter !== 'all') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                }}
+                className="text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                Limpar
+              </Button>
+            )}
+          </div>
+
+          {/* Active Filters */}
+          {(searchQuery || statusFilter !== 'all') && (
+            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+              <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                Filtros ativos:
+              </span>
+              {searchQuery && (
+                <Badge 
+                  className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                  onClick={() => setSearchQuery('')}
+                >
+                  Busca: "{searchQuery}" ✕
+                </Badge>
+              )}
+              {statusFilter !== 'all' && (
+                <Badge 
+                  className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                  onClick={() => setStatusFilter('all')}
+                >
+                  Status: {statusFilter === 'active' ? 'Ativo' : statusFilter === 'paused' ? 'Pausado' : 'Não configurado'} ✕
+                </Badge>
+              )}
+            </div>
+          )}
+        </Card>
+      )}
+
       {/* Classes Grid */}
-      {classes.length > 0 ? (
+      {filteredClasses.length > 0 ? (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          key={`${searchQuery}-${statusFilter}`}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {classes.map((cls, index) => {
+          {filteredClasses.map((cls, index) => {
             const statusConfig = getStatusBadge(cls.chatbot.status);
             
             return (
@@ -272,6 +388,31 @@ const TeacherChatbotPage = () => {
             );
           })}
         </motion.div>
+      ) : allClasses.length > 0 ? (
+        <Card className="p-12 bg-white dark:bg-slate-900 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+              <Search className="w-8 h-8 text-slate-400" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                Nenhuma turma encontrada
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-4">
+                Tente ajustar os filtros de busca para encontrar o que procura
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                }}
+              >
+                Limpar Filtros
+              </Button>
+            </div>
+          </div>
+        </Card>
       ) : (
         <EmptyState
           icon={Bot}

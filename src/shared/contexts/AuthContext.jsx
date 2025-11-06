@@ -226,6 +226,31 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // Refresh Profile
+  const refreshProfile = useCallback(async () => {
+    try {
+      if (!user?.id) return { error: new Error('No user logged in') };
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      
+      if (profileData) {
+        setProfile(profileData);
+        logger.debug('[AuthContext] Profile refreshed:', profileData.full_name);
+      }
+      
+      return { data: profileData, error: null };
+    } catch (error) {
+      logger.error('[AuthContext] Refresh profile error:', error);
+      return { data: null, error };
+    }
+  }, [user]);
+
   // Sign Out
   const signOut = useCallback(async () => {
     try {
@@ -268,8 +293,9 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signUp,
     signOut,
+    refreshProfile,
     isAuthenticated: !!user
-  }), [user, profile, loading, signIn, signUp, signOut]);
+  }), [user, profile, loading, signIn, signUp, signOut, refreshProfile]);
 
   return (
     <AuthContext.Provider value={value}>

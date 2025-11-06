@@ -290,18 +290,58 @@ const GradingPage = () => {
     try {
       setSaving(true);
 
+      // Validação extra de segurança
+      const maxScore = activity?.max_score || 10;
+      if (grade < 0 || grade > maxScore) {
+        setSaving(false);
+        toast({ 
+          title: 'Erro na nota', 
+          description: `A nota deve estar entre 0 e ${maxScore}`, 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      // Garantir que grade seja um número válido
+      const validGrade = parseFloat(grade);
+      if (isNaN(validGrade)) {
+        setSaving(false);
+        toast({ 
+          title: 'Erro na nota', 
+          description: 'A nota fornecida é inválida', 
+          variant: 'destructive' 
+        });
+        return;
+      }
+
+      logger.debug('[GradingPage] Salvando nota:', {
+        submissionId,
+        grade: validGrade,
+        maxScore,
+        feedback: feedback?.substring(0, 50)
+      });
+
       const { error } = await supabase
         .from('submissions')
         .update({
-          grade,
-          feedback,
+          grade: validGrade,
+          feedback: feedback || null,
           status: 'graded',
           graded_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .eq('id', submissionId);
 
-      if (error) throw error;
+      if (error) {
+        logger.error('[GradingPage] Erro ao salvar nota:', error);
+        
+        // Mensagem mais amigável para erro de constraint
+        if (error.message?.includes('submissions_grade_check')) {
+          throw new Error(`A nota deve estar entre 0 e ${maxScore}`);
+        }
+        
+        throw error;
+      }
 
       toast({ 
         title: '✅ Nota salva com sucesso!',

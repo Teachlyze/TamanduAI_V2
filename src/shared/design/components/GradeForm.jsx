@@ -53,7 +53,22 @@ const GradeForm = ({
     
     if (!validate()) return;
 
-    const gradeNum = parseFloat(grade);
+    // Converter e arredondar para 2 casas decimais
+    let gradeNum = parseFloat(grade);
+    
+    // Garantir que não seja NaN
+    if (isNaN(gradeNum)) {
+      setErrors({ grade: 'Nota inválida' });
+      return;
+    }
+    
+    // Arredondar para 2 casas decimais
+    gradeNum = Math.round(gradeNum * 100) / 100;
+    
+    // Garantir que esteja dentro do intervalo
+    if (gradeNum < 0) gradeNum = 0;
+    if (gradeNum > maxGrade) gradeNum = maxGrade;
+    
     onSave({ grade: gradeNum, feedback });
   };
 

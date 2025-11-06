@@ -20,7 +20,8 @@ const StudentCalendarPageRedesigned = () => {
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [events, setEvents] = useState([]);
+  const [allEvents, setAllEvents] = useState([]); // Todos os eventos (sem filtro)
+  const [events, setEvents] = useState([]); // Eventos filtrados por mês
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [filter, setFilter] = useState('all');
 
@@ -28,7 +29,12 @@ const StudentCalendarPageRedesigned = () => {
     if (user?.id) {
       loadEvents();
     }
-  }, [user, currentMonth]);
+  }, [user]);
+
+  useEffect(() => {
+    // Filtrar eventos por mês sem recarregar
+    filterEventsByMonth();
+  }, [currentMonth, allEvents]);
 
   useEffect(() => {
     filterEventsByDate(selectedDate);
@@ -47,8 +53,10 @@ const StudentCalendarPageRedesigned = () => {
 
       const classIds = memberships?.map(m => m.class_id) || [];
 
-      const start = startOfMonth(currentMonth);
-      const end = endOfMonth(currentMonth);
+      // Carregar eventos de um período maior (6 meses para trás e 6 para frente)
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 7, 0); // Último dia do 6º mês
 
       // Buscar eventos da turma
       const { data: classEvents } = await supabase
@@ -145,12 +153,29 @@ const StudentCalendarPageRedesigned = () => {
         };
       });
 
-      setEvents([...allEvents, ...activityEvents]);
+      const combinedEvents = [...allEvents, ...activityEvents];
+      
+      // Salvar TODOS os eventos
+      setAllEvents(combinedEvents);
+      // Filtrar para o mês atual inicialmente
+      setEvents(combinedEvents.filter(e => {
+        const eventDate = new Date(e.start_time);
+        return isSameMonth(eventDate, currentMonth);
+      }));
     } catch (error) {
       logger.error('Erro ao carregar eventos:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterEventsByMonth = () => {
+    // Filtrar eventos do mês selecionado sem fazer nova requisição
+    const filtered = allEvents.filter(event => {
+      const eventDate = new Date(event.start_time);
+      return isSameMonth(eventDate, currentMonth);
+    });
+    setEvents(filtered);
   };
 
   const filterEventsByDate = (date) => {

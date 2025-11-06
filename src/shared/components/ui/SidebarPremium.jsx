@@ -403,14 +403,17 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
               </div>
               
               <div className="space-y-2">
-                <Link
-                  to={userRole === 'school' ? '/school/settings' : '/dashboard/settings'}
-                  onClick={onClose}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-                >
-                  <Settings className="w-4 h-4" />
-                  Configurações
-                </Link>
+                {/* Configurações apenas para school */}
+                {userRole === 'school' && (
+                  <Link
+                    to="/school/settings"
+                    onClick={onClose}
+                    className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Configurações
+                  </Link>
+                )}
                 
                 <button
                   onClick={handleSignOut}
@@ -424,28 +427,31 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
           ) : (
             <div className="border-t border-border p-3 space-y-2">
               <Tooltip.Provider delayDuration={300}>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <Link
-                      to={userRole === 'school' ? '/school/settings' : '/dashboard/settings'}
-                      onClick={onClose}
-                      className="w-full flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
-                      aria-label="Configurações"
-                    >
-                      <Settings className="w-5 h-5" />
-                    </Link>
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      side="right"
-                      sideOffset={8}
-                      className="px-3 py-2 rounded-lg text-sm shadow-lg z-[100] bg-slate-900 dark:bg-slate-800 text-white"
-                    >
-                      Configurações
-                      <Tooltip.Arrow className="fill-slate-900 dark:fill-slate-800" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
+                {/* Configurações apenas para school */}
+                {userRole === 'school' && (
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <Link
+                        to="/school/settings"
+                        onClick={onClose}
+                        className="w-full flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                        aria-label="Configurações"
+                      >
+                        <Settings className="w-5 h-5" />
+                      </Link>
+                    </Tooltip.Trigger>
+                    <Tooltip.Portal>
+                      <Tooltip.Content
+                        side="right"
+                        sideOffset={8}
+                        className="px-3 py-2 rounded-lg text-sm shadow-lg z-[100] bg-slate-900 dark:bg-slate-800 text-white"
+                      >
+                        Configurações
+                        <Tooltip.Arrow className="fill-slate-900 dark:fill-slate-800" />
+                      </Tooltip.Content>
+                    </Tooltip.Portal>
+                  </Tooltip.Root>
+                )}
               </Tooltip.Provider>
               
               <Tooltip.Provider delayDuration={300}>

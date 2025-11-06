@@ -97,7 +97,25 @@ const PostActivityModal = ({ open, onClose, activity, onSuccess }) => {
         throw activityError;
       }
 
-      // 2. Criar assignment na tabela activity_class_assignments (apenas relacionamento)
+      // 2. Verificar se já existe assignment
+      const { data: existingAssignment } = await supabase
+        .from('activity_class_assignments')
+        .select('id')
+        .eq('activity_id', activity.id)
+        .eq('class_id', selectedClass)
+        .single();
+
+      if (existingAssignment) {
+        toast({
+          title: 'Atividade já postada',
+          description: 'Esta atividade já foi postada para esta turma.',
+          variant: 'destructive'
+        });
+        setLoading(false);
+        return;
+      }
+
+      // 3. Criar assignment na tabela activity_class_assignments (apenas relacionamento)
       const { data: assignment, error: assignmentError } = await supabase
         .from('activity_class_assignments')
         .insert({
@@ -108,7 +126,10 @@ const PostActivityModal = ({ open, onClose, activity, onSuccess }) => {
         .select()
         .single();
 
-      if (assignmentError) throw assignmentError;
+      if (assignmentError) {
+        logger.error('Erro ao criar assignment:', assignmentError);
+        throw assignmentError;
+      }
 
       toast({
         title: '✅ Atividade postada!',
