@@ -96,8 +96,24 @@ const TeacherChatbotPage = () => {
             .select('id')
             .eq('class_id', cls.id);
           
-          // TODO: Quando tiver tabela de conversões, buscar aqui
-          // Por enquanto retorna dados baseados na existência de fontes
+          // Buscar conversas do chatbot
+          const { data: conversations } = await supabase
+            .from('chatbot_conversations')
+            .select('id')
+            .eq('class_id', cls.id);
+          
+          // Buscar mensagens com feedback
+          const { data: messages } = await supabase
+            .from('chatbot_messages')
+            .select('was_helpful')
+            .eq('class_id', cls.id);
+          
+          const messagesWithFeedback = messages?.filter(m => m.was_helpful !== null) || [];
+          const helpfulCount = messagesWithFeedback.filter(m => m.was_helpful).length;
+          const satisfaction = messagesWithFeedback.length > 0 
+            ? Math.round((helpfulCount / messagesWithFeedback.length) * 100) 
+            : 0;
+          
           const activitiesTrained = sources?.length || 0;
           
           return {
@@ -105,8 +121,8 @@ const TeacherChatbotPage = () => {
             chatbot: {
               status: !chatbotEnabled ? 'not_configured' : chatbotPaused ? 'paused' : 'active',
               activitiesTrained,
-              conversations: 0, // TODO: Implementar quando tiver tabela
-              satisfaction: 0 // TODO: Implementar quando tiver tabela
+              conversations: conversations?.length || 0,
+              satisfaction
             }
           };
         })

@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import { ActivityCard, EmptyState, StatCard, GradeCard, MaterialCardPreview } from '@/modules/student/components/redesigned';
-import { BookOpen, FileText, Users, Star, ArrowLeft, Megaphone, Calendar, MessageCircle, FilterX } from 'lucide-react'; 
+import { BookOpen, FileText, Users, Star, ArrowLeft, Megaphone, Calendar, MessageCircle, FilterX, Bot, Sparkles, X } from 'lucide-react'; 
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
@@ -15,6 +15,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import PostCard from '@/modules/student/components/PostCard';
+import ChatbotWidget from '@/shared/components/ui/ChatbotWidget';
 
 const StudentClassDetailsPageRedesigned = () => {
   const { classId } = useParams();
@@ -35,6 +36,26 @@ const StudentClassDetailsPageRedesigned = () => {
     avgGrade: 0,
     studentsCount: 0
   });
+  
+  // Estados do Chatbot
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [showChatPrompt, setShowChatPrompt] = useState(true);
+  const [showFloatingHint, setShowFloatingHint] = useState(false);
+  
+  // Mostrar dica flutuante após 5 segundos se houver atividades pendentes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const hasPending = activities.some(a => !a.isCompleted);
+      if (hasPending && !chatOpen && showChatPrompt) {
+        setShowFloatingHint(true);
+        // Auto-hide após 10 segundos
+        setTimeout(() => setShowFloatingHint(false), 10000);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, [activities, chatOpen, showChatPrompt]);
 
   // Fallback: buscar via Edge Function (usa service role no backend)
   const fetchFromEdgeFunction = async () => {
@@ -83,6 +104,20 @@ const StudentClassDetailsPageRedesigned = () => {
 
       setAnnouncements(allPosts);
       setMaterials(data.library || []);
+      // DEBUG: Log para investigar atividades sumidas
+      if (process.env.NODE_ENV === 'development') {
+        console.group('🔍 DEBUG ATIVIDADES - ClassDetailsPage');
+        console.log('Total de atividades (sem filtro):', activities.length);
+        console.log('Atividades publicadas:', publishedActivities.length);
+        console.table(activities.map(a => ({
+          id: a.id.substring(0, 8),
+          title: a.title,
+          status: a.status,
+          assigned_at: a.assigned_at
+        })));
+        console.groupEnd();
+      }
+      
       setActivities(publishedActivities);
       setStudents((data.members || []).filter(m => m.role === 'student'));
       setGrades([]); // Edge original não retornava notas detalhadas
@@ -512,6 +547,53 @@ const StudentClassDetailsPageRedesigned = () => {
 
         {/* Tab: Atividades */}
         <TabsContent value="activities">
+          {/* Banner de Destaque do Chatbot */}
+          {activities.length > 0 && showChatPrompt && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-2 border-purple-200 dark:border-purple-800 rounded-xl relative overflow-hidden"
+            >
+              <button
+                onClick={() => setShowChatPrompt(false)}
+                className="absolute top-2 right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl text-white flex-shrink-0">
+                  <Bot className="w-8 h-8" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      💡 Assistente IA Disponível!
+                    </h3>
+                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0">
+                      <Sparkles className="w-3 h-3 mr-1" />
+                      Novo
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                    Está com dúvidas em alguma atividade? Nosso assistente IA pode te ajudar! 
+                    Ele vai te <strong>guiar até a resposta</strong> sem entregar tudo pronto. 🎯
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-xs px-2 py-1 bg-white dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-400 border border-purple-200 dark:border-purple-800">
+                      ✨ Método Socrático
+                    </span>
+                    <span className="text-xs px-2 py-1 bg-white dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-400 border border-purple-200 dark:border-purple-800">
+                      📚 Baseado no Conteúdo
+                    </span>
+                    <span className="text-xs px-2 py-1 bg-white dark:bg-slate-800 rounded-md text-slate-600 dark:text-slate-400 border border-purple-200 dark:border-purple-800">
+                      🎓 Aprenda Fazendo
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Filtro Não Respondidas */}
           <div className="mb-4">
             <Button
@@ -548,6 +630,10 @@ const StudentClassDetailsPageRedesigned = () => {
                     activity={activity}
                     onStart={() => navigate(`/students/activities/${activity.id}`)}
                     onView={() => navigate(`/students/activities/${activity.id}`)}
+                    onAskHelp={(activity) => {
+                      setSelectedActivity(activity);
+                      setChatOpen(true);
+                    }}
                     index={index}
                   />
                 ))}
@@ -680,6 +766,98 @@ const StudentClassDetailsPageRedesigned = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Botão Flutuante de Ajuda IA - Sempre visível */}
+      {!chatOpen && activities.length > 0 && (
+        <button
+          onClick={() => {
+            // Se não tiver atividade selecionada, selecionar a primeira pendente
+            if (!selectedActivity) {
+              const firstPending = activities.find(a => !a.isCompleted);
+              if (firstPending) {
+                setSelectedActivity(firstPending);
+              } else {
+                setSelectedActivity(activities[0]);
+              }
+            }
+            setChatOpen(true);
+          }}
+          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full shadow-2xl flex items-center justify-center z-40 hover:scale-110 transition-all group"
+          title="Assistente IA"
+        >
+          <Bot className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+        </button>
+      )}
+
+      {/* Dica Flutuante do Chatbot */}
+      {showFloatingHint && !chatOpen && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          className="fixed bottom-24 right-6 z-30 max-w-sm"
+        >
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-2xl shadow-2xl border-4 border-white dark:border-slate-800">
+            <button
+              onClick={() => setShowFloatingHint(false)}
+              className="absolute -top-2 -right-2 w-6 h-6 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 shadow-md"
+            >
+              <X className="w-3 h-3" />
+            </button>
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-white/20 rounded-lg flex-shrink-0">
+                <Bot className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="font-bold text-sm mb-1">💡 Dica: Use o Assistente IA!</p>
+                <p className="text-xs text-white/90 mb-2">
+                  Clique em <strong>"💡 Pedir Ajuda IA"</strong> em qualquer atividade para receber orientação personalizada.
+                </p>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="bg-white text-purple-700 hover:bg-slate-100 text-xs h-7"
+                  onClick={() => {
+                    setShowFloatingHint(false);
+                    // Scroll até a primeira atividade
+                    const firstActivity = document.querySelector('[data-activity-card]');
+                    if (firstActivity) {
+                      firstActivity.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                  }}
+                >
+                  Ver Atividades
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Chatbot Widget */}
+      {chatOpen && selectedActivity && (
+        <ChatbotWidget
+          context={{
+            classId: classId,
+            activityId: selectedActivity.id,
+            activityTitle: selectedActivity.title,
+            activityContent: selectedActivity.content || selectedActivity.description
+          }}
+          availableActivities={activities.map(a => ({
+            id: a.id,
+            title: a.title,
+            description: a.description,
+            content: a.content
+          }))}
+          onActivityChange={(newActivity) => {
+            setSelectedActivity(newActivity);
+          }}
+          onClose={() => {
+            setChatOpen(false);
+            setSelectedActivity(null);
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -3,11 +3,11 @@ import { motion } from 'framer-motion';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
-import { Clock, AlertCircle, CheckCircle2, FileText, Target, Calendar } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle2, FileText, Target, Calendar, MessageCircle } from 'lucide-react';
 import { format, formatDistanceToNow, differenceInHours, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
+export const ActivityCard = ({ activity, onStart, onView, onAskHelp, index = 0 }) => {
   // Usar os campos computados no loadClassData ou calcular localmente
   const isPending = activity.isPending ?? (activity.status === 'pending' || activity.status === 'not_submitted');
   const isLate = activity.isLate ?? (activity.status === 'late' || activity.status === 'overdue');
@@ -28,6 +28,7 @@ export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileHover={{ scale: 1.02, y: -2 }}
+      data-activity-card
     >
       <Card className={`p-6 border-2 transition-all hover:shadow-lg ${
         isLate ? 'border-red-500 bg-red-50/50 dark:bg-red-950/20' :
@@ -131,22 +132,36 @@ export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
             )}
           </div>
           
-          {/* Botão de Ação */}
-          <Button
-            onClick={hasSubmission ? onView : onStart}
-            className={`whitespace-nowrap ${
-              hasSubmission
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' 
-                : isLate
-                ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700'
-                : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
-            } text-white shadow-md`}
-            size="lg"
-          >
-            {hasSubmission 
-              ? (submission?.grade !== null && submission?.grade !== undefined ? 'Ver Correção' : 'Ver Resposta')
-              : isLate ? 'Fazer' : 'Começar'}
-          </Button>
+          {/* Botões de Ação */}
+          <div className="flex flex-col gap-2">
+            <Button
+              onClick={hasSubmission ? onView : onStart}
+              className={`whitespace-nowrap ${
+                hasSubmission
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700' 
+                  : isLate
+                  ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700'
+                  : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
+              } text-white shadow-md`}
+              size="lg"
+            >
+              {hasSubmission 
+                ? (submission?.grade !== null && submission?.grade !== undefined ? 'Ver Correção' : 'Ver Resposta')
+                : isLate ? 'Fazer' : 'Começar'}
+            </Button>
+            
+            {/* Botão de Ajuda do Chatbot */}
+            {!isCompleted && onAskHelp && (
+              <Button
+                onClick={() => onAskHelp(activity)}
+                size="sm"
+                className="whitespace-nowrap bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-md border-0 animate-pulse hover:animate-none"
+              >
+                <MessageCircle className="w-4 h-4 mr-1" />
+                💡 Pedir Ajuda IA
+              </Button>
+            )}
+          </div>
         </div>
       </Card>
     </motion.div>

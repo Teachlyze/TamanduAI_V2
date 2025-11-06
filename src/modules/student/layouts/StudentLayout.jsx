@@ -1,9 +1,7 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { SidebarPremium } from '@/shared/components/ui/SidebarPremium';
 import { Button } from '@/shared/components/ui/button';
-import ChatbotWidget from '@/shared/components/ui/ChatbotWidget';
 import { storageManager } from '@/shared/services/storageManager';
 
 // Memoizar header mobile
@@ -33,7 +31,6 @@ MobileHeader.displayName = 'MobileHeader';
 export const StudentLayout = React.memo(({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => storageManager.getSidebarCollapsed());
-  const location = useLocation();
 
   // Escutar mudanças no localStorage (quando sidebar é colapsada/expandida)
   useEffect(() => {
@@ -49,15 +46,6 @@ export const StudentLayout = React.memo(({ children }) => {
 
   const handleSidebarClose = useCallback(() => setSidebarOpen(false), []);
   const handleSidebarOpen = useCallback(() => setSidebarOpen(true), []);
-
-  // Extrair classId da URL se estiver em /students/classes/:classId
-  const chatbotContext = useMemo(() => {
-    const match = location.pathname.match(/\/students\/classes\/([a-f0-9-]+)/);
-    if (match) {
-      return { classId: match[1] };
-    }
-    return {};
-  }, [location.pathname]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,9 +69,6 @@ export const StudentLayout = React.memo(({ children }) => {
           {children}
         </main>
       </div>
-
-      {/* Chatbot Widget Global - memoizado por context */}
-      <ChatbotWidget context={chatbotContext} />
     </div>
   );
 });

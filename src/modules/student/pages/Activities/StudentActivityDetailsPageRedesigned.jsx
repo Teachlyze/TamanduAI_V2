@@ -6,7 +6,7 @@ import { logger } from '@/shared/utils/logger';
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Award, FileText, Upload, Save, Send, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Award, FileText, Upload, Save, Send, Download, AlertCircle, CheckCircle, Bot, MessageCircle } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -22,6 +22,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import { format, isPast, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
+import ChatbotWidget from '@/shared/components/ui/ChatbotWidget';
 
 const StudentActivityDetailsPageRedesigned = () => {
   const { activityId } = useParams();
@@ -37,6 +38,7 @@ const StudentActivityDetailsPageRedesigned = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [classStats, setClassStats] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => {
     loadActivityAndSubmission();
@@ -464,7 +466,7 @@ const StudentActivityDetailsPageRedesigned = () => {
                     <h4 className="font-bold mb-2 flex items-center gap-2">
                       💬 FEEDBACK DO PROFESSOR
                     </h4>
-                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words overflow-wrap-anywhere">
                       {submission.feedback}
                     </p>
                   </div>
@@ -473,7 +475,7 @@ const StudentActivityDetailsPageRedesigned = () => {
                 {/* Sua Resposta */}
                 <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-200 dark:border-slate-700">
                   <h4 className="font-bold mb-2">📝 SUA RESPOSTA</h4>
-                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap break-words overflow-wrap-anywhere">
                     {answer}
                   </p>
                 </div>
@@ -576,6 +578,33 @@ const StudentActivityDetailsPageRedesigned = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Botão Flutuante de Ajuda IA */}
+      {!chatOpen && activity && !submission?.grade && (
+        <button
+          onClick={() => setChatOpen(true)}
+          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-full shadow-2xl flex items-center justify-center z-40 animate-bounce hover:animate-none transition-all group"
+          title="Pedir Ajuda IA"
+        >
+          <Bot className="w-8 h-8 group-hover:scale-110 transition-transform" />
+          <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
+            ?
+          </span>
+        </button>
+      )}
+
+      {/* Chatbot Widget */}
+      {chatOpen && activity && (
+        <ChatbotWidget
+          context={{
+            classId: activity.class_id,
+            activityId: activity.id,
+            activityTitle: activity.title,
+            activityContent: activity.content
+          }}
+          onClose={() => setChatOpen(false)}
+        />
+      )}
     </div>
   );
 };

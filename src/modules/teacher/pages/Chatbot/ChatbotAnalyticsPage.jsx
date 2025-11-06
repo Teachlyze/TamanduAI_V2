@@ -84,27 +84,115 @@ const ChatbotAnalyticsPage = () => {
 
       const totalSources = sources?.length || 0;
 
-      // TODO: Quando implementar tabela de conversas do chatbot, buscar aqui
-      // Por enquanto, retornar 0 conversas
-      const totalConversations = 0;
+      // Buscar dados reais de conversas e mensagens
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(period));
 
-      // Calcular satisfação baseada em fontes treinadas (simulação)
-      const satisfaction = totalSources > 0 ? Math.min(90 + totalSources * 2, 100) : 0;
+      const { data: conversations } = await supabase
+        .from('chatbot_conversations')
+        .select('*')
+        .eq('class_id', classId)
+        .gte('started_at', startDate.toISOString());
+
+      const { data: messages } = await supabase
+        .from('chatbot_messages')
+        .select('*')
+        .eq('class_id', classId)
+        .gte('created_at', startDate.toISOString());
+
+      const totalConversations = conversations?.length || 0;
+      const totalMessages = messages?.length || 0;
+
+      // Calcular satisfação baseada em feedback
+      const messagesWithFeedback = messages?.filter(m => m.was_helpful !== null) || [];
+      const helpfulCount = messagesWithFeedback.filter(m => m.was_helpful).length;
+      const satisfaction = messagesWithFeedback.length > 0 
+        ? Math.round((helpfulCount / messagesWithFeedback.length) * 100) 
+        : 0;
+
+      // Calcular tempo médio de resposta
+      const messagesWithTime = messages?.filter(m => m.response_time_ms) || [];
+      const avgResponseTime = messagesWithTime.length > 0
+        ? (messagesWithTime.reduce((sum, m) => sum + m.response_time_ms, 0) / messagesWithTime.length / 1000).toFixed(1)
+        : 0;
+
+      // Extrair perguntas mais frequentes (agrupar similares com IA seria ideal)
+      const topQuestions = messages
+        ?.slice(0, 5)
+        .map(m => ({
+          question: m.message,
+          count: 1,
+          activity: m.metadata?.activity_title || 'Geral',
+          resolved: !m.was_helpful === false
+        })) || [];
+
+      // Conversas recentes
+      const recentConversations = conversations
+        ?.slice(0, 5)
+        .map(c => ({
+          id: c.id,
+          student: 'Aluno',
+          question: c.message_count > 0 ? `${c.message_count} mensagens` : 'Nova conversa',
+          status: c.resolved ? 'resolved' : 'needs_attention',
+          timestamp: new Date(c.started_at).toLocaleString('pt-BR')
+        })) || [];
+
+      // Gerar insights baseados em dados reais
+      const insights = [];
+      
+      if (totalSources === 0) {
+        insights.push({
+          type: 'warning',
+          message: 'Nenhuma fonte de treinamento adicionada ao chatbot',
+          suggestion: 'Adicione materiais ou atividades para treinar o assistente'
+        });
+      } else {
+        insights.push({
+          type: 'success',
+          message: `Chatbot treinado com ${totalSources} fonte(s) de conteúdo`
+        });
+      }
+
+      if (totalConversations > 0) {
+        insights.push({
+          type: 'info',
+          message: `${totalConversations} conversas iniciadas por ${activeStudents} alunos`,
+          detail: `Média de ${(totalMessages / totalConversations).toFixed(1)} mensagens por conversa`
+        });
+      }
+
+      if (satisfaction > 0 && satisfaction < 70) {
+        insights.push({
+          type: 'warning',
+          message: `Taxa de satisfação baixa (${satisfaction}%)`,
+          suggestion: 'Revise as fontes de treinamento ou adicione mais conteúdo'
+        });
+      } else if (satisfaction >= 90) {
+        insights.push({
+          type: 'success',
+          message: `Excelente taxa de satisfação (${satisfaction}%)`
+        });
+      }
+
+      const outOfScopeCount = messages?.filter(m => m.is_out_of_scope).length || 0;
+      if (outOfScopeCount > 0) {
+        insights.push({
+          type: 'info',
+          message: `${outOfScopeCount} perguntas fora do escopo detectadas`,
+          detail: 'Alunos podem estar com dúvidas que não estão cobertas nos materiais'
+        });
+      }
 
       setAnalytics({
         totalConversations,
         activeStudents,
         satisfaction,
-        avgResponseTime: 2.3, // Fixo por enquanto
-        topQuestions: [], // Vazio até ter tabela de conversas
-        difficultTopics: [], // Vazio até ter tabela de conversas
-        recentConversations: [], // Vazio até ter tabela de conversas
-        insights: totalSources === 0 ? [
-          { type: 'warning', message: 'Nenhuma fonte de treinamento adicionada ao chatbot', suggestion: 'Adicione materiais ou atividades para treinar o assistente' }
-        ] : [
-          { type: 'success', message: `Chatbot treinado com ${totalSources} fonte(s) de conteúdo` },
-          { type: 'info', message: `${activeStudents} alunos podem interagir com o assistente` }
-        ]
+        avgResponseTime,
+        topQuestions,
+        difficultTopics: [], // TODO: Implementar análise de tópicos com IA
+        recentConversations,
+        insights
       });
     } catch (error) {
       logger.error('Erro:', error)
