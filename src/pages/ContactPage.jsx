@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Seo from '@/shared/components/Seo';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import {
   Mail, Phone, MapPin, Clock, Send, CheckCircle, Loader2,
-  MessageSquare, Users, Building2, Sparkles, Linkedin, Twitter, Instagram
+  MessageSquare, Users, Building2, Sparkles, Linkedin, Twitter, Instagram, X
 } from 'lucide-react';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -25,6 +25,7 @@ const ContactPage = () => {
   });
   const [charCount, setCharCount] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Honeypot field (anti-spam)
   const [honeypot, setHoneypot] = useState('');
@@ -105,16 +106,12 @@ const ContactPage = () => {
   };
 
   const validateForm = () => {
-    console.log('🔍 Validando formulário com dados:', formData);
-    
     // Regex mais robusto para email
     const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     // Regex para telefone brasileiro (com ou sem DDD)
     const phoneRegex = /^\(?\d{2}\)?\s?9?\d{4}-?\d{4}$/;
     // Regex para nome (apenas letras e espaços)
     const nameRegex = /^[a-zA-ZÀ-ÿ\s]{3,}$/;
-    
-    console.log('Validando nome:', formData.fullName, '- Válido:', nameRegex.test(formData.fullName));
     
     if (!formData.fullName.trim() || !nameRegex.test(formData.fullName)) {
       toast({
@@ -125,8 +122,6 @@ const ContactPage = () => {
       return false;
     }
     
-    console.log('Validando email:', formData.email, '- Válido:', emailRegex.test(formData.email));
-    
     if (!emailRegex.test(formData.email)) {
       toast({
         title: 'Email inválido',
@@ -135,8 +130,6 @@ const ContactPage = () => {
       });
       return false;
     }
-    
-    console.log('Validando userType:', formData.userType, '- Preenchido:', !!formData.userType);
     
     if (!formData.userType) {
       toast({
@@ -147,8 +140,6 @@ const ContactPage = () => {
       return false;
     }
     
-    console.log('Validando subject:', formData.subject, '- Preenchido:', !!formData.subject);
-    
     if (!formData.subject) {
       toast({
         title: 'Assunto obrigatório',
@@ -157,8 +148,6 @@ const ContactPage = () => {
       });
       return false;
     }
-    
-    console.log('Validando mensagem:', formData.message, '- Tamanho:', formData.message.length, '- Válido:', formData.message.length >= 20);
     
     if (!formData.message.trim() || formData.message.length < 20) {
       toast({
@@ -170,17 +159,13 @@ const ContactPage = () => {
     }
     
     // Validar telefone se preenchido
-    if (formData.phone) {
-      console.log('Validando telefone:', formData.phone, '- Válido:', phoneRegex.test(formData.phone.replace(/\D/g, '')));
-      
-      if (!phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
-        toast({
-          title: 'Telefone inválido',
-          description: 'Por favor, insira um telefone válido no formato (11) 99999-9999.',
-          variant: 'destructive'
-        });
-        return false;
-      }
+    if (formData.phone && !phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
+      toast({
+        title: 'Telefone inválido',
+        description: 'Por favor, insira um telefone válido no formato (11) 99999-9999.',
+        variant: 'destructive'
+      });
+      return false;
     }
     
     return true;
@@ -189,27 +174,19 @@ const ContactPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    console.log('📝 Formulário submetido:', formData);
-    
     // Verificar honeypot (anti-spam)
     if (honeypot) {
-      console.log('⚠️ Spam detected');
       return;
     }
-    
-    console.log('✅ Honeypot OK, validando formulário...');
     
     if (!validateForm()) {
-      console.log('❌ Validação falhou');
       return;
     }
-    
-    console.log('✅ Validação OK, enviando...');
     
     setLoading(true);
     
     try {
-      // Enviar via Edge Function (salva no banco E envia email)
+      // Usar Edge Function para salvar e enviar email (bypassa RLS)
       const { data, error } = await supabase.functions.invoke('send-contact-email', {
         body: {
           fullName: formData.fullName,
@@ -221,25 +198,17 @@ const ContactPage = () => {
           message: formData.message
         }
       });
-      
+
       if (error) {
-        console.error('Erro na Edge Function:', error);
         throw new Error(error.message || 'Erro ao enviar mensagem');
       }
-      
-      if (!data.success) {
-        console.error('Erro retornado pela função:', data);
-        throw new Error(data.error || 'Erro ao processar mensagem');
+
+      if (!data || (data && data.success === false)) {
+        throw new Error((data && data.error) || 'Erro ao processar mensagem');
       }
-      
-      console.log('✅ Mensagem enviada com sucesso:', data);
-      
+
       setSubmitted(true);
-      toast({
-        title: '✅ Mensagem enviada com sucesso!',
-        description: 'Recebemos sua mensagem e responderemos em até 24 horas úteis.',
-        duration: 5000
-      });
+      setShowSuccessModal(true);
       
       // Reset form
       setFormData({
@@ -634,6 +603,94 @@ const ContactPage = () => {
           </div>
         </section>
       </main>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {showSuccessModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="relative max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              {/* Success Icon */}
+              <div className="flex flex-col items-center text-center">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-6 shadow-lg"
+                >
+                  <CheckCircle className="w-12 h-12 text-white" />
+                </motion.div>
+
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-2xl font-bold text-gray-900 dark:text-white mb-3"
+                >
+                  Mensagem Enviada!
+                </motion.h2>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-gray-600 dark:text-gray-300 mb-6"
+                >
+                  Recebemos sua mensagem com sucesso! Nossa equipe entrará em contato em até <strong>24 horas úteis</strong>.
+                </motion.p>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="w-full space-y-3"
+                >
+                  <Button
+                    variant="gradient"
+                    className="w-full"
+                    onClick={() => setShowSuccessModal(false)}
+                  >
+                    Entendido
+                  </Button>
+                  
+                  <Link to="/" className="block w-full">
+                    <Button
+                      variant="ghost"
+                      className="w-full"
+                    >
+                      Voltar ao Início
+                    </Button>
+                  </Link>
+                </motion.div>
+
+                {/* Decorative Elements */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-3xl -z-10" />
+                <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-green-400/20 to-emerald-400/20 rounded-full blur-3xl -z-10" />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
