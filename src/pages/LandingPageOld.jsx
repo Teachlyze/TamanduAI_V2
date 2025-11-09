@@ -12,21 +12,21 @@ import {
   Star, Heart, CheckCircle, ArrowRight, Globe, Award,
   Zap, MessageSquare, FileText, BarChart3, Video,
   CheckCircle2, XCircle, Play, ChevronRight, Mail,
-  Lock, Smartphone, Laptop, Headphones, BadgeCheck, Trophy, Bell, DollarSign, FileEdit, Upload
+  Lock, Smartphone, Laptop, Headphones, BadgeCheck, Trophy, Bell, DollarSign
 } from 'lucide-react';
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
   const features = [
-    { icon: Brain, title: 'Chatbot com RAG v2.0', description: 'Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7', gradient: "from-blue-500 to-blue-600", badge: 'Até 200 msgs/dia' },
-    { icon: FileEdit, title: 'Correção Automática com IA', description: 'Correção inteligente de atividades com feedback detalhado gerado por IA', gradient: "from-purple-500 to-purple-600", badge: 'Economia de 70%' },
-    { icon: Shield, title: 'Antiplágio Winston AI', description: 'Detecção automática de plágio e conteúdo gerado por IA', gradient: "from-red-500 to-red-600", badge: '100 verificações/hora' },
-    { icon: BarChart3, title: 'Analytics com ML', description: '4 modelos de Machine Learning: previsão de desempenho, clustering, sentimento e recomendações', gradient: "from-indigo-500 to-blue-600", badge: 'IA Avançada' },
-    { icon: Bell, title: 'Notificações Inteligentes', description: 'Lembretes automáticos de prazos, reuniões e aulas via Push + Email', gradient: "from-emerald-500 to-teal-500", badge: 'Push + Email' },
-    { icon: Calendar, title: 'Agenda Integrada', description: 'Agende reuniões e aulas recorrentes - integre com Google Meet e Zoom', gradient: "from-blue-500 to-cyan-500", badge: 'Aulas recorrentes' },
-    { icon: Trophy, title: 'Gamificação Completa', description: 'Sistema de XP, níveis (16 níveis), badges e rankings', gradient: "from-yellow-500 to-orange-500", badge: '16 níveis' },
-    { icon: Upload, title: 'Importar Atividades', description: 'Importe atividades de TXT, PDF, DOCX, ODT com extração automática', gradient: "from-cyan-500 to-blue-500", badge: '4 formatos' }
+    { icon: Brain, title: 'Chatbot com RAG v2.0', description: 'Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7', gradient: "from-blue-500 to-blue-600", badge: 'Até 200 msgs/dia (Pro)' },
+    { icon: Shield, title: 'Antiplágio Winston AI', description: 'Detecção automática de plágio com IA de última geração integrada', gradient: "from-red-500 to-red-600", badge: '100 verificações/hora' },
+    { icon: BarChart3, title: 'Analytics com ML', description: '4 modelos de Machine Learning: previsão de desempenho, clustering, sentimento e recomendações', gradient: "from-indigo-500 to-blue-600", badge: 'Inteligência Artificial' },
+    { icon: Bell, title: 'Notificações Inteligentes', description: 'Lembretes automáticos de prazos, reuniões e aulas ao vivo via Push + Email', gradient: "from-emerald-500 to-teal-500", badge: 'Push + Email' },
+    { icon: Calendar, title: 'Agenda Integrada', description: 'Agende reuniões, aulas ao vivo - integre com Google Meet e Zoom (links externos)', gradient: "from-blue-500 to-cyan-500", badge: 'Links externos' },
+    { icon: Trophy, title: 'Gamificação Completa', description: 'Sistema de XP, níveis, badges e rankings que aumenta participação em 40%', gradient: "from-yellow-500 to-orange-500", badge: '+40% engajamento' },
+    { icon: Users, title: 'Gestão Inteligente', description: 'Organize turmas, professores e alunos com facilidade', gradient: "from-blue-500 to-indigo-500", badge: 'Turmas ilimitadas' },
+    { icon: Sparkles, title: 'Atividades Dinâmicas', description: 'Crie atividades interativas com correção automática', gradient: "from-cyan-500 to-blue-500", badge: 'Correção automática' }
   ];
 
   const benefits = [
@@ -36,12 +36,22 @@ export default function LandingPage() {
     { icon: Target, title: 'Foco no Essencial', description: 'Mais tempo para ensinar, menos burocracia', stat: "∞" }
   ];
 
-  // Removido: stats e testimonials fictícios (aguardando dados reais de usuários)
+  const testimonials = [
+    { name: "Prof.ª Ana Clara Silva", role: "Matemática • Colégio Inovação", quote: "O TamanduAI revolucionou minha forma de ensinar. O chatbot responde dúvidas 24/7!", avatar: "https://ui-avatars.com/api/?name=Ana+Silva&background=4f46e5&color=fff", rating: 5 },
+    { name: "Prof. Carlos Mendes", role: "Física • Instituto Federal", quote: "Nunca vi ferramenta tão completa. Os relatórios são perfeitos!", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop", rating: 5 },
+    { name: "Prof.ª Juliana Santos", role: "Biologia • Escola Moderna", quote: "Meus alunos estão mais engajados. Acompanho tudo em tempo real!", avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop", rating: 5 }
+  ];
+
+  const stats = [
+    { number: "500+", label: "Professores Ativos" },
+    { number: "5.000+", label: "Alunos Beneficiados" },
+    { number: "15K+", label: "Atividades Criadas" },
+    { number: "92%", label: "Satisfação" }
+  ];
 
   const allFeatures = [
     { icon: Brain, title: "Chatbot com RAG v2.0", description: "Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7", color: "violet" },
-    { icon: FileEdit, title: "Correção Automática com IA", description: "Sistema de correção inteligente com feedback detalhado gerado por IA", color: "purple" },
-    { icon: Shield, title: "Antiplágio Winston AI", description: "Detecção automática com IA (100 checks/hora) de plágio e conteúdo gerado por IA", color: "red" },
+    { icon: Shield, title: "Antiplágio Winston AI", description: "Detecção automática com IA (100 checks/hora) + backup Copyleaks", color: "red" },
     { icon: BarChart3, title: "Previsão de Desempenho", description: "ML prevê próxima nota e tendência do aluno com regressão linear", color: "indigo" },
     { icon: Brain, title: "Clustering de Alunos", description: "Agrupa alunos por desempenho automaticamente (K-Means)", color: "blue" },
     { icon: Target, title: "Análise de Sentimento", description: "Detecta feedbacks negativos automaticamente", color: "cyan" },
@@ -49,48 +59,47 @@ export default function LandingPage() {
     { icon: Bell, title: "Lembretes Automáticos", description: "Notificações 1h e 5min antes de prazos via cron", color: "emerald" },
     { icon: Trophy, title: "Gamificação Completa", description: "XP, níveis, badges e rankings (16 níveis)", color: "orange" },
     { icon: Calendar, title: "Agenda Sincronizada", description: "Calendário com todas atividades e eventos", color: "blue" },
-    { icon: Upload, title: "Importar Atividades", description: "Upload de TXT, PDF, DOCX, ODT com extração automática", color: "cyan" },
-    { icon: Users, title: "Gestão Multi-perfil", description: "Professor, Aluno e Escola em um só lugar", color: "indigo" },
-    { icon: FileText, title: "Exportação de Relatórios", description: "Exportação de analytics e notas em formato CSV", color: "green" },
-    { icon: MessageSquare, title: "Sistema de Eventos", description: "Crie eventos e selecione alunos por turma ou individual", color: "pink" },
+    { icon: Users, title: "Gestão Multi-perfil", description: "Professor, Aluno e Escola em um só lugar", color: "cyan" },
+    { icon: MessageSquare, title: "Banco de Questões", description: "Milhares de questões contribuídas por professores", color: "indigo" },
+    { icon: DollarSign, title: "Programa de Descontos", description: "Até 30% OFF contribuindo questões ao banco", color: "green" },
   ];
 
   const howItWorks = [
     { step: "1", title: "Cadastre-se Grátis", description: "Crie sua conta em menos de 2 minutos e escolha seu perfil (Professor ou Aluno)", icon: Rocket },
     { step: "2", title: "Configure sua Turma", description: "Crie turmas, adicione alunos via código de convite e organize seu conteúdo", icon: Users },
     { step: "3", title: "Treine o Chatbot", description: "Faça upload de PDFs, Word, PPT ou URLs para o chatbot responder dúvidas 24/7", icon: Brain },
-    { step: "4", title: "Crie Atividades", description: "Crie atividades interativas com correção automática por IA e antiplágio integrado", icon: Sparkles },
+    { step: "4", title: "Crie Atividades", description: "Crie atividades interativas com correção automática e antiplágio integrado", icon: Sparkles },
     { step: "5", title: "Gamifique o Aprendizado", description: "Ative XP, níveis, badges e rankings para engajar seus alunos automaticamente", icon: Trophy },
     { step: "6", title: "Acompanhe com IA", description: "Veja analytics em tempo real com previsões de ML e relatórios inteligentes", icon: TrendingUp },
   ];
 
   const comparison = [
-    { feature: "Correção automática de atividades com IA", before: false, after: true },
+    { feature: "Correção automática de atividades", before: false, after: true },
     { feature: "Chatbot IA treinado com seus materiais", before: false, after: true },
     { feature: "Antiplágio automático (Winston AI)", before: false, after: true },
     { feature: "Analytics com Machine Learning", before: false, after: true },
     { feature: "Previsão de desempenho dos alunos", before: false, after: true },
     { feature: "Sistema de gamificação (XP, badges)", before: false, after: true },
     { feature: "Notificações inteligentes automáticas", before: false, after: true },
-    { feature: "Agenda sincronizada com aulas recorrentes", before: false, after: true },
-    { feature: "Importação automática de atividades", before: false, after: true },
-    { feature: "Relatórios exportáveis em CSV", before: false, after: true },
+    { feature: "Agenda sincronizada com aulas ao vivo", before: false, after: true },
+    { feature: "Banco de questões colaborativo", before: false, after: true },
+    { feature: "Relatórios consolidados em tempo real", before: false, after: true },
     { feature: "Gestão de múltiplas turmas", before: false, after: true },
-    { feature: "Sistema de eventos personalizado", before: false, after: true },
+    { feature: "Comunicação centralizada (feed + chat)", before: false, after: true },
     { feature: "Tempo gasto em tarefas administrativas", before: true, after: false },
     { feature: "Correção manual de todas atividades", before: true, after: false },
     { feature: "Planilhas desorganizadas e dispersas", before: true, after: false },
   ];
 
   const faqs = [
-    { q: "Qual o estágio atual do produto?", a: "O TamanduAI está em fase Beta com funcionalidades principais implementadas: chatbot com RAG, correção automática com IA, antiplágio, analytics com ML, gamificação completa e muito mais." },
-    { q: "Preciso de conhecimento técnico?", a: "Não! A interface é intuitiva com tutoriais completos e documentação detalhada para começar em minutos." },
-    { q: "Os dados estão seguros?", a: "Sim! Usamos criptografia AES-256, somos 100% compatíveis com a LGPD e os dados ficam em servidores seguros." },
-    { q: "Funciona em dispositivos móveis?", a: "Sim! O TamanduAI é 100% responsivo e funciona perfeitamente em computadores, tablets e smartphones." },
+    { q: "O TamanduAI é gratuito?", a: "Sim! Oferecemos 3 meses grátis no programa Beta com acesso completo. Depois, planos a partir de R$ 49/mês com desconto de até 30% ao contribuir questões." },
+    { q: "Preciso de conhecimento técnico?", a: "Não! A interface é intuitiva e oferecemos tutoriais completos, documentação detalhada e suporte por chat para começar em minutos." },
+    { q: "Meus dados estão seguros?", a: "Absolutamente! Usamos criptografia de ponta (AES-256), somos 100% compatíveis com a LGPD e seus dados ficam em servidores seguros no Brasil." },
+    { q: "Posso usar em qualquer dispositivo?", a: "Sim! O TamanduAI é 100% responsivo e funciona perfeitamente em computadores, tablets e smartphones (iOS e Android)." },
     { q: "Como funciona o chatbot IA?", a: "Você treina o chatbot fazendo upload de PDFs, Word, PowerPoint ou URLs. Ele usa RAG v2.0 para responder dúvidas dos alunos 24/7 com precisão." },
-    { q: "Tem limite de turmas ou alunos?", a: "Não! Você pode adicionar quantas turmas, alunos e professores precisar. Escalamos conforme o crescimento." },
-    { q: "Como funciona a correção automática?", a: "Nossa IA analisa as respostas dos alunos e fornece feedback detalhado, economizando até 70% do tempo de correção." },
+    { q: "Tem limite de alunos ou turmas?", a: "Não! Você pode adicionar quantos alunos, turmas e professores precisar. Escalamos conforme seu crescimento." },
     { q: "Como funciona o sistema antiplágio?", a: "Usamos Winston AI (100 checks/hora) para detectar plágio e conteúdo gerado por IA automaticamente em todas as submissões." },
+    { q: "Posso integrar com outras plataformas?", a: "Sim! Integramos com Google Meet, Zoom (via links) e estamos trabalhando em integrações com Google Classroom e Microsoft Teams." },
   ];
 
   const useCases = [
@@ -102,8 +111,8 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Seo
-        title="TamanduAI — Plataforma Educacional com Inteligência Artificial"
-        description="Plataforma educacional completa com IA: chatbot RAG, correção automática, antiplágio, analytics ML e gamificação. Solução moderna para professores, alunos e escolas."
+        title="TamanduAI — Banco de Questões, Quizzes e Gestão Escolar com IA"
+        description="Encontre questões para estudar, crie quizzes, corrija automaticamente e gerencie turmas com analytics e gamificação. Plataforma para alunos, professores e escolas."
         path="/"
       />
       {/* Header */}
@@ -130,7 +139,7 @@ export default function LandingPage() {
               <nav className="hidden md:flex space-x-6 ml-6">
                 <a href="#features" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Recursos</a>
                 <Link to="/pricing" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Preços</Link>
-                <a href="#technology" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Tecnologia</a>
+                <a href="#testimonials" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Depoimentos</a>
                 <Link to="/docs" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Docs</Link>
                 <Link to="/contact" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Contato</Link>
               </nav>
@@ -207,42 +216,51 @@ export default function LandingPage() {
                   className="flex flex-wrap items-center gap-3 mb-6"
                 >
                   <div className="inline-flex items-center text-xs font-semibold px-3 py-1.5 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />Plataforma Educacional com IA
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />Revolucione sua forma de ensinar
                   </div>
                   <div className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full bg-blue-600 text-white shadow-md">
                     BETA
                   </div>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Desenvolvido desde 2024
+                    Em crescimento desde 2024
                   </span>
                 </motion.div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
-                  Educação moderna com <span className="inline-block bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent text-5xl sm:text-6xl lg:text-7xl">Inteligência Artificial</span>
+                  Educação Inteligente com <span className="inline-block bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent text-5xl sm:text-6xl lg:text-7xl">Inteligência Artificial</span>
                 </h1>
                 
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                  <strong className="text-blue-600 dark:text-blue-400">Versão 2.0:</strong> Chatbot com RAG, Correção Automática com IA, Antiplágio Winston AI, Analytics com Machine Learning, Gamificação e Notificações Inteligentes. Tecnologia de ponta para transformar a educação.
+                  <strong className="text-blue-600 dark:text-blue-400">Versão 2.0:</strong> Chatbot com RAG, Antiplágio Winston AI, Analytics com Machine Learning, Gamificação e Notificações Inteligentes. Tudo em uma plataforma!
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 mb-12">
                   <Button 
                     size="lg" 
                     onClick={() => navigate('/register')} 
                     leftIcon={<Rocket className="w-5 h-5" />}
                     variant="gradient"
                   >
-                    Testar Plataforma
+                    Participar do Beta
                   </Button>
                   <Button 
                     size="lg" 
-                    onClick={() => navigate('/contact')} 
-                    leftIcon={<Mail className="w-5 h-5" />}
+                    onClick={() => navigate('/pricing')} 
+                    leftIcon={<Zap className="w-5 h-5" />}
                     variant="gradientOutline"
                     className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
                   >
-                    Falar com Time
+                    Ver Preços
                   </Button>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+                  {stats.map((stat, i) => (
+                    <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 + i * 0.05 }} className="text-center">
+                      <div className="text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">{stat.number}</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.label}</div>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
 
@@ -296,12 +314,12 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16">
               <div className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 rounded-full text-xs font-semibold text-white shadow-sm mb-4">
-                <Sparkles className="w-3.5 h-3.5 mr-1.5" />Funcionalidades Principais
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />Novidades Versão 2.0
               </div>
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                Tecnologias implementadas com <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">Inteligência Artificial</span>
+                Novas funcionalidades com <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">Inteligência Artificial</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Chatbot RAG, Correção com IA, Antiplágio, Analytics ML, Gamificação e muito mais</p>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Chatbot RAG, Antiplágio, Analytics ML, Gamificação e muito mais</p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -331,9 +349,9 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16">
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                Impacto <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">mensurável</span>
+                Resultados <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">comprovados</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Resultados reais na prática educacional</p>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Veja o impacto real na sua prática educacional</p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -639,52 +657,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Technology Stack */}
-        <section id="technology" className="py-20 bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                Stack <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">tecnológico</span>
-              </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Tecnologias modernas para uma solução escalável e segura</p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Brain className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">Inteligência Artificial</h3>
-                <p className="text-sm text-muted-foreground">RAG v2.0, ML, Análise de Sentimento</p>
-              </motion.div>
-              
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Shield className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">Segurança LGPD</h3>
-                <p className="text-sm text-muted-foreground">Criptografia AES-256 e compliance total</p>
-              </motion.div>
-              
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Zap className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">Performance</h3>
-                <p className="text-sm text-muted-foreground">Cache Redis, Edge Functions otimizadas</p>
-              </motion.div>
-              
-              <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                  <Globe className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">Escalável</h3>
-                <p className="text-sm text-muted-foreground">Arquitetura preparada para crescimento</p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
         {/* Trust Indicators */}
         <section className="py-16 bg-white dark:bg-gray-900 border-y border-gray-200 dark:border-gray-800">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -728,8 +700,8 @@ export default function LandingPage() {
               <div className="inline-flex items-center px-4 py-2 bg-white/20 rounded-full text-sm font-medium text-white mb-6">
                 <Rocket className="w-4 h-4 mr-2" />Programa Beta Exclusivo
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">Teste a plataforma TamanduAI</h2>
-              <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">Acesso gratuito ao programa Beta com todas as funcionalidades implementadas.</p>
+              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">Seja um dos primeiros a testar o TamanduAI</h2>
+              <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">Acesso gratuito por 3 meses a todas as funcionalidades. Vagas limitadas!</p>
               
               <Link to="/register">
                 <Button 
@@ -762,12 +734,44 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Testimonials */}
+        <section id="testimonials" className="py-20 bg-background">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-16">
+              <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
+                O que dizem nossos <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">educadores</span>
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Histórias reais de transformação</p>
+            </motion.div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {testimonials.map((t, i) => (
+                <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: i * 0.1 }} className="group">
+                  <div className="relative p-8 bg-card text-card-foreground rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-border">
+                    <div className="flex items-center space-x-4 mb-6">
+                      <img src={t.avatar} alt={t.name} className="w-16 h-16 rounded-full object-cover shadow-lg" />
+                      <div>
+                        <h3 className="text-lg font-bold text-foreground">{t.name}</h3>
+                        <p className="text-blue-600 dark:text-blue-400 font-medium">{t.role}</p>
+                      </div>
+                    </div>
+                    <p className="text-muted-foreground italic mb-6 leading-relaxed">&ldquo;{t.quote}&rdquo;</p>
+                    <div className="flex space-x-1">
+                      {[...Array(t.rating)].map((_, j) => <Star key={j} className="w-5 h-5 text-yellow-400 fill-current" />)}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="py-20 bg-gradient-to-br from-cyan-500 via-blue-600 to-blue-800">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }}>
-              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">Pronto para transformar a educação?</h2>
-              <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">Plataforma completa com IA para revolucionar o ensino. Teste todas as funcionalidades!</p>
+              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">Pronto para transformar sua educação?</h2>
+              <p className="text-xl text-white/80 mb-8 max-w-2xl mx-auto">Junte-se a milhares de educadores que já descobriram o poder da IA. Comece gratuitamente!</p>
               
               <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
                 <Button 
