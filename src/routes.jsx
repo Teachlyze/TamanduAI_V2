@@ -6,6 +6,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 // Public Pages
 const LandingPage = React.lazy(() => import('./pages/LandingPage'));
 const PricingPage = React.lazy(() => import('./pages/PricingPage'));
+const RoadmapPage = React.lazy(() => import('./pages/RoadmapPage'));
 const DocumentationPage = React.lazy(() => import('./pages/DocumentationPage'));
 const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('./features/auth/pages/RegisterPage'));
@@ -115,6 +116,15 @@ const AppRoutes = () => {
           element={
             <OpenRoute>
               <DocumentationPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/roadmap"
+          element={
+            <OpenRoute>
+              <RoadmapPage />
             </OpenRoute>
           }
         />

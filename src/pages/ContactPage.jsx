@@ -9,6 +9,7 @@ import {
   MessageSquare, Users, Building2, Sparkles, Linkedin, Twitter, Instagram
 } from 'lucide-react';
 import { useToast } from '@/shared/components/ui/use-toast';
+import { supabase } from '@/shared/services/supabaseClient';
 
 const ContactPage = () => {
   const { toast } = useToast();
@@ -56,14 +57,14 @@ const ContactPage = () => {
     {
       icon: Phone,
       title: 'Telefone',
-      content: '+55 (11) 99999-9999',
-      link: 'tel:+5511999999999',
+      content: '+55 (86) 99954-9348',
+      link: 'tel:+5586999549348',
       color: 'from-green-500 to-emerald-500'
     },
     {
       icon: MapPin,
       title: 'Endereço',
-      content: 'São Paulo, SP - Brasil',
+      content: 'Teresina, PI - Brasil',
       link: null,
       color: 'from-purple-500 to-pink-500'
     },
@@ -104,16 +105,27 @@ const ContactPage = () => {
   };
 
   const validateForm = () => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    console.log('🔍 Validando formulário com dados:', formData);
     
-    if (!formData.fullName.trim()) {
+    // Regex mais robusto para email
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    // Regex para telefone brasileiro (com ou sem DDD)
+    const phoneRegex = /^\(?\d{2}\)?\s?9?\d{4}-?\d{4}$/;
+    // Regex para nome (apenas letras e espaços)
+    const nameRegex = /^[a-zA-ZÀ-ÿ\s]{3,}$/;
+    
+    console.log('Validando nome:', formData.fullName, '- Válido:', nameRegex.test(formData.fullName));
+    
+    if (!formData.fullName.trim() || !nameRegex.test(formData.fullName)) {
       toast({
-        title: 'Nome obrigatório',
-        description: 'Por favor, preencha seu nome completo.',
+        title: 'Nome inválido',
+        description: 'Por favor, insira um nome válido (apenas letras, mínimo 3 caracteres).',
         variant: 'destructive'
       });
       return false;
     }
+    
+    console.log('Validando email:', formData.email, '- Válido:', emailRegex.test(formData.email));
     
     if (!emailRegex.test(formData.email)) {
       toast({
@@ -124,6 +136,8 @@ const ContactPage = () => {
       return false;
     }
     
+    console.log('Validando userType:', formData.userType, '- Preenchido:', !!formData.userType);
+    
     if (!formData.userType) {
       toast({
         title: 'Tipo de usuário obrigatório',
@@ -132,6 +146,8 @@ const ContactPage = () => {
       });
       return false;
     }
+    
+    console.log('Validando subject:', formData.subject, '- Preenchido:', !!formData.subject);
     
     if (!formData.subject) {
       toast({
@@ -142,13 +158,29 @@ const ContactPage = () => {
       return false;
     }
     
-    if (!formData.message.trim() || formData.message.length < 10) {
+    console.log('Validando mensagem:', formData.message, '- Tamanho:', formData.message.length, '- Válido:', formData.message.length >= 20);
+    
+    if (!formData.message.trim() || formData.message.length < 20) {
       toast({
         title: 'Mensagem muito curta',
-        description: 'Por favor, escreva uma mensagem com pelo menos 10 caracteres.',
+        description: 'Por favor, escreva uma mensagem com pelo menos 20 caracteres.',
         variant: 'destructive'
       });
       return false;
+    }
+    
+    // Validar telefone se preenchido
+    if (formData.phone) {
+      console.log('Validando telefone:', formData.phone, '- Válido:', phoneRegex.test(formData.phone.replace(/\D/g, '')));
+      
+      if (!phoneRegex.test(formData.phone.replace(/\D/g, ''))) {
+        toast({
+          title: 'Telefone inválido',
+          description: 'Por favor, insira um telefone válido no formato (11) 99999-9999.',
+          variant: 'destructive'
+        });
+        return false;
+      }
     }
     
     return true;
@@ -157,38 +189,56 @@ const ContactPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    console.log('📝 Formulário submetido:', formData);
+    
     // Verificar honeypot (anti-spam)
     if (honeypot) {
-      console.log('Spam detected');
+      console.log('⚠️ Spam detected');
       return;
     }
     
-    if (!validateForm()) return;
+    console.log('✅ Honeypot OK, validando formulário...');
+    
+    if (!validateForm()) {
+      console.log('❌ Validação falhou');
+      return;
+    }
+    
+    console.log('✅ Validação OK, enviando...');
     
     setLoading(true);
     
-    // Simular envio (em produção, fazer requisição para backend/API)
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Enviar via Edge Function (salva no banco E envia email)
+      const { data, error } = await supabase.functions.invoke('send-contact-email', {
+        body: {
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone || null,
+          userType: formData.userType,
+          subject: formData.subject,
+          company: formData.company || null,
+          message: formData.message
+        }
+      });
       
-      // Salvar temporariamente no localStorage para demonstração
-      const savedMessages = JSON.parse(localStorage.getItem('contact_messages') || '[]');
-      const newMessage = {
-        ...formData,
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        status: 'pending'
-      };
-      savedMessages.push(newMessage);
-      localStorage.setItem('contact_messages', JSON.stringify(savedMessages));
+      if (error) {
+        console.error('Erro na Edge Function:', error);
+        throw new Error(error.message || 'Erro ao enviar mensagem');
+      }
       
-      // Também logar no console para debug
-      console.log('📧 Mensagem de Contato Recebida:', newMessage);
+      if (!data.success) {
+        console.error('Erro retornado pela função:', data);
+        throw new Error(data.error || 'Erro ao processar mensagem');
+      }
+      
+      console.log('✅ Mensagem enviada com sucesso:', data);
       
       setSubmitted(true);
       toast({
         title: '✅ Mensagem enviada com sucesso!',
-        description: 'Responderemos em até 24 horas úteis.'
+        description: 'Recebemos sua mensagem e responderemos em até 24 horas úteis.',
+        duration: 5000
       });
       
       // Reset form
@@ -207,10 +257,12 @@ const ContactPage = () => {
       setTimeout(() => setSubmitted(false), 5000);
       
     } catch (error) {
+      console.error('Erro ao enviar:', error);
       toast({
         title: 'Erro ao enviar',
-        description: 'Ocorreu um erro. Tente novamente ou entre em contato por email.',
-        variant: 'destructive'
+        description: error.message || 'Ocorreu um erro. Tente novamente ou entre em contato por email: contato@tamanduai.com',
+        variant: 'destructive',
+        duration: 7000
       });
     } finally {
       setLoading(false);
@@ -300,13 +352,20 @@ const ContactPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Card className="p-8 shadow-xl">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                  Envie sua mensagem
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  Preencha o formulário e entraremos em contato em breve
-                </p>
+              <Card className="p-8 shadow-2xl border-2 border-blue-100 dark:border-blue-900 bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-cyan-900/10">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
+                    <Send className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                      Envie sua mensagem
+                    </h2>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                      Responderemos em até 24h
+                    </p>
+                  </div>
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Honeypot field (hidden) */}
@@ -332,7 +391,7 @@ const ContactPage = () => {
                       value={formData.fullName}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 hover:border-blue-300"
                       placeholder="Seu nome completo"
                     />
                   </div>
@@ -440,19 +499,31 @@ const ContactPage = () => {
                       required
                       rows="6"
                       maxLength="1000"
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
-                      placeholder="Como podemos ajudar você?"
+                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none transition-all duration-200 hover:border-blue-300"
+                      placeholder="Como podemos ajudar você? (mínimo 20 caracteres)"
                     />
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                      {charCount} / 1000 caracteres
-                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className={`text-sm font-medium ${
+                        charCount < 20 
+                          ? 'text-red-500 dark:text-red-400' 
+                          : 'text-green-600 dark:text-green-400'
+                      }`}>
+                        {charCount < 20 
+                          ? `Faltam ${20 - charCount} caracteres (mínimo 20)` 
+                          : '✓ Mensagem válida'
+                        }
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {charCount} / 1000
+                      </p>
+                    </div>
                   </div>
 
                   {/* Submit Button */}
                   <Button
                     type="submit"
                     variant="gradient"
-                    className="w-full"
+                    className="w-full h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
                     disabled={loading || submitted}
                   >
                     {loading ? (

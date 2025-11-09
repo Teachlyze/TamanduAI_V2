@@ -25,30 +25,31 @@ export default function DocumentationPage() {
       category: 'Início',
       content: {
         title: 'Bem-vindo ao TamanduAI',
-        description: 'A plataforma educacional mais completa do Brasil',
+        description: 'Plataforma Educacional com Inteligência Artificial',
         items: [
           {
             title: 'O que é TamanduAI?',
-            content: 'TamanduAI é a primeira plataforma educacional brasileira que combina IA avançada (RAG, ML, NLP), gamificação completa, gestão de turmas, criação de atividades com correção automática, sistema anti-plágio, videoconferências, chatbot inteligente e analytics com 4 modelos de Machine Learning.'
+            content: 'TamanduAI é uma plataforma educacional brasileira que combina IA para gestão de turmas, criação de atividades com correção automática, chatbot com RAG personalizado, detecção de conteúdo gerado por IA (Winston AI) e analytics em tempo real com exportação de relatórios.'
           },
           {
-            title: 'Diferenciais Únicos',
+            title: 'Funcionalidades Principais (MVP)',
             list: [
-              'Chatbot RAG: IA que aprende com SEU material didático',
-              'Gamificação Completa: Sistema de XP e badges',
-              'Anti-Plágio Duplo: Detecta plágio e conteúdo gerado por IA',
-              'Analytics Preditivo: Prevê risco de reprovação',
-              'Suporte Brasileiro: Time local em português'
+              'Chatbot v1.0 com RAG: IA treinada com seus materiais (PDF, Word, PPT, URLs)',
+              'Correção Automática com IA: Economize 70% do tempo',
+              'Winston AI: Detecta se texto foi gerado por IA (100 verificações/hora)',
+              'Analytics em Tempo Real: Dashboards + exportação CSV',
+              'Calendário de Eventos: Aulas recorrentes e prazos',
+              'Gestão Multi-perfil: Professor, Aluno e Escola'
             ]
           },
           {
-            title: 'Para Quem é o TamanduAI?',
+            title: 'Roadmap 2026',
+            content: 'Estamos em constante evolução! Em 2026 vamos adicionar: Gestão Escolar completa, Sistema Financeiro, Gamificação, Portal dos Pais, Tutor Personalizado IA, Analytics com ML e muito mais.',
             list: [
-              '👨‍🏫 Professores Independentes',
-              '🏫 Escolas Pequenas e Médias',
-              '🎓 Instituições de Ensino Superior',
-              '📚 Cursos Preparatórios',
-              '🌐 Ensino EAD'
+              'Q1 2026: Gestão Escolar & IA Financeira',
+              'Q2 2026: Gamificação & Notificações',
+              'Q3 2026: Portal dos Pais & Tutor IA',
+              'Q4 2026: Banco de Questões & Aprimoramentos'
             ]
           }
         ]
@@ -102,26 +103,31 @@ export default function DocumentationPage() {
           {
             title: 'Gerenciar Turmas',
             list: [
-              'Criar e organizar turmas',
+              'Criar turmas com código de convite',
               'Adicionar/remover alunos',
-              'Visualizar lista de presença',
-              'Acompanhar desempenho',
-              'Enviar comunicados'
+              'Acompanhar desempenho (notas e estatísticas)',
+              'Visualizar histórico de atividades'
             ]
           },
           {
             title: 'Criar Atividades',
             list: [
-              'Trabalhos dissertativos',
-              'Provas objetivas',
-              'Quizzes interativos',
-              'Projetos em grupo',
-              'Atividades com prazo'
+              'Trabalhos dissertativos com correção automática por IA',
+              'Importar atividades de TXT, PDF, DOCX, ODT',
+              'Verificação de conteúdo gerado por IA (Winston AI)',
+              'Atividades com prazo e calendário',
+              'Exportar relatórios em CSV'
             ]
           },
           {
-            title: 'Correção Automática',
-            content: 'Para questões objetivas, a correção é instantânea. Para dissertativas, use a IA como assistente.'
+            title: 'Treinar Chatbot',
+            content: 'Carregue seus materiais (PDF, Word, PowerPoint, URLs) e o chatbot aprende automaticamente. Até 200 mensagens por dia.',
+            list: [
+              'Upload de PDF, DOCX, PPTX',
+              'Adicionar URLs de conteúdo',
+              'Chatbot responde baseado nos seus materiais',
+              'Disponível 24/7 para alunos'
+            ]
           }
         ]
       }
@@ -136,22 +142,27 @@ export default function DocumentationPage() {
         description: 'Como usar a plataforma como estudante',
         items: [
           {
-            title: 'Acessar Turmas',
-            content: 'Use o código fornecido pelo professor para entrar em uma turma.'
+            title: 'Entrar em Turmas',
+            content: 'Use o código de 6 dígitos fornecido pelo professor para entrar em uma turma.'
           },
           {
             title: 'Realizar Atividades',
             list: [
               'Visualize prazos no calendário',
-              'Responda questões',
-              'Anexe arquivos',
-              'Salve rascunhos',
-              'Receba feedback'
+              'Responda questões dissertativas',
+              'Submeta suas respostas',
+              'Receba correção automática com IA',
+              'Veja notas e histórico'
             ]
           },
           {
-            title: 'Chatbot Educacional',
-            content: 'Tire dúvidas 24/7 com nosso assistente virtual.'
+            title: 'Usar o Chatbot',
+            content: 'Tire dúvidas 24/7 sobre os materiais da turma. O chatbot foi treinado com o conteúdo que o professor carregou.',
+            list: [
+              'Até 200 mensagens por dia',
+              'Respostas baseadas no material da disciplina',
+              'Disponível a qualquer hora'
+            ]
           }
         ]
       }
@@ -162,22 +173,32 @@ export default function DocumentationPage() {
       icon: MessageSquare,
       category: 'Recursos',
       content: {
-        title: 'Assistente Virtual',
-        description: 'IA educacional para tirar dúvidas',
+        title: 'Chatbot v1.0 com RAG',
+        description: 'IA personalizada treinada com SEU material didático',
         items: [
           {
-            title: 'Como Funciona',
-            content: 'Nosso chatbot usa modelos de linguagem avançados treinados em conteúdo educacional.'
+            title: 'Como Funciona o RAG',
+            content: 'RAG (Retrieval-Augmented Generation) é uma técnica de IA onde o chatbot busca informações nos materiais que VOCÊ carregou antes de responder. Isso garante respostas baseadas no seu conteúdo, não em conhecimento genérico.',
+            list: [
+              '1. Você carrega PDFs, Word, PowerPoint ou URLs',
+              '2. O sistema processa e indexa o conteúdo',
+              '3. Alunos fazem perguntas',
+              '4. O chatbot busca nos SEUS materiais',
+              '5. Responde baseado no que você ensinou'
+            ]
           },
           {
-            title: 'Tipos de Perguntas',
+            title: 'Limitações Atuais',
             list: [
-              'Explicação de conceitos',
-              'Resolução de exercícios',
-              'Dúvidas sobre matérias',
-              'Recomendações de estudo',
-              'Simulados e questões'
+              'Até 200 mensagens por dia',
+              'Apenas responde sobre conteúdo carregado',
+              'Versão 1.0 - será aprimorado em 2026',
+              'Recomendações IA ainda em Beta'
             ]
+          },
+          {
+            title: 'Próximas Versões',
+            content: 'Em 2026: v2.0 com memória de conversas, v3.0 multi-idioma, v4.0 otimizado, v5.0 integrado'
           }
         ]
       }
@@ -188,21 +209,30 @@ export default function DocumentationPage() {
       icon: Shield,
       category: 'Recursos',
       content: {
-        title: 'Detecção de Plágio',
-        description: 'IA para garantir originalidade',
+        title: 'Winston AI - Detector de Conteúdo IA',
+        description: 'Detecta se texto foi gerado por Inteligência Artificial',
         items: [
           {
-            title: 'Como Funciona',
-            content: 'Cada resposta dissertativa é analisada contra nossa base de conhecimento e internet.'
+            title: 'O Que é Winston AI',
+            content: 'Winston AI é uma ferramenta especializada em detectar se um texto foi escrito por humano ou gerado por IA (ChatGPT, GPT-4, Claude, etc). NÃO detecta plágio tradicional.',
+            list: [
+              '100 verificações por hora',
+              'Detecta ChatGPT, GPT-4, Claude, Bard',
+              'Score de 0-100% de conteúdo IA',
+              'Relatório instantâneo'
+            ]
           },
           {
-            title: 'Níveis de Alerta',
+            title: 'Como Interpretar',
             list: [
-              '🟢 Verde (0-20%): Originalidade alta',
-              '🟡 Amarelo (20-50%): Suspeita baixa',
-              '🟠 Laranja (50-70%): Investigar',
-              '🔴 Vermelho (70-100%): Plágio detectado'
+              '🟢 0-20%: Provavelmente escrito por humano',
+              '🟡 20-60%: Suspeita moderada',
+              '🔴 60-100%: Altamente provável que foi gerado por IA'
             ]
+          },
+          {
+            title: 'Importante',
+            content: 'Winston AI detecta APENAS conteúdo gerado por IA. Para plágio tradicional (cópia de sites ou trabalhos), essa funcionalidade estará disponível no futuro.'
           }
         ]
       }
@@ -217,81 +247,33 @@ export default function DocumentationPage() {
         description: 'Dados e insights educacionais',
         items: [
           {
-            title: 'Dashboard do Professor',
+            title: 'Dashboards em Tempo Real',
+            content: 'Visualize métricas e estatísticas atualizadas em tempo real sobre turmas e alunos.',
             list: [
               'Média geral de turmas',
-              'Taxa de conclusão',
-              'Alunos com dificuldades',
-              'Evolução temporal',
-              'Comparativo entre turmas'
+              'Notas individuais por aluno',
+              'Histórico de submissões',
+              'Estatísticas de atividades'
             ]
           },
           {
-            title: 'Dashboard do Aluno',
+            title: 'Exportação de Relatórios',
+            content: 'Exporte todos os dados em formato CSV para análise externa ou backup.',
             list: [
-              'Suas notas e médias',
-              'Progresso em cada matéria',
-              'Ranking na turma',
-              'Atividades pendentes',
-              'Sugestões de melhoria'
+              'Exportar notas em CSV',
+              'Exportar lista de alunos',
+              'Exportar histórico de atividades',
+              'Compatível com Excel e Google Sheets'
             ]
-          }
-        ]
-      }
-    },
-    {
-      id: 'gamification',
-      title: 'Gamificação',
-      icon: Trophy,
-      category: 'Recursos',
-      content: {
-        title: 'Sistema de Gamificação',
-        description: 'XP, níveis e badges para engajar alunos',
-        items: [
+          },
           {
-            title: 'Sistema de XP',
-            content: 'Alunos ganham XP realizando atividades. Cada 100 XP = 1 nível.',
+            title: 'Próximas Funcionalidades (2026)',
             list: [
-              'Submeter atividade: +20 XP',
-              'Nota 9-10: bônus +50% XP',
-              'Primeira atividade do dia: +5 XP',
-              'Streak diário: +10 XP',
-              'Participar em discussão: +5 XP'
+              'Q4 2026: Analytics Avançado com Machine Learning',
+              'Previsão de desempenho com IA',
+              'Clustering automático de alunos',
+              'Análise de sentimento'
             ]
-          },
-          {
-            title: 'Badges e Conquistas',
-            list: [
-              '🏆 Primeira Atividade',
-              '⭐ Nota 10',
-              '🔥 Streak 7 dias',
-              '📚 Estudioso - 50 atividades',
-              '🥇 Top 3 do ranking'
-            ]
-          }
-        ]
-      }
-    },
-    {
-      id: 'ml-analytics',
-      title: 'Analytics com ML',
-      icon: Brain,
-      category: 'Recursos',
-      content: {
-        title: 'Machine Learning',
-        description: '4 modelos de ML para insights avançados',
-        items: [
-          {
-            title: 'K-Means Clustering',
-            content: 'Agrupa alunos automaticamente em 3 clusters: Alto Desempenho, Médio e Baixo.'
-          },
-          {
-            title: 'Análise de Sentimento',
-            content: 'IA analisa textos de alunos detectando sentimentos: Positivo, Neutro ou Negativo.'
-          },
-          {
-            title: 'Predição de Desempenho',
-            content: 'Prevê nota final do aluno baseado em notas parciais, frequência e engajamento.'
           }
         ]
       }
@@ -327,28 +309,43 @@ export default function DocumentationPage() {
       }
     },
     {
-      id: 'api',
-      title: 'API e Integrações',
-      icon: Code,
+      id: 'roadmap',
+      title: 'Roadmap 2026',
+      icon: Calendar,
       category: 'Avançado',
       content: {
-        title: 'Integrações',
-        description: 'Conecte com outras ferramentas',
+        title: 'Futuro da Plataforma',
+        description: 'Veja o que está por vir',
         items: [
           {
-            title: 'API REST',
-            content: 'Acesse nossos endpoints para integrar TamanduAI com sistemas externos.'
+            title: 'Q1 2026 - Gestão Escolar',
+            list: [
+              'Dashboard Escolar Completo',
+              'Sistema Financeiro',
+              'Controle de Frequência',
+              'Exportações PDF e Excel'
+            ]
           },
           {
-            title: 'Integrações Disponíveis',
+            title: 'Q2 2026 - Gamificação',
             list: [
-              'Google Classroom',
-              'Microsoft Teams',
-              'Moodle',
-              'Canvas LMS',
-              'Google Drive',
-              'Zoom'
+              'Sistema de XP e Níveis',
+              'Badges e Conquistas',
+              'Rankings e Competições',
+              'Notificações'
             ]
+          },
+          {
+            title: 'Q3 2026 - Portal dos Pais',
+            list: [
+              'Dashboard para Pais',
+              'Tutor Personalizado IA',
+              'Comunicação Escola-Pais'
+            ]
+          },
+          {
+            title: '2027+ - Integrações',
+            content: 'API pública e integrações com Google Classroom, Moodle, Teams e mais.'
           }
         ]
       }

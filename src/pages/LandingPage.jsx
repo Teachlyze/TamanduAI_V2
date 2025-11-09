@@ -10,9 +10,9 @@ import {
   BookOpen, Users, Sparkles, TrendingUp, Brain,
   Clock, Lightbulb, Target, Rocket, Calendar, Shield,
   Star, Heart, CheckCircle, ArrowRight, Globe, Award,
-  Zap, MessageSquare, FileText, BarChart3, Video,
-  CheckCircle2, XCircle, Play, ChevronRight, Mail,
-  Lock, Smartphone, Laptop, Headphones, BadgeCheck, Trophy, Bell, DollarSign, FileEdit, Upload
+  Zap, MessageSquare, FileText, BarChart3,
+  CheckCircle2, XCircle, ChevronRight, Mail,
+  Lock, Smartphone, Laptop, Headphones, BadgeCheck, FileEdit, Upload, ClipboardCheck
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -22,18 +22,18 @@ export default function LandingPage() {
     { icon: Brain, title: 'Chatbot com RAG v2.0', description: 'Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7', gradient: "from-blue-500 to-blue-600", badge: 'Até 200 msgs/dia' },
     { icon: FileEdit, title: 'Correção Automática com IA', description: 'Correção inteligente de atividades com feedback detalhado gerado por IA', gradient: "from-purple-500 to-purple-600", badge: 'Economia de 70%' },
     { icon: Shield, title: 'Antiplágio Winston AI', description: 'Detecção automática de plágio e conteúdo gerado por IA', gradient: "from-red-500 to-red-600", badge: '100 verificações/hora' },
-    { icon: BarChart3, title: 'Analytics com ML', description: '4 modelos de Machine Learning: previsão de desempenho, clustering, sentimento e recomendações', gradient: "from-indigo-500 to-blue-600", badge: 'IA Avançada' },
-    { icon: Bell, title: 'Notificações Inteligentes', description: 'Lembretes automáticos de prazos, reuniões e aulas via Push + Email', gradient: "from-emerald-500 to-teal-500", badge: 'Push + Email' },
-    { icon: Calendar, title: 'Agenda Integrada', description: 'Agende reuniões e aulas recorrentes - integre com Google Meet e Zoom', gradient: "from-blue-500 to-cyan-500", badge: 'Aulas recorrentes' },
-    { icon: Trophy, title: 'Gamificação Completa', description: 'Sistema de XP, níveis (16 níveis), badges e rankings', gradient: "from-yellow-500 to-orange-500", badge: '16 níveis' },
-    { icon: Upload, title: 'Importar Atividades', description: 'Importe atividades de TXT, PDF, DOCX, ODT com extração automática', gradient: "from-cyan-500 to-blue-500", badge: '4 formatos' }
+    { icon: BarChart3, title: 'Analytics em Tempo Real', description: 'Dashboards completos com métricas de desempenho e relatórios exportáveis', gradient: "from-indigo-500 to-blue-600", badge: 'Exportação CSV' },
+    { icon: Calendar, title: 'Calendário de Eventos', description: 'Visualize prazos, aulas e eventos em um calendário sincronizado', gradient: "from-blue-500 to-cyan-500", badge: 'Aulas recorrentes' },
+    { icon: Users, title: 'Gestão Completa', description: 'Organize turmas, professores e alunos com sistema multi-perfil', gradient: "from-cyan-500 to-teal-500", badge: 'Multi-perfil' },
+    { icon: Upload, title: 'Importar Atividades', description: 'Importe atividades de TXT, PDF, DOCX, ODT com extração automática', gradient: "from-green-500 to-emerald-500", badge: '4 formatos' },
+    { icon: MessageSquare, title: 'Sistema de Eventos', description: 'Crie eventos personalizados e selecione alunos por turma ou individual', gradient: "from-purple-500 to-pink-500", badge: 'Personalizado' }
   ];
 
   const benefits = [
-    { icon: Clock, title: 'Economiza Tempo', description: 'Reduza 70% do tempo em tarefas administrativas', stat: "70%" },
-    { icon: TrendingUp, title: 'Melhora Resultados', description: 'Aumento no engajamento dos alunos', stat: "+45%" },
-    { icon: Lightbulb, title: 'Facilita Ensino', description: 'Ferramentas que potencializam sua metodologia', stat: "100%" },
-    { icon: Target, title: 'Foco no Essencial', description: 'Mais tempo para ensinar, menos burocracia', stat: "∞" }
+    { icon: Clock, title: 'Economiza Tempo', description: 'Automatize correções e tarefas administrativas', stat: "Auto" },
+    { icon: TrendingUp, title: 'Analytics Completo', description: 'Dashboards e relatórios em tempo real', stat: "CSV" },
+    { icon: Lightbulb, title: 'Facilita Ensino', description: 'Chatbot 24/7 treinado com seus materiais', stat: "24/7" },
+    { icon: Target, title: 'Organização', description: 'Gestão centralizada de turmas e conteúdo', stat: "∞" }
   ];
 
   // Removido: stats e testimonials fictícios (aguardando dados reais de usuários)
@@ -42,17 +42,16 @@ export default function LandingPage() {
     { icon: Brain, title: "Chatbot com RAG v2.0", description: "Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7", color: "violet" },
     { icon: FileEdit, title: "Correção Automática com IA", description: "Sistema de correção inteligente com feedback detalhado gerado por IA", color: "purple" },
     { icon: Shield, title: "Antiplágio Winston AI", description: "Detecção automática com IA (100 checks/hora) de plágio e conteúdo gerado por IA", color: "red" },
-    { icon: BarChart3, title: "Previsão de Desempenho", description: "ML prevê próxima nota e tendência do aluno com regressão linear", color: "indigo" },
-    { icon: Brain, title: "Clustering de Alunos", description: "Agrupa alunos por desempenho automaticamente (K-Means)", color: "blue" },
-    { icon: Target, title: "Análise de Sentimento", description: "Detecta feedbacks negativos automaticamente", color: "cyan" },
-    { icon: Lightbulb, title: "Recomendações IA", description: "Sugere materiais baseado em dificuldades do aluno", color: "yellow" },
-    { icon: Bell, title: "Lembretes Automáticos", description: "Notificações 1h e 5min antes de prazos via cron", color: "emerald" },
-    { icon: Trophy, title: "Gamificação Completa", description: "XP, níveis, badges e rankings (16 níveis)", color: "orange" },
-    { icon: Calendar, title: "Agenda Sincronizada", description: "Calendário com todas atividades e eventos", color: "blue" },
+    { icon: BarChart3, title: "Analytics em Tempo Real", description: "Dashboards completos com estatísticas e métricas de desempenho", color: "indigo" },
+    { icon: Calendar, title: "Calendário de Eventos", description: "Visualize e gerencie todos os prazos, aulas e eventos", color: "blue" },
     { icon: Upload, title: "Importar Atividades", description: "Upload de TXT, PDF, DOCX, ODT com extração automática", color: "cyan" },
+    { icon: ClipboardCheck, title: "Controle de Frequência", description: "Registre e acompanhe presença dos alunos em aulas e eventos", color: "green" },
     { icon: Users, title: "Gestão Multi-perfil", description: "Professor, Aluno e Escola em um só lugar", color: "indigo" },
-    { icon: FileText, title: "Exportação de Relatórios", description: "Exportação de analytics e notas em formato CSV", color: "green" },
+    { icon: FileText, title: "Exportação de Relatórios", description: "Exporte analytics e notas em formato CSV", color: "green" },
     { icon: MessageSquare, title: "Sistema de Eventos", description: "Crie eventos e selecione alunos por turma ou individual", color: "pink" },
+    { icon: FileText, title: "Gestão de Materiais", description: "Organize e compartilhe materiais didáticos com as turmas", color: "blue" },
+    { icon: Users, title: "Sistema de Turmas", description: "Crie e gerencie turmas com código de convite", color: "cyan" },
+    { icon: BarChart3, title: "Relatórios de Notas", description: "Visualize estatísticas e histórico de notas dos alunos", color: "indigo" },
   ];
 
   const howItWorks = [
@@ -60,32 +59,33 @@ export default function LandingPage() {
     { step: "2", title: "Configure sua Turma", description: "Crie turmas, adicione alunos via código de convite e organize seu conteúdo", icon: Users },
     { step: "3", title: "Treine o Chatbot", description: "Faça upload de PDFs, Word, PPT ou URLs para o chatbot responder dúvidas 24/7", icon: Brain },
     { step: "4", title: "Crie Atividades", description: "Crie atividades interativas com correção automática por IA e antiplágio integrado", icon: Sparkles },
-    { step: "5", title: "Gamifique o Aprendizado", description: "Ative XP, níveis, badges e rankings para engajar seus alunos automaticamente", icon: Trophy },
-    { step: "6", title: "Acompanhe com IA", description: "Veja analytics em tempo real com previsões de ML e relatórios inteligentes", icon: TrendingUp },
+    { step: "5", title: "Organize Materiais", description: "Faça upload e compartilhe materiais didáticos com suas turmas", icon: Upload },
+    { step: "6", title: "Acompanhe Resultados", description: "Visualize analytics, estatísticas e exporte relatórios em CSV", icon: TrendingUp },
   ];
 
   const comparison = [
     { feature: "Correção automática de atividades com IA", before: false, after: true },
     { feature: "Chatbot IA treinado com seus materiais", before: false, after: true },
     { feature: "Antiplágio automático (Winston AI)", before: false, after: true },
-    { feature: "Analytics com Machine Learning", before: false, after: true },
-    { feature: "Previsão de desempenho dos alunos", before: false, after: true },
-    { feature: "Sistema de gamificação (XP, badges)", before: false, after: true },
-    { feature: "Notificações inteligentes automáticas", before: false, after: true },
-    { feature: "Agenda sincronizada com aulas recorrentes", before: false, after: true },
+    { feature: "Analytics e dashboards em tempo real", before: false, after: true },
+    { feature: "Calendário sincronizado com eventos", before: false, after: true },
+    { feature: "Controle de frequência digital", before: false, after: true },
     { feature: "Importação automática de atividades", before: false, after: true },
     { feature: "Relatórios exportáveis em CSV", before: false, after: true },
     { feature: "Gestão de múltiplas turmas", before: false, after: true },
     { feature: "Sistema de eventos personalizado", before: false, after: true },
+    { feature: "Gestão de materiais didáticos", before: false, after: true },
+    { feature: "Sistema multi-perfil (Professor/Aluno/Escola)", before: false, after: true },
     { feature: "Tempo gasto em tarefas administrativas", before: true, after: false },
     { feature: "Correção manual de todas atividades", before: true, after: false },
     { feature: "Planilhas desorganizadas e dispersas", before: true, after: false },
+    { feature: "Controle de presença em papel", before: true, after: false },
   ];
 
   const faqs = [
-    { q: "Qual o estágio atual do produto?", a: "O TamanduAI está em fase Beta com funcionalidades principais implementadas: chatbot com RAG, correção automática com IA, antiplágio, analytics com ML, gamificação completa e muito mais." },
+    { q: "Qual o estágio atual do produto?", a: "O TamanduAI está em fase Beta com funcionalidades implementadas: chatbot com RAG, correção automática com IA, antiplágio, analytics e gestão de turmas." },
     { q: "Preciso de conhecimento técnico?", a: "Não! A interface é intuitiva com tutoriais completos e documentação detalhada para começar em minutos." },
-    { q: "Os dados estão seguros?", a: "Sim! Usamos criptografia AES-256, somos 100% compatíveis com a LGPD e os dados ficam em servidores seguros." },
+    { q: "Os dados estão seguros?", a: "Sim! Somos 100% compatíveis com a LGPD e os dados ficam armazenados em servidores seguros com criptografia." },
     { q: "Funciona em dispositivos móveis?", a: "Sim! O TamanduAI é 100% responsivo e funciona perfeitamente em computadores, tablets e smartphones." },
     { q: "Como funciona o chatbot IA?", a: "Você treina o chatbot fazendo upload de PDFs, Word, PowerPoint ou URLs. Ele usa RAG v2.0 para responder dúvidas dos alunos 24/7 com precisão." },
     { q: "Tem limite de turmas ou alunos?", a: "Não! Você pode adicionar quantas turmas, alunos e professores precisar. Escalamos conforme o crescimento." },
@@ -103,7 +103,7 @@ export default function LandingPage() {
     <div className="min-h-screen flex flex-col bg-background">
       <Seo
         title="TamanduAI — Plataforma Educacional com Inteligência Artificial"
-        description="Plataforma educacional completa com IA: chatbot RAG, correção automática, antiplágio, analytics ML e gamificação. Solução moderna para professores, alunos e escolas."
+        description="Plataforma educacional completa com IA: chatbot RAG, correção automática, antiplágio e analytics em tempo real. Solução moderna para professores, alunos e escolas."
         path="/"
       />
       {/* Header */}
@@ -129,6 +129,7 @@ export default function LandingPage() {
               </motion.span>
               <nav className="hidden md:flex space-x-6 ml-6">
                 <a href="#features" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Recursos</a>
+                <Link to="/roadmap" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Roadmap</Link>
                 <Link to="/pricing" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Preços</Link>
                 <a href="#technology" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Tecnologia</a>
                 <Link to="/docs" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Docs</Link>
@@ -222,7 +223,7 @@ export default function LandingPage() {
                 </h1>
                 
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-                  <strong className="text-blue-600 dark:text-blue-400">Versão 2.0:</strong> Chatbot com RAG, Correção Automática com IA, Antiplágio Winston AI, Analytics com Machine Learning, Gamificação e Notificações Inteligentes. Tecnologia de ponta para transformar a educação.
+                  <strong className="text-blue-600 dark:text-blue-400">Versão 2.0:</strong> Chatbot com RAG, Correção Automática com IA, Antiplágio Winston AI, Analytics em Tempo Real e Calendário de Eventos. Tecnologia de ponta para transformar a educação.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -301,7 +302,7 @@ export default function LandingPage() {
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
                 Tecnologias implementadas com <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">Inteligência Artificial</span>
               </h2>
-              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Chatbot RAG, Correção com IA, Antiplágio, Analytics ML, Gamificação e muito mais</p>
+              <p className="text-xl text-muted-foreground max-w-3xl mx-auto">Chatbot RAG, Correção com IA, Antiplágio, Analytics e muito mais</p>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -539,80 +540,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Video/Demo Section */}
-        <section className="py-20 bg-background">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <motion.div initial={{ opacity: 0, x: -20 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }}>
-                <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 rounded-full text-sm font-medium text-white shadow-sm mb-6">
-                  <Play className="w-4 h-4 mr-2" />Veja em ação
-                </div>
-                <h2 className="text-4xl lg:text-5xl font-bold text-foreground mb-6">
-                  Assista como é <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">fácil</span>
-                </h2>
-                <p className="text-xl text-muted-foreground mb-8">Veja em apenas 3 minutos como o TamanduAI pode transformar sua prática educacional.</p>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <span className="text-foreground">Interface intuitiva e moderna</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <span className="text-foreground">Configuração em minutos</span>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <span className="text-gray-700 dark:text-gray-300">Resultados imediatos</span>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} transition={{ duration: 0.8 }} className="relative">
-                <div className="aspect-video bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-2xl shadow-2xl overflow-hidden group cursor-pointer">
-                  <div className="absolute inset-0 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <div className="w-20 h-20 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-xl">
-                      <Play className="w-8 h-8 text-blue-600 ml-1" />
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                  <div className="absolute bottom-6 left-6 right-6">
-                    <div className="flex items-center justify-between text-white">
-                      <span className="text-sm font-medium">Tour pela plataforma</span>
-                      <span className="text-sm">3:24</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center gap-4 mt-8">
-                    <Button
-                      size="lg"
-                      onClick={() => navigate('/pricing')}
-                      leftIcon={<Zap className="w-5 h-5" />}
-                      variant="gradientOutline"
-                      className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50"
-                    >
-                      Ver Preços Detalhados
-                    </Button>
-                    <Button
-                      size="lg"
-                      onClick={() => navigate('/register')}
-                      leftIcon={<Rocket className="w-5 h-5" />}
-                      variant="gradient"
-                    >
-                      Começar Grátis
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-
         {/* FAQ */}
         <section className="py-20 bg-gradient-to-br from-cyan-50 to-blue-100 dark:from-gray-800 dark:to-gray-900">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -655,7 +582,7 @@ export default function LandingPage() {
                   <Brain className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground mb-2">Inteligência Artificial</h3>
-                <p className="text-sm text-muted-foreground">RAG v2.0, ML, Análise de Sentimento</p>
+                <p className="text-sm text-muted-foreground">RAG v2.0, Correção com IA, Antiplágio</p>
               </motion.div>
               
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="text-center">
@@ -663,7 +590,7 @@ export default function LandingPage() {
                   <Shield className="w-10 h-10 text-white" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground mb-2">Segurança LGPD</h3>
-                <p className="text-sm text-muted-foreground">Criptografia AES-256 e compliance total</p>
+                <p className="text-sm text-muted-foreground">Criptografia SSL e compliance total</p>
               </motion.div>
               
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="text-center">
@@ -758,6 +685,79 @@ export default function LandingPage() {
                   <p className="text-white/80 text-sm">Atendimento prioritário para beta testers</p>
                 </div>
               </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Roadmap Teaser */}
+        <section className="py-20 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 backdrop-blur-sm mb-6 shadow-lg">
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                <span className="text-sm font-bold text-blue-700">Lançamento 11/11/2025 • Roadmap 2026</span>
+              </div>
+              <h2 className="text-4xl lg:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600">Roadmap de Desenvolvimento 2026</h2>
+              <p className="text-xl text-slate-700 max-w-3xl mx-auto">Do lançamento MVP até o ecossistema completo - escola, gamificação, pais e muito mais</p>
+            </motion.div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative group">
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-transform duration-300 shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                  <div className="relative">
+                    <CheckCircle className="w-12 h-12 text-emerald-400 mb-4" />
+                    <h3 className="text-2xl font-bold text-white mb-2">Lançamento MVP</h3>
+                    <p className="text-slate-300 mb-4">Chatbot v1.0 com RAG básico + 10 features</p>
+                    <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+                      <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      11 de Novembro 2025
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="relative group">
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-transform duration-300 shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                  <div className="relative">
+                    <Clock className="w-12 h-12 text-blue-400 mb-4" />
+                    <h3 className="text-2xl font-bold text-white mb-2">Ano de 2026</h3>
+                    <p className="text-slate-300 mb-4">Escola → Gamificação → Pais → Aprimoramentos</p>
+                    <div className="flex items-center gap-2 text-blue-400 text-sm font-medium">
+                      <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                      Q1 a Q4 • Chatbot v2-v5
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }} className="relative group">
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20 backdrop-blur-xl overflow-hidden hover:scale-105 transition-transform duration-300 shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-purple-500 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
+                  <div className="relative">
+                    <Target className="w-12 h-12 text-pink-400 mb-4" />
+                    <h3 className="text-2xl font-bold text-white mb-2">2027 e Além</h3>
+                    <p className="text-slate-300 mb-4">Banco de Questões + Apps Mobile + IA Generativa</p>
+                    <div className="flex items-center gap-2 text-pink-400 text-sm font-medium">
+                      <div className="w-2 h-2 rounded-full bg-pink-400 animate-pulse" />
+                      Chatbot v6.0+ Completo
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }} className="text-center">
+              <Link to="/roadmap">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 hover:from-blue-600 hover:via-cyan-600 hover:to-purple-600 text-white shadow-2xl shadow-blue-500/50 hover:shadow-purple-500/50 transition-all duration-300 group"
+                >
+                  Ver Roadmap Completo
+                  <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
             </motion.div>
           </div>
         </section>

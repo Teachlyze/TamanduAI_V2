@@ -40,6 +40,7 @@ const ImprovedDocumentationPage = lazyLoad(() => import('../pages/docs/Documenta
 const SpecCoveragePage = lazyLoad(() => import('../pages/admin/SpecCoveragePage'));
 const ContactPage = lazyLoad(() => import('../pages/ContactPage'));
 const BetaPage = lazyLoad(() => import('../pages/BetaPage'));
+const RoadmapPage = lazyLoad(() => import('../pages/RoadmapPage'));
 const LogoutPage = lazyLoad(() => import('../pages/LogoutPage'));
 const JoinClassPage = lazyLoad(() => import('../pages/JoinClassPage'));
 const JoinClassWithCodePage = lazyLoad(() => import('../pages/JoinClassWithCodePage'));
@@ -271,6 +272,14 @@ const AppRoutes = () => {
         element={
           <Suspense fallback={<Loading />}>
             <ContactPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/roadmap"
+        element={
+          <Suspense fallback={<Loading />}>
+            <RoadmapPage />
           </Suspense>
         }
       />
