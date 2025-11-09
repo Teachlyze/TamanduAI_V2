@@ -9,6 +9,8 @@ import { RoadmapTimeline } from '@/components/roadmap/RoadmapTimeline';
 import { RoadmapCTA } from '@/components/roadmap/RoadmapCTA';
 import SkipLinks from '@/shared/components/SkipLinks';
 import CookieBanner from '@/shared/components/CookieBanner';
+import { roadmapPhases } from '@/data/roadmapData';
+import supabase from '@/shared/services/supabaseClient';
 
 export default function RoadmapPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
