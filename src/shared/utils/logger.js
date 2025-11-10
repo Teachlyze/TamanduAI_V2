@@ -205,9 +205,10 @@ export class Logger {
 
 /**
  * Instância global do logger
+ * Configurado para mostrar apenas warnings e erros (preparando para produção)
  */
 export const logger = new Logger({
-  level: import.meta.env.MODE === 'development' ? 'debug' : 'info',
+  level: 'warn', // Desabilitar debug e info logs
   enableConsole: true,
   enableRemote: import.meta.env.MODE === 'production',
   remoteEndpoint: import.meta.env.VITE_LOG_ENDPOINT,

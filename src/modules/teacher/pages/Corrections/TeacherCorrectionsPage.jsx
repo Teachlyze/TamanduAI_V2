@@ -1,5 +1,5 @@
 import { logger } from '@/shared/utils/logger';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, CheckCircle, TrendingUp, AlertCircle, Filter, Download, FileText, Users, Calendar, Search } from 'lucide-react';
@@ -144,21 +144,34 @@ const TeacherCorrectionsPage = () => {
     }
   }, [selectedClass, loadClassActivities]);
 
-  // Efeito para carregar submissões quando os filtros mudam
+  // Efeito para carregar submissões APENAS quando a turma muda (atividade filtra localmente)
   useEffect(() => {
     if (selectedClass) {
       loadSubmissions();
     }
-  }, [selectedClass, selectedActivity, statusFilter]);
+  }, [selectedClass]);
 
-  // Efeito para filtrar as submissões quando os filtros ou a lista mudar
-  useEffect(() => {
+  // Usar useMemo para filtrar submissões sem recarregar (otimização de performance)
+  const filteredAndSortedSubmissions = useMemo(() => {
     if (!submissions || submissions.length === 0) {
-      setFilteredSubmissions([]);
-      return;
+      return [];
     }
 
     let result = [...submissions];
+
+    // Aplicar filtro de atividade (local, sem requisição)
+    if (selectedActivity && selectedActivity !== 'all') {
+      result = result.filter(s => s.activity_id === selectedActivity);
+    }
+
+    // Aplicar filtro de status
+    if (statusFilter === 'pending') {
+      result = result.filter(s => s.status === 'submitted');
+    } else if (statusFilter === 'graded') {
+      result = result.filter(s => s.status === 'graded');
+    } else if (statusFilter === 'flagged') {
+      result = result.filter(s => s.status === 'needs_review');
+    }
 
     // Aplicar filtro de busca
     if (searchQuery) {
@@ -180,8 +193,13 @@ const TeacherCorrectionsPage = () => {
       result.sort((a, b) => (b.grade || 0) - (a.grade || 0));
     }
 
-    setFilteredSubmissions(result);
-  }, [submissions, searchQuery, sortBy]);
+    return result;
+  }, [submissions, selectedActivity, statusFilter, searchQuery, sortBy]);
+
+  // Sincronizar com estado filteredSubmissions para compatibilidade
+  useEffect(() => {
+    setFilteredSubmissions(filteredAndSortedSubmissions);
+  }, [filteredAndSortedSubmissions]);
 
   const loadSubmissions = async () => {
     if (!user || !selectedClass) return;
@@ -191,11 +209,8 @@ const TeacherCorrectionsPage = () => {
 
       const filters = {
         classId: selectedClass,
-        activityId: selectedActivity !== 'all' ? selectedActivity : null,
-        status: statusFilter === 'all' ? null :
-                statusFilter === 'pending' ? 'submitted' : 
-                statusFilter === 'graded' ? 'graded' : 
-                statusFilter === 'flagged' ? 'needs_review' : null,
+        activityId: null, // Removido - agora filtra localmente com useMemo
+        status: null, // Removido - agora filtra localmente com useMemo
         sortBy
       };
 
@@ -240,29 +255,7 @@ const TeacherCorrectionsPage = () => {
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...submissions];
-
-    // Filtro de status
-    if (statusFilter === 'pending') {
-      filtered = filtered.filter(s => s.status === 'submitted');
-    } else if (statusFilter === 'graded') {
-      filtered = filtered.filter(s => s.status === 'graded');
-    } else if (statusFilter === 'flagged') {
-      filtered = filtered.filter(s => s.status === 'needs_review');
-    }
-
-    // Busca textual
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(s =>
-        s.student?.full_name?.toLowerCase().includes(query) ||
-        s.activity?.title?.toLowerCase().includes(query)
-      );
-    }
-
-    setFilteredSubmissions(filtered);
-  };
+  // Função applyFilters removida - agora usa useMemo para filtrar sem recarregar
 
   const handleOpenCorrection = (submission, index = 0) => {
     setSelectedSubmission(submission);

@@ -16,7 +16,10 @@ import {
   Moon,
   Sun,
   Globe,
-  Clock
+  Clock,
+  Trash2,
+  AlertTriangle,
+  Key
 } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -26,13 +29,19 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { toast } from '@/shared/components/ui/use-toast';
 import teacherService from '@/shared/services/teacherService';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useNavigate } from 'react-router-dom';
+import { AnimatePresence } from 'framer-motion';
 
 const TeacherProfilePage = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   // Função de validação de CPF
   const validateCPF = (cpf) => {
@@ -631,16 +640,209 @@ const TeacherProfilePage = () => {
           {activeTab === 'security' && (
             <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
               <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white">Segurança</h2>
-              <div className="text-center py-12">
-                <Shield className="w-16 h-16 mx-auto mb-4 text-slate-400" />
-                <p className="text-slate-600 dark:text-slate-400">
-                  Funcionalidades de segurança em breve.
+              
+              {/* Alterar Senha */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Key className="w-5 h-5" />
+                  Alterar Senha
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Para alterar sua senha, você receberá um email com instruções.
                 </p>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+                      redirectTo: `${window.location.origin}/reset-password`,
+                    });
+                    if (error) {
+                      toast({
+                        title: 'Erro',
+                        description: 'Não foi possível enviar o email de redefinição.',
+                        variant: 'destructive'
+                      });
+                    } else {
+                      toast({
+                        title: 'Email Enviado',
+                        description: 'Verifique sua caixa de entrada para redefinir sua senha.',
+                      });
+                    }
+                  }}
+                >
+                  Enviar Email de Redefinição
+                </Button>
+              </div>
+
+              {/* Zona de Perigo */}
+              <div className="border-t border-slate-200 dark:border-slate-800 pt-8">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-red-600">
+                  <AlertTriangle className="w-5 h-5" />
+                  Zona de Perigo
+                </h3>
+                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <h4 className="font-semibold text-red-900 dark:text-red-300 mb-2">Deletar Conta</h4>
+                  <p className="text-sm text-red-800 dark:text-red-400 mb-4">
+                    Esta ação é <strong>irreversível</strong>. Todos os seus dados, turmas, atividades e histórico serão permanentemente deletados.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteModal(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Deletar Minha Conta
+                  </Button>
+                </div>
               </div>
             </Card>
           )}
         </div>
       </div>
+
+      {/* Modal de Confirmação de Deletar Conta */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-[100]"
+              onClick={() => !deleting && setShowDeleteModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            >
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl p-6 border border-red-200 dark:border-red-800 w-full max-w-lg">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-red-600">Deletar Conta Permanentemente</h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Esta ação não pode ser desfeita</p>
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-red-900 dark:text-red-300 font-semibold mb-2">
+                    ⚠️ O que será deletado:
+                  </p>
+                  <ul className="text-sm text-red-800 dark:text-red-400 space-y-1 ml-4 list-disc">
+                    <li>Todos os seus dados pessoais</li>
+                    <li>Todas as turmas que você criou</li>
+                    <li>Todas as atividades e submissões</li>
+                    <li>Todo o histórico e relatórios</li>
+                    <li>Acesso permanente à plataforma</li>
+                  </ul>
+                </div>
+
+                <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
+                  Para confirmar, digite <strong className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">CONFIRMAR EXCLUSÃO</strong> abaixo:
+                </p>
+
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Digite: CONFIRMAR EXCLUSÃO"
+                  disabled={deleting}
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg mb-6 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-transparent disabled:opacity-50"
+                />
+                
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      setShowDeleteModal(false);
+                      setDeleteConfirmText('');
+                    }}
+                    disabled={deleting}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={async () => {
+                      if (deleteConfirmText !== 'CONFIRMAR EXCLUSÃO') {
+                        toast({
+                          title: 'Texto Incorreto',
+                          description: 'Por favor, digite exatamente "CONFIRMAR EXCLUSÃO".',
+                          variant: 'destructive'
+                        });
+                        return;
+                      }
+
+                      setDeleting(true);
+                      try {
+                        // 1. Deletar dados do usuário do banco
+                        const { error: profileError } = await supabase
+                          .from('profiles')
+                          .delete()
+                          .eq('id', user.id);
+
+                        if (profileError) throw profileError;
+
+                        // 2. Deletar conta do Auth
+                        const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+                        
+                        // Se não tiver permissão de admin, usar método alternativo
+                        if (authError) {
+                          // Fazer logout e informar que a conta foi desativada
+                          await signOut();
+                          toast({
+                            title: 'Conta Desativada',
+                            description: 'Sua conta foi desativada. Entre em contato com o suporte para conclusão.',
+                          });
+                          navigate('/login');
+                          return;
+                        }
+
+                        // 3. Fazer logout
+                        await signOut();
+                        
+                        toast({
+                          title: 'Conta Deletada',
+                          description: 'Sua conta foi permanentemente deletada.',
+                        });
+                        
+                        navigate('/login');
+                      } catch (error) {
+                        logger.error('Erro ao deletar conta:', error);
+                        toast({
+                          title: 'Erro',
+                          description: 'Não foi possível deletar a conta. Tente novamente.',
+                          variant: 'destructive'
+                        });
+                        setDeleting(false);
+                      }
+                    }}
+                    disabled={deleting || deleteConfirmText !== 'CONFIRMAR EXCLUSÃO'}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold"
+                  >
+                    {deleting ? (
+                      <>
+                        <span className="animate-spin mr-2">⏳</span>
+                        Deletando...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Deletar Permanentemente
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

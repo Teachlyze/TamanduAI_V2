@@ -21,7 +21,7 @@ import {
 import { cn } from '@/shared/utils/cn';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
-import { StudentProfileCard } from '@/shared/components/student/StudentProfileCard';
+// import { StudentProfileCard } from '@/shared/components/student/StudentProfileCard'; // Removido - agora usa página de configurações
 import { storageManager } from '@/shared/services/storageManager';
 import * as Tooltip from '@radix-ui/react-tooltip';
 
@@ -34,7 +34,6 @@ const teacherNavigation = [
   { name: 'Agenda', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Chatbot', href: '/dashboard/chatbot', icon: MessageCircle },
-  { name: 'Perfil', href: '/dashboard/profile', icon: Settings },
 ];
 
 const studentNavigation = [
@@ -44,6 +43,7 @@ const studentNavigation = [
   { name: 'Meu Desempenho', href: '/students/performance', icon: BarChart3 },
   { name: 'Agenda', href: '/students/calendar', icon: Calendar },
   { name: 'Histórico', href: '/students/history', icon: FileText },
+  { name: 'Configurações', href: '/students/profile', icon: Settings },
 ];
 
 const schoolNavigation = [
@@ -61,6 +61,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
   const { user, signOut } = useAuth();
   const [userRole, setUserRole] = useState('teacher'); // Default to teacher
   const [navigation, setNavigation] = useState(teacherNavigation);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   // Estado de collapsed (persistido no localStorage)
   const [collapsed, setCollapsed] = useState(() => {
@@ -68,6 +69,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
   });
 
   const handleSignOut = useCallback(async () => {
+    setShowLogoutModal(false);
     await signOut();
     navigate('/login');
   }, [signOut, navigate]);
@@ -246,12 +248,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
           )}
         </div>
 
-        {/* Student Profile Card - Topo (apenas para estudantes) */}
-        {userRole === 'student' && !collapsed && (
-          <div className="px-2 pt-2">
-            <StudentProfileCard />
-          </div>
-        )}
+        {/* Student Profile Card removido - agora usa página de configurações */}
 
         {/* Navigation */}
         <nav className={cn(
@@ -404,17 +401,17 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
               
               <div className="space-y-2">
                 <Link
-                  to={userRole === 'school' ? '/school/settings' : '/dashboard/settings'}
+                  to={userRole === 'school' ? '/school/settings' : '/dashboard/profile'}
                   onClick={onClose}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
                 >
                   <Settings className="w-4 h-4" />
                   Configurações
                 </Link>
                 
                 <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  onClick={() => setShowLogoutModal(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
                 >
                   <LogOut className="w-4 h-4" />
                   Sair
@@ -427,9 +424,9 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <Link
-                      to={userRole === 'school' ? '/school/settings' : '/dashboard/settings'}
+                      to={userRole === 'school' ? '/school/settings' : '/dashboard/profile'}
                       onClick={onClose}
-                      className="w-full flex items-center justify-center p-2 rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+                      className="w-full flex items-center justify-center p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
                       aria-label="Configurações"
                     >
                       <Settings className="w-5 h-5" />
@@ -452,8 +449,8 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
-                      onClick={handleSignOut}
-                      className="w-full flex items-center justify-center p-2 rounded-lg text-destructive hover:bg-destructive/10 transition-colors"
+                      onClick={() => setShowLogoutModal(true)}
+                      className="w-full flex items-center justify-center p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200"
                       aria-label="Sair"
                     >
                       <LogOut className="w-5 h-5" />
@@ -475,6 +472,56 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
           )
         )}
       </motion.aside>
+
+      {/* Modal de Confirmação de Logout */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 z-[100]"
+              onClick={() => setShowLogoutModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ type: "spring", duration: 0.3 }}
+              className="fixed inset-0 z-[101] flex items-center justify-center p-4"
+            >
+              <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl p-6 border border-border w-full max-w-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <LogOut className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold">Confirmar Saída</h3>
+                </div>
+                
+                <p className="text-sm text-muted-foreground mb-6">
+                  Tem certeza que deseja sair da sua conta? Você precisará fazer login novamente para acessar o sistema.
+                </p>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowLogoutModal(false)}
+                    className="flex-1 px-4 py-2 rounded-lg border border-border hover:bg-muted transition-colors text-sm font-medium"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSignOut}
+                    className="flex-1 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors text-sm font-semibold shadow-sm"
+                  >
+                    Sair da Conta
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 });

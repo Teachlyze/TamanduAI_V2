@@ -82,8 +82,8 @@ export const StudentLayout = React.memo(({ children }) => {
         </main>
       </div>
 
-      {/* Chatbot Widget Global - memoizado por context */}
-      <ChatbotWidget context={chatbotContext} />
+      {/* Chatbot Widget - apenas em páginas de turma */}
+      {chatbotContext.classId && <ChatbotWidget context={chatbotContext} />}
     </div>
   );
 });

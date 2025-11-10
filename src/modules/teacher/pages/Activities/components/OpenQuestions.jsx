@@ -8,7 +8,9 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Badge } from '@/shared/components/ui/badge';
 
-const OpenQuestions = ({ questions, setQuestions, maxScore }) => {
+const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
   const addQuestion = () => {
     setQuestions([
       ...questions,
@@ -76,6 +78,29 @@ const OpenQuestions = ({ questions, setQuestions, maxScore }) => {
     }));
   };
 
+  // Funções de Drag and Drop
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newQuestions = [...questions];
+    const draggedItem = newQuestions[draggedIndex];
+    
+    newQuestions.splice(draggedIndex, 1);
+    newQuestions.splice(index, 0, draggedItem);
+    
+    setQuestions(newQuestions);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
   const totalPoints = questions.reduce((sum, q) => sum + (parseFloat(q.points) || 0), 0);
 
   return (
@@ -93,10 +118,18 @@ const OpenQuestions = ({ questions, setQuestions, maxScore }) => {
               )}
             </div>
           </div>
-          <Button onClick={addQuestion}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Questão
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={addQuestion} className="bg-green-600 hover:bg-green-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Questão Dissertativa
+            </Button>
+            {onAddClosed && (
+              <Button onClick={onAddClosed} variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+                <Plus className="w-4 h-4 mr-2" />
+                Questão Objetiva
+              </Button>
+            )}
+          </div>
         </div>
 
         {questions.length === 0 ? (
@@ -110,10 +143,17 @@ const OpenQuestions = ({ questions, setQuestions, maxScore }) => {
         ) : (
           <div className="space-y-6">
             {questions.map((question, index) => (
-              <Card key={question.id} className="p-6 border-l-4 border-l-green-500">
+              <Card 
+                key={question.id} 
+                className={`p-6 border-l-4 border-l-green-500 transition-opacity ${draggedIndex === index ? 'opacity-50' : 'opacity-100'}`}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+              >
                 <div className="flex items-start gap-4">
                   <div className="flex items-center gap-2">
-                    <GripVertical className="w-5 h-5 text-gray-400 cursor-move" />
+                    <GripVertical className="w-5 h-5 text-gray-400 cursor-move" title="Arraste para reordenar" />
                     <Badge className="bg-green-100 text-green-700">Q{index + 1}</Badge>
                   </div>
 

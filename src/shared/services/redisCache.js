@@ -54,7 +54,6 @@ class RedisCacheService {
         if (response.status === 500) {
           // Desabilita temporariamente para evitar múltiplas requisições falhadas
           this.enabled = false;
-          logger.debug('[Redis] Cache temporariamente desabilitado (Edge Function não disponível)');
         }
         return null;
       }
@@ -64,7 +63,6 @@ class RedisCacheService {
     } catch (error) {
       // Erro de rede ou timeout - desabilita cache
       this.enabled = false;
-      logger.debug('[Redis] Cache desabilitado devido a erro de conexão')
       return null;
     }
   }
@@ -139,11 +137,8 @@ class RedisCacheService {
     const cached = await this.get(cacheKey);
     
     if (cached !== null) {
-      logger.debug(`[Cache HIT] ${cacheKey}`)
       return cached;
     }
-
-    logger.debug(`[Cache MISS] ${cacheKey}`)
     
     // Executar query
     const result = await queryFn();
@@ -169,7 +164,6 @@ class RedisCacheService {
   async invalidateClass(classId) {
     await this.deletePattern(`class:${classId}:*`);
     await this.deletePattern(`stats:${classId}:*`);
-    logger.debug(`[Cache] Invalidated class ${classId}`)
   }
 
   /**
@@ -177,7 +171,6 @@ class RedisCacheService {
    */
   async invalidateUser(userId) {
     await this.deletePattern(`user:${userId}:*`);
-    logger.debug(`[Cache] Invalidated user ${userId}`)
   }
 
   /**
@@ -245,7 +238,6 @@ class RedisCacheService {
    */
   enable() {
     this.enabled = true;
-    logger.debug('[Cache] Enabled')
   }
 }
 

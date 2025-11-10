@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useEffect, useRef, useState } from 'react';
-import { Bot, Send, X, Minimize2, Maximize2 } from 'lucide-react';
+import { Bot, Send, X, Minimize2, Maximize2, BookOpen } from 'lucide-react';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 
@@ -11,6 +11,8 @@ const ChatbotWidget = ({ context = {} }) => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activities, setActivities] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState(context.activityId || '');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -19,16 +21,53 @@ const ChatbotWidget = ({ context = {} }) => {
     }
   }, [messages]);
 
+  // Carregar atividades da turma
+  useEffect(() => {
+    if (context.classId && isOpen) {
+      loadActivities();
+    }
+  }, [context.classId, isOpen]);
+
+  const loadActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('activity_class_assignments')
+        .select(`
+          activity_id,
+          activities:activity_id (
+            id,
+            title,
+            status
+          )
+        `)
+        .eq('class_id', context.classId);
+      
+      if (error) {
+        logger.error('Erro ao carregar atividades:', error);
+        return;
+      }
+      
+      // Filtrar apenas atividades ativas e remover null/undefined
+      const activeActivities = (data || [])
+        .filter(item => item.activities && item.activities.status === 'active')
+        .map(item => item.activities);
+      
+      setActivities(activeActivities);
+    } catch (error) {
+      logger.error('Erro ao carregar atividades:', error);
+    }
+  };
+
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const greeting = context.classId
-        ? 'Olá! Estou aqui para ajudar com suas dúvidas sobre esta turma. Como posso ajudar?'
-        : context.activityId
+      const greeting = selectedActivity
         ? 'Olá! Estou aqui para ajudar com esta atividade. Qual sua dúvida?'
+        : context.classId
+        ? 'Olá! Estou aqui para ajudar com suas dúvidas sobre esta turma. Selecione uma atividade para contexto mais específico!'
         : 'Olá! Como posso ajudar você hoje?';
       setMessages([{ role: 'assistant', content: greeting, timestamp: new Date() }]);
     }
-  }, [isOpen, context]);
+  }, [isOpen, context, selectedActivity]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
@@ -38,7 +77,6 @@ const ChatbotWidget = ({ context = {} }) => {
     setLoading(true);
 
     try {
-      // Get user session for auth
       const { data: { session } } = await supabase.auth.getSession();
       
       // Call OpenAI via edge function
@@ -51,6 +89,7 @@ const ChatbotWidget = ({ context = {} }) => {
         body: JSON.stringify({
           message: userMessage,
           class_id: context.classId,
+          activity_id: selectedActivity || context.activityId,
           user_id: user?.id,
           conversation_history: messages.filter(m => m.role !== 'assistant' || m.content !== messages[0]?.content).slice(-6).map(m => ({
             role: m.role,
@@ -164,6 +203,40 @@ const ChatbotWidget = ({ context = {} }) => {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Seletor de Atividade */}
+          {activities.length > 0 && (
+            <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+              <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mb-1">
+                <BookOpen className="w-3 h-3" />
+                Contexto da Atividade:
+              </label>
+              <select
+                value={selectedActivity}
+                onChange={(e) => {
+                  const newActivityId = e.target.value;
+                  setSelectedActivity(newActivityId);
+                  setMessages([
+                    { 
+                      role: 'assistant', 
+                      content: newActivityId 
+                        ? `Contexto atualizado! Agora vou focar na atividade "${activities.find(a => a.id === newActivityId)?.title}". Como posso ajudar?`
+                        : 'Contexto geral da turma. Selecione uma atividade para ajuda mais específica!',
+                      timestamp: new Date() 
+                    }
+                  ]);
+                }}
+                className="w-full px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer"
+              >
+                <option value="">Geral da Turma</option>
+                {activities.map(activity => (
+                  <option key={activity.id} value={activity.id}>
+                    {activity.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Input */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">

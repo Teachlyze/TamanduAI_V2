@@ -20,7 +20,6 @@ export const AuthProvider = ({ children }) => {
     let timeoutId = null;
     
     const bootstrap = async () => {
-      logger.debug('[AuthContext] Starting bootstrap...')
       const startTime = performance.now();
 
       // Safety timeout - force loading to false after 15 seconds
@@ -33,8 +32,6 @@ export const AuthProvider = ({ children }) => {
       }, 15000);
 
       try {
-        logger.debug('[AuthContext] Calling supabase.auth.getSession()...');
-        
         // Add timeout to getSession call
         const sessionPromise = supabase.auth.getSession();
         const timeoutPromise = new Promise((_, reject) => 
@@ -63,14 +60,12 @@ export const AuthProvider = ({ children }) => {
         }
 
         if (!session) {
-          logger.debug('[AuthContext] No session found')
           setUser(null);
           setLoading(false);
           return;
         }
 
         // Get user from session instead of making another API call
-        logger.debug('[AuthContext] User from session:', session.user?.email)
         setUser(session.user ?? null);
       } catch (err) {
         logger.error('[AuthContext] Bootstrap auth error:', err)
@@ -81,8 +76,6 @@ export const AuthProvider = ({ children }) => {
       } finally {
         if (timeoutId) clearTimeout(timeoutId);
         if (mounted) {
-          const totalTime = performance.now() - startTime;
-          logger.debug('[AuthContext] Bootstrap complete, setting loading to false (total time:', totalTime.toFixed(2), 'ms)');
           setLoading(false);
         }
       }

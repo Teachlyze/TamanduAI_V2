@@ -561,6 +561,40 @@ const TeacherActivityCreatePage = () => {
     );
   }
 
+  // Função para adicionar questão objetiva (fechada) a partir de OpenQuestions
+  const addClosedQuestion = () => {
+    const newQuestion = {
+      id: Date.now(),
+      type: 'closed',
+      text: '',
+      points: 1,
+      alternatives: [
+        { id: Date.now() + 1, letter: 'A', text: '', isCorrect: false },
+        { id: Date.now() + 2, letter: 'B', text: '', isCorrect: false },
+        { id: Date.now() + 3, letter: 'C', text: '', isCorrect: false },
+        { id: Date.now() + 4, letter: 'D', text: '', isCorrect: false },
+        { id: Date.now() + 5, letter: 'E', text: '', isCorrect: false }
+      ],
+      explanation: ''
+    };
+    setQuestions([...questions, newQuestion]);
+  };
+
+  // Função para adicionar questão dissertativa (aberta) a partir de ClosedQuestions
+  const addOpenQuestion = () => {
+    const newQuestion = {
+      id: Date.now(),
+      type: 'open',
+      text: '',
+      points: 1,
+      maxLines: null,
+      maxCharacters: null,
+      rubric: [],
+      expectedAnswer: ''
+    };
+    setQuestions([...questions, newQuestion]);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       {/* Header */}
@@ -859,6 +893,8 @@ const TeacherActivityCreatePage = () => {
                     questions={questions}
                     setQuestions={setQuestions}
                     maxScore={maxScore}
+                    // Só permite adicionar questão objetiva em atividades mistas
+                    onAddClosed={undefined}
                   />
                 )}
                 {(activityType === 'closed' || activityType === 'quiz') && (
@@ -866,6 +902,8 @@ const TeacherActivityCreatePage = () => {
                     questions={questions}
                     setQuestions={setQuestions}
                     maxScore={maxScore}
+                    // Só permite adicionar questão dissertativa em atividades mistas
+                    onAddOpen={undefined}
                   />
                 )}
                 {(activityType === 'mixed' || activityType === 'project') && (

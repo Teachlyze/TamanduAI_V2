@@ -48,34 +48,21 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
   return (
     <div className="space-y-6">
       <Card className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold">Questões Mistas</h2>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-              <span>{questions.length} questão(ões) total</span>
-              <span>•</span>
-              <span>{openQuestions.length} Abertas ({openPercentage}%)</span>
-              <span>•</span>
-              <span>{closedQuestions.length} Fechadas ({closedPercentage}%)</span>
-              <span>•</span>
-              <span>Total: {totalPoints.toFixed(1)} pontos</span>
-              {maxScore && Math.abs(totalPoints - maxScore) > 0.1 && (
-                <Badge variant="destructive" className="ml-2">
-                  Meta: {maxScore} pontos
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <Button onClick={() => addQuestion('open')} variant="outline" className="bg-green-50">
-              <Plus className="w-4 h-4 mr-2" />
-              Questão Aberta
-            </Button>
-            <Button onClick={() => addQuestion('closed')} variant="outline" className="bg-blue-50">
-              <Plus className="w-4 h-4 mr-2" />
-              Questão Fechada
-            </Button>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold">Questões Mistas</h2>
+          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <span>{questions.length} questão(ões) total</span>
+            <span>•</span>
+            <span>{openQuestions.length} Abertas - Dissertativas ({openPercentage}%)</span>
+            <span>•</span>
+            <span>{closedQuestions.length} Fechadas - Objetivas ({closedPercentage}%)</span>
+            <span>•</span>
+            <span>Total: {totalPoints.toFixed(1)} pontos</span>
+            {maxScore && Math.abs(totalPoints - maxScore) > 0.1 && (
+              <Badge variant="destructive" className="ml-2">
+                Meta: {maxScore} pontos
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -98,8 +85,8 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="all">Todas ({questions.length})</TabsTrigger>
-              <TabsTrigger value="open">Abertas ({openQuestions.length})</TabsTrigger>
-              <TabsTrigger value="closed">Fechadas ({closedQuestions.length})</TabsTrigger>
+              <TabsTrigger value="open">Abertas - Dissertativas ({openQuestions.length})</TabsTrigger>
+              <TabsTrigger value="closed">Fechadas - Objetivas ({closedQuestions.length})</TabsTrigger>
             </TabsList>
 
             <div className="mt-6">
@@ -133,6 +120,7 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
             ]);
           }}
           maxScore={maxScore * (openPercentage / 100)}
+          onAddClosed={() => addQuestion('closed')}
         />
       )}
 
@@ -146,6 +134,7 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
             ]);
           }}
           maxScore={maxScore * (closedPercentage / 100)}
+          onAddOpen={() => addQuestion('open')}
         />
       )}
     </div>

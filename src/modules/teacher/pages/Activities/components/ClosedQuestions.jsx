@@ -1,5 +1,5 @@
 import { logger } from '@/shared/utils/logger';
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
@@ -9,7 +9,9 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
 import { Badge } from '@/shared/components/ui/badge';
 
-const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
+const ClosedQuestions = ({ questions, setQuestions, maxScore, onAddOpen }) => {
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
   const addQuestion = () => {
     setQuestions([
       ...questions,
@@ -115,6 +117,29 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
     }));
   };
 
+  // Funções de Drag and Drop
+  const handleDragStart = (index) => {
+    setDraggedIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newQuestions = [...questions];
+    const draggedItem = newQuestions[draggedIndex];
+    
+    newQuestions.splice(draggedIndex, 1);
+    newQuestions.splice(index, 0, draggedItem);
+    
+    setQuestions(newQuestions);
+    setDraggedIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
   const totalPoints = questions.reduce((sum, q) => sum + (parseFloat(q.points) || 0), 0);
 
   return (
@@ -132,10 +157,18 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
               )}
             </div>
           </div>
-          <Button onClick={addQuestion}>
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Questão
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={addQuestion} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 mr-2" />
+              Questão Objetiva
+            </Button>
+            {onAddOpen && (
+              <Button onClick={onAddOpen} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+                <Plus className="w-4 h-4 mr-2" />
+                Questão Dissertativa
+              </Button>
+            )}
+          </div>
         </div>
 
         {questions.length === 0 ? (
@@ -152,10 +185,17 @@ const ClosedQuestions = ({ questions, setQuestions, maxScore }) => {
               const hasCorrectAnswer = question.alternatives?.some(alt => alt.isCorrect);
               
               return (
-                <Card key={question.id} className="p-6 border-l-4 border-l-blue-500">
+                <Card 
+                  key={question.id} 
+                  className={`p-6 border-l-4 border-l-blue-500 transition-opacity ${draggedIndex === index ? 'opacity-50' : 'opacity-100'}`}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragEnd={handleDragEnd}
+                >
                   <div className="flex items-start gap-4">
                     <div className="flex items-center gap-2">
-                      <GripVertical className="w-5 h-5 text-gray-400 cursor-move" />
+                      <GripVertical className="w-5 h-5 text-gray-400 cursor-move" title="Arraste para reordenar" />
                       <Badge className="bg-blue-100 text-blue-700">Q{index + 1}</Badge>
                     </div>
 
