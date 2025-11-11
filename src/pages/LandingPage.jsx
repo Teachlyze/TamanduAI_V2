@@ -213,9 +213,6 @@ export default function LandingPage() {
                   <div className="inline-flex items-center text-xs font-bold px-3 py-1.5 rounded-full bg-blue-600 text-white shadow-md">
                     BETA
                   </div>
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    Desenvolvido desde 2024
-                  </span>
                 </motion.div>
                 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
@@ -694,11 +691,11 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} transition={{ duration: 0.8 }} className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 backdrop-blur-sm mb-6 shadow-lg">
-                <Sparkles className="w-4 h-4 text-blue-500" />
-                <span className="text-sm font-bold text-blue-700">Lançamento 11/11/2025 • Roadmap 2026</span>
+                <Sparkles className="w-4 h-4 text-blue-300" />
+                <span className="text-sm font-bold text-blue-300">Lançamento 11/11/2025 • Roadmap 2026</span>
               </div>
-              <h2 className="text-4xl lg:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600">Roadmap de Desenvolvimento 2026</h2>
-              <p className="text-xl text-slate-700 max-w-3xl mx-auto">Do lançamento MVP até o ecossistema completo - escola, gamificação, pais e muito mais</p>
+              <h2 className="text-4xl lg:text-5xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-purple-400">Roadmap de Desenvolvimento 2026</h2>
+              <p className="text-xl text-slate-200 max-w-3xl mx-auto">Do lançamento MVP até o ecossistema completo - escola, gamificação, pais e muito mais</p>
             </motion.div>
 
             <div className="grid md:grid-cols-3 gap-6 mb-12">

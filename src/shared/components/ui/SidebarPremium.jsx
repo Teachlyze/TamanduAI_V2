@@ -349,7 +349,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
-                      onClick={handleSignOut}
+                      onClick={() => setShowLogoutModal(true)}
                       className="w-full flex items-center justify-center p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
                       aria-label="Sair da conta"
                     >
@@ -370,7 +370,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
               </Tooltip.Provider>
             ) : (
               <button
-                onClick={handleSignOut}
+                onClick={() => setShowLogoutModal(true)}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-all duration-200 border border-red-200 dark:border-red-800 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2"
                 aria-label="Sair da conta"
               >
