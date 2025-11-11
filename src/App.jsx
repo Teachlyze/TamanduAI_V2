@@ -1,6 +1,8 @@
 import React, { useEffect, Suspense } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useLocation } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 
 // Diagnóstico desabilitado para deploy
@@ -32,6 +34,10 @@ const AppContent = ({ children }) => {
       >
         {children}
       </Suspense>
+      
+      {/* Vercel Analytics & Speed Insights */}
+      <Analytics />
+      <SpeedInsights />
     </div>
   );
 };
