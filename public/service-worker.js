@@ -3,13 +3,15 @@
  * Cache-First Strategy para assets estáticos
  * Network-First para dados dinâmicos
  * 
- * VERSÃO 2.0 - Corrigido problema de chunks incompatíveis
+ * VERSÃO 2.0.1 - Correções
+ * - ✅ Fixed: Cache API só aceita GET (não POST/PUT/DELETE)
+ * - ✅ Adicionada verificação request.method !== 'GET'
  * - NÃO cacheia chunks JS (evita conflito de versões)
  * - Cacheia apenas HTML, CSS, imagens, fontes
  * - Invalida caches antigos automaticamente
  */
 
-const CACHE_VERSION = 'v2.0.0'; // INCREMENTAR EM CADA DEPLOY
+const CACHE_VERSION = 'v2.0.1'; // INCREMENTAR EM CADA DEPLOY - Fixed POST cache error
 const STATIC_CACHE = `tamanduai-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `tamanduai-dynamic-${CACHE_VERSION}`;
 
@@ -24,16 +26,12 @@ const urlsToCache = [
 
 // Install - Cachear assets essenciais
 self.addEventListener('install', (event) => {
-  console.log('[ServiceWorker] Installing...');
-  
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        console.log('[ServiceWorker] Caching static assets');
         return cache.addAll(urlsToCache);
       })
       .then(() => {
-        console.log('[ServiceWorker] Skip waiting');
         return self.skipWaiting();
       })
   );
@@ -41,20 +39,16 @@ self.addEventListener('install', (event) => {
 
 // Activate - Limpar caches antigos
 self.addEventListener('activate', (event) => {
-  console.log('[ServiceWorker] Activating...');
-  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== STATIC_CACHE && cacheName !== DYNAMIC_CACHE) {
-            console.log('[ServiceWorker] Removing old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     }).then(() => {
-      console.log('[ServiceWorker] Claiming clients');
       return self.clients.claim();
     })
   );
@@ -94,7 +88,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname.match(/assets\/.*-[a-f0-9]{8}\.js/) || // assets com hash
     url.pathname.endsWith('.js?v=') // JS com query param de versão
   ) {
-    console.log('[ServiceWorker] Skipping cache for JS chunk:', request.url);
     event.respondWith(fetch(request));
     return;
   }
@@ -104,7 +97,6 @@ self.addEventListener('fetch', (event) => {
     caches.match(request)
       .then((cachedResponse) => {
         if (cachedResponse) {
-          console.log('[ServiceWorker] Serving from cache:', request.url);
           return cachedResponse;
         }
         
@@ -116,10 +108,16 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
             
+            // ⚠️ IMPORTANTE: Cache API só suporta GET (não POST, PUT, DELETE)
+            // Só cachear requisições GET
+            if (request.method !== 'GET') {
+              return response;
+            }
+            
             // Clonar resposta (pode ser lida apenas uma vez)
             const responseToCache = response.clone();
             
-            // Cachear para uso futuro
+            // Cachear para uso futuro (somente GET)
             caches.open(DYNAMIC_CACHE)
               .then((cache) => {
                 cache.put(request, responseToCache);
@@ -128,7 +126,6 @@ self.addEventListener('fetch', (event) => {
             return response;
           })
           .catch((error) => {
-            console.error('[ServiceWorker] Fetch failed:', error);
             
             // Retornar página offline se disponível
             return caches.match('/offline.html');
@@ -140,14 +137,12 @@ self.addEventListener('fetch', (event) => {
 // Background Sync (opcional - para quando voltar online)
 self.addEventListener('sync', (event) => {
   if (event.tag === 'sync-data') {
-    console.log('[ServiceWorker] Background sync triggered');
     event.waitUntil(syncData());
   }
 });
 
 async function syncData() {
   // Implementar sincronização de dados offline
-  console.log('[ServiceWorker] Syncing data...');
 }
 
 // Push Notifications (opcional)
@@ -205,5 +200,3 @@ self.addEventListener('message', (event) => {
     );
   }
 });
-
-console.log('[ServiceWorker] Loaded');
