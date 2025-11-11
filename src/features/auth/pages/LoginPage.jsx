@@ -256,6 +256,18 @@ const LoginPage = () => {
             >
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
+            
+            {/* Terms Notice */}
+            <p className="text-xs text-center text-slate-500 dark:text-slate-400 mt-3">
+              Ao fazer login, você concorda com nossos{' '}
+              <Link to="/terms" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">
+                Termos de Uso
+              </Link>
+              {' '}e{' '}
+              <Link to="/privacy" target="_blank" className="text-blue-600 dark:text-blue-400 hover:underline">
+                Política de Privacidade
+              </Link>
+            </p>
           </motion.form>
 
           {/* Divider */}

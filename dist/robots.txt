@@ -1,0 +1,110 @@
+# TamanduAI - Robots.txt
+# Última atualização: 10 de Novembro de 2025
+# Otimizado para SEO e GEO (Generative Engine Optimization)
+
+# Permite todos os crawlers (Google, Bing, ChatGPT, etc)
+User-agent: *
+Allow: /
+Allow: /pricing
+Allow: /roadmap
+Allow: /documentation
+Allow: /docs
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /cookie-policy
+Allow: /faq
+
+# Crawlers de IA específicos (para GEO)
+User-agent: ChatGPT-User
+Allow: /
+Allow: /faq
+Allow: /documentation
+Allow: /pricing
+
+User-agent: GPTBot
+Allow: /
+Allow: /faq
+Allow: /documentation
+Allow: /pricing
+
+User-agent: Google-Extended
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+User-agent: Perplexity
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+User-agent: Claude-Web
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+User-agent: anthropic-ai
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+User-agent: CCBot
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+User-agent: cohere-ai
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+User-agent: Applebot-Extended
+Allow: /
+Allow: /faq
+Allow: /documentation
+
+# Search Engines Tradicionais Otimizados
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Slurp
+Allow: /
+Crawl-delay: 1
+
+User-agent: DuckDuckBot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Baiduspider
+Allow: /
+Crawl-delay: 1
+
+User-agent: YandexBot
+Allow: /
+Crawl-delay: 1
+
+# Bloquear páginas de autenticação
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /verify-email
+
+# Bloquear áreas protegidas
+Disallow: /dashboard/
+Disallow: /students/
+Disallow: /school/
+
+# Bloquear APIs e rotas internas
+Disallow: /api/
+Disallow: /_vercel/
+
+# Sitemap
+Sitemap: https://tamanduai.com/sitemap.xml
+
+# Crawl-delay (opcional, ajuda a não sobrecarregar o servidor)
+Crawl-delay: 1

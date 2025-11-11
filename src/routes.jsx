@@ -14,6 +14,10 @@ const ForgotPasswordPage = React.lazy(() => import('./features/auth/pages/Forgot
 const VerifyEmailPage = React.lazy(() => import('./features/auth/pages/VerifyEmailPage'));
 const NotFoundPage = React.lazy(() => import('./pages/NotFoundPage'));
 const ContactPage = React.lazy(() => import('./pages/ContactPage'));
+const PrivacyPolicyPage = React.lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsOfServicePage = React.lazy(() => import('./pages/TermsOfServicePage'));
+const CookiePolicyPage = React.lazy(() => import('./pages/CookiePolicyPage'));
+const FAQPage = React.lazy(() => import('./pages/FAQPage'));
 
 // Module Routes
 const TeacherRoutes = React.lazy(() => import('./modules/teacher/routes'));
@@ -170,6 +174,42 @@ const AppRoutes = () => {
           element={
             <OpenRoute>
               <ContactPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/privacy"
+          element={
+            <OpenRoute>
+              <PrivacyPolicyPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/terms"
+          element={
+            <OpenRoute>
+              <TermsOfServicePage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/cookie-policy"
+          element={
+            <OpenRoute>
+              <CookiePolicyPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/faq"
+          element={
+            <OpenRoute>
+              <FAQPage />
             </OpenRoute>
           }
         />

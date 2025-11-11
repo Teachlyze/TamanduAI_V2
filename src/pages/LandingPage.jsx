@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import Seo from '@/shared/components/Seo';
+import { SEO, StructuredData } from '@/shared/components/seo/StructuredData';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import SkipLinks from '@/shared/components/SkipLinks';
@@ -106,6 +107,35 @@ export default function LandingPage() {
         description="Plataforma educacional completa com IA: chatbot RAG, correção automática, antiplágio e analytics em tempo real. Solução moderna para professores, alunos e escolas."
         path="/"
       />
+      
+      {/* SEO Otimizado para GEO (Generative Engine Optimization) */}
+      <SEO
+        title="TamanduAI - Plataforma Educacional com IA para Professores e Alunos"
+        description="Automatize correções com IA, detecte plágio com Winston AI, use chatbot educacional com RAG, analytics em tempo real. Plataforma brasileira LGPD compliant. Plano gratuito disponível."
+        keywords="plataforma educacional IA, correção automática inteligência artificial, detecção plágio Winston AI, chatbot educacional RAG, analytics educacional, gestão turmas, professores, alunos, Brasil, LGPD"
+        url="https://tamanduai.com"
+        image="https://tamanduai.com/og-image.png"
+      />
+      
+      {/* Dados Estruturados para IAs (ChatGPT, Perplexity, Google AI) */}
+      <StructuredData type="organization" />
+      <StructuredData type="software" />
+      
+      <StructuredData 
+        type="howto" 
+        data={{
+          name: "Como usar TamanduAI - Guia para professores",
+          description: "Passo a passo completo para começar a usar TamanduAI",
+          steps: [
+            { name: "Criar conta gratuita", text: "Cadastre-se em tamanduai.com/register como Professor" },
+            { name: "Criar primeira turma", text: "No dashboard, clique em Nova Turma e defina nome e disciplina" },
+            { name: "Treinar chatbot", text: "Faça upload de PDFs, slides e materiais para treinar o chatbot com RAG" },
+            { name: "Criar atividades", text: "Crie atividades com correção automática e detecção de plágio" },
+            { name: "Acompanhar analytics", text: "Visualize dashboards e exporte relatórios em CSV" }
+          ]
+        }} 
+      />
+      
       {/* Header */}
       <motion.header 
         initial={{ y: -100 }}

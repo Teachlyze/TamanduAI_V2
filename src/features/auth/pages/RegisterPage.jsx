@@ -40,6 +40,7 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const roles = [
     {
@@ -689,17 +690,35 @@ const RegisterPage = () => {
                     </div>
                   </div>
 
-                  {/* Terms */}
-                  <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-                    Ao criar uma conta, você concorda com nossos{' '}
-                    <a href="#" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Termos de Uso
-                    </a>{' '}
-                    e{' '}
-                    <a href="#" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300">
-                      Política de Privacidade
-                    </a>
-                  </p>
+                  {/* Terms Checkbox */}
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                      <input
+                        type="checkbox"
+                        id="terms"
+                        checked={acceptedTerms}
+                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 dark:bg-slate-700 dark:border-slate-600"
+                      />
+                      <label htmlFor="terms" className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+                        Li e concordo com os{' '}
+                        <Link to="/terms" target="_blank" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold underline">
+                          Termos de Uso
+                        </Link>
+                        {' '}e a{' '}
+                        <Link to="/privacy" target="_blank" className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold underline">
+                          Política de Privacidade
+                        </Link>
+                        {' '}da TamanduAI *
+                      </label>
+                    </div>
+                    {!acceptedTerms && error && (
+                      <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Você precisa aceitar os termos para criar uma conta
+                      </p>
+                    )}
+                  </div>
 
                   {/* Submit Buttons */}
                   <div className="flex gap-4">
@@ -715,7 +734,7 @@ const RegisterPage = () => {
                     <Button
                       type="submit"
                       variant="gradient"
-                      disabled={loading}
+                      disabled={loading || !acceptedTerms}
                       className="flex-1 h-12 text-base whitespace-nowrap"
                     >
                       {loading ? (

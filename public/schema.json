@@ -1,0 +1,242 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "EducationalOrganization",
+      "@id": "https://tamanduai.com/#organization",
+      "name": "TamanduAI",
+      "url": "https://tamanduai.com",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://tamanduai.com/logo.png"
+      },
+      "description": "Plataforma educacional com inteligência artificial que automatiza correções, detecta plágio, oferece chatbot educacional e analytics para professores e alunos no Brasil",
+      "foundingDate": "2025",
+      "areaServed": {
+        "@type": "Country",
+        "name": "Brasil"
+      },
+      "knowsAbout": [
+        "Educação",
+        "Inteligência Artificial",
+        "Correção Automática",
+        "Detecção de Plágio",
+        "Chatbot Educacional",
+        "Analytics Educacional",
+        "Gestão de Turmas"
+      ],
+      "sameAs": [
+        "https://github.com/Teachlyze/TamanduAI_V2"
+      ]
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://tamanduai.com/#software",
+      "name": "TamanduAI - Plataforma Educacional",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web, Windows, macOS, Linux, iOS, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BRL",
+        "availability": "https://schema.org/InStock"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "127",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
+      "featureList": [
+        "Correção automática de atividades com IA",
+        "Detecção de plágio com Winston AI (100 verificações/hora)",
+        "Chatbot educacional com RAG v2.0 (200 mensagens/dia)",
+        "Analytics em tempo real com exportação CSV",
+        "Gestão completa de turmas e alunos",
+        "Calendário de eventos e aulas recorrentes",
+        "Sistema de submissões e notas",
+        "Importação de atividades (TXT, PDF, DOCX, ODT)",
+        "Conformidade LGPD e GDPR"
+      ],
+      "screenshot": "https://tamanduai.com/screenshot-dashboard.png",
+      "author": {
+        "@id": "https://tamanduai.com/#organization"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://tamanduai.com/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "O que é TamanduAI?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TamanduAI é uma plataforma educacional brasileira que utiliza inteligência artificial para automatizar tarefas administrativas de professores. Oferece correção automática de atividades, detecção de plágio com Winston AI, chatbot educacional com RAG v2.0, analytics em tempo real e gestão completa de turmas e alunos. A plataforma é 100% conforme com LGPD e GDPR."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como funciona a correção automática?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A correção automática utiliza modelos de IA treinados para avaliar respostas dissertativas, questões objetivas e trabalhos. O sistema analisa o conteúdo, compara com o gabarito, identifica conceitos-chave e atribui notas automaticamente. Professores podem revisar e ajustar as correções conforme necessário. Isso economiza até 70% do tempo em correções."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como funciona a detecção de plágio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A detecção de plágio é feita através da integração com Winston AI, que compara os textos enviados com bilhões de documentos online e detecta conteúdo gerado por IA. O sistema gera um relatório com percentual de similaridade, trechos copiados e fontes identificadas. Professores recebem 100 verificações por hora no plano gratuito."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "O chatbot educacional pode substituir professores?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Não. O chatbot educacional é uma ferramenta de apoio que responde dúvidas dos alunos 24/7 baseando-se nos materiais fornecidos pelo professor (RAG v2.0). Ele complementa o ensino, mas não substitui a figura do professor. O chatbot é treinado com os materiais específicos de cada turma e oferece até 200 mensagens por dia no plano gratuito."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quanto custa para usar TamanduAI?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "TamanduAI oferece um plano gratuito completo para professores e alunos com 200 mensagens de chatbot/dia, 100 verificações de plágio/hora, correção automática ilimitada e analytics básico. Também há planos Pro (R$ 29/mês) e Enterprise (sob consulta) com recursos avançados, suporte prioritário e integrações personalizadas."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "TamanduAI está em conformidade com LGPD?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. TamanduAI está 100% em conformidade com LGPD (Lei Geral de Proteção de Dados) e GDPR. Todos os dados são criptografados com SSL/TLS, senhas protegidas com bcrypt, autenticação de dois fatores disponível, e os usuários têm direito a acesso, correção, exclusão e portabilidade de dados. Temos DPO (Data Protection Officer) disponível em dpo@tamanduai.com."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Como professores criam turmas?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Professores criam turmas em poucos cliques através do dashboard. Cada turma recebe um código de convite único de 8 caracteres que pode ser compartilhado com alunos. Professores podem gerenciar múltiplas turmas, criar atividades, agendar aulas recorrentes, compartilhar materiais e acompanhar o desempenho de cada aluno através de analytics detalhados."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Alunos podem usar TamanduAI?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. Alunos se cadastram gratuitamente e entram em turmas usando código de convite do professor. Podem acessar atividades, submeter trabalhos, conversar com chatbot 24/7, acompanhar notas, visualizar calendário de eventos e acessar materiais didáticos. O sistema também oferece gráficos de desempenho para os alunos acompanharem sua evolução."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Quais tipos de atividades posso criar?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Professores podem criar diversos tipos de atividades: questões dissertativas, múltipla escolha, verdadeiro/falso, trabalhos em grupo, projetos e quizzes. É possível importar atividades de arquivos TXT, PDF, DOCX e ODT. Cada atividade pode ter prazo de entrega, nota máxima, peso, instruções detalhadas e verificação automática de plágio ativada."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "TamanduAI funciona em dispositivos móveis?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sim. TamanduAI é uma plataforma web responsiva que funciona perfeitamente em smartphones, tablets e computadores. Não é necessário instalar aplicativo - basta acessar pelo navegador. A interface se adapta automaticamente ao tamanho da tela, oferecendo experiência otimizada em todos os dispositivos."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "HowTo",
+      "@id": "https://tamanduai.com/#howto",
+      "name": "Como usar TamanduAI - Guia completo para professores",
+      "description": "Passo a passo completo para professores começarem a usar a plataforma TamanduAI",
+      "step": [
+        {
+          "@type": "HowToStep",
+          "position": 1,
+          "name": "Criar conta gratuita",
+          "text": "Acesse tamanduai.com/register, escolha perfil de Professor, preencha nome, email e senha. Aceite os termos de uso e clique em Criar Conta. Você receberá email de confirmação."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 2,
+          "name": "Criar primeira turma",
+          "text": "No dashboard, clique em Nova Turma. Preencha nome da turma, disciplina, descrição e escolha cor. A plataforma gera automaticamente um código de convite de 8 caracteres para compartilhar com alunos."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 3,
+          "name": "Treinar chatbot com materiais",
+          "text": "Acesse aba Chatbot da turma. Faça upload de PDFs, slides, apostilas e materiais didáticos. O sistema processa os documentos com RAG v2.0 e treina o chatbot para responder dúvidas baseado no seu conteúdo."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 4,
+          "name": "Criar atividades",
+          "text": "Clique em Nova Atividade. Escolha tipo (dissertativa, múltipla escolha, etc), defina título, instruções, prazo de entrega e nota máxima. Ative detecção de plágio se desejar. Publique para a turma."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 5,
+          "name": "Compartilhar materiais",
+          "text": "Na aba Materiais, faça upload de arquivos (PDF, PPT, DOCX, etc) que deseja compartilhar. Organize por categorias, adicione tags e defina se são públicos ou privados."
+        },
+        {
+          "@type": "HowToStep",
+          "position": 6,
+          "name": "Acompanhar desempenho",
+          "text": "Acesse Analytics para ver KPIs da turma: taxa de entrega, notas médias, alunos com dificuldade, evolução temporal. Exporte relatórios em CSV. Receba alertas automáticos sobre alunos que precisam atenção."
+        }
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://tamanduai.com/#website",
+      "url": "https://tamanduai.com",
+      "name": "TamanduAI",
+      "publisher": {
+        "@id": "https://tamanduai.com/#organization"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://tamanduai.com/search?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://tamanduai.com/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "item": {
+            "@id": "https://tamanduai.com",
+            "name": "Home"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "item": {
+            "@id": "https://tamanduai.com/pricing",
+            "name": "Preços"
+          }
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "item": {
+            "@id": "https://tamanduai.com/documentation",
+            "name": "Documentação"
+          }
+        }
+      ]
+    }
+  ]
+}
