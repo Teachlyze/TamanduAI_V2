@@ -861,17 +861,57 @@ const StudentActivityDetailsPage = () => {
   const renderFeedback = () => {
     // Verifica se tem nota OU feedback (texto direto do campo feedback)
     const hasFeedback = submission?.grade !== null || submission?.feedback;
+    const hasGrade = submission?.grade !== null;
+    const gradePercentage = hasGrade ? (submission.grade / (activity?.max_score || 100)) * 100 : 0;
+    
+    // Determinar estilo baseado na nota
+    const getGradeStyle = () => {
+      if (gradePercentage >= 90) return {
+        gradient: 'from-emerald-500 via-green-500 to-teal-500',
+        bg: 'from-emerald-50 via-green-50 to-teal-50 dark:from-emerald-950/30 dark:via-green-950/30 dark:to-teal-950/30',
+        border: 'border-emerald-300 dark:border-emerald-700',
+        text: 'text-emerald-700 dark:text-emerald-400',
+        icon: '🏆'
+      };
+      if (gradePercentage >= 70) return {
+        gradient: 'from-blue-500 via-cyan-500 to-sky-500',
+        bg: 'from-blue-50 via-cyan-50 to-sky-50 dark:from-blue-950/30 dark:via-cyan-950/30 dark:to-sky-950/30',
+        border: 'border-blue-300 dark:border-blue-700',
+        text: 'text-blue-700 dark:text-blue-400',
+        icon: '🎯'
+      };
+      if (gradePercentage >= 60) return {
+        gradient: 'from-amber-500 via-yellow-500 to-orange-500',
+        bg: 'from-amber-50 via-yellow-50 to-orange-50 dark:from-amber-950/30 dark:via-yellow-950/30 dark:to-orange-950/30',
+        border: 'border-amber-300 dark:border-amber-700',
+        text: 'text-amber-700 dark:text-amber-400',
+        icon: '📝'
+      };
+      return {
+        gradient: 'from-red-500 via-rose-500 to-pink-500',
+        bg: 'from-red-50 via-rose-50 to-pink-50 dark:from-red-950/30 dark:via-rose-950/30 dark:to-pink-950/30',
+        border: 'border-red-300 dark:border-red-700',
+        text: 'text-red-700 dark:text-red-400',
+        icon: '📊'
+      };
+    };
+
+    const style = getGradeStyle();
     
     if (!hasFeedback) {
       return (
-        <Card className="bg-white dark:bg-slate-900">
-          <div className="flex items-start gap-3">
-            <MessageSquare className="w-5 h-5 text-slate-400 mt-1" />
+        <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 border-2 border-slate-200 dark:border-slate-800 shadow-lg">
+          <div className="flex items-start gap-4 p-6">
+            <div className="p-3 rounded-xl bg-slate-200 dark:bg-slate-800">
+              <Clock className="w-6 h-6 text-slate-500 dark:text-slate-400" />
+            </div>
             <div>
-              <h4 className="font-semibold text-slate-900 dark:text-white">Aguardando correção</h4>
+              <h4 className="font-bold text-lg text-slate-900 dark:text-white mb-1">
+                Aguardando Correção
+              </h4>
               <TextWithLineBreaks 
-                text="Assim que o professor corrigir, seu feedback aparecerá aqui."
-                className="text-sm text-slate-500"
+                text="Seu professor está analisando sua resposta. Assim que a correção for concluída, você receberá uma notificação e poderá ver sua nota e feedback detalhado aqui."
+                className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed"
               />
             </div>
           </div>
@@ -880,33 +920,84 @@ const StudentActivityDetailsPage = () => {
     }
 
     return (
-      <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-3">
-            <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
-              Nota {submission?.grade ?? '—'} / {activity?.max_score ?? 100}
-            </Badge>
-            {submission?.graded_at && (
-              <span className="text-xs text-slate-500">
-                Corrigido {formatDistanceToNow(new Date(submission.graded_at), { addSuffix: true, locale: ptBR })}
-              </span>
-            )}
-          </div>
-          <div>
-            <h4 className="font-semibold text-slate-900 dark:text-white mb-2 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" />
-              Feedback do professor
-            </h4>
-            <div className="w-full max-w-full break-words">
-              <TextWithLineBreaks 
-                text={submission?.feedback || 'Sem comentários adicionais.'} 
-                className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap break-words w-full"
-                preserveWhitespace={true}
-              />
+      <div className="space-y-4">
+        {/* Card de Nota com Destaque */}
+        {hasGrade && (
+          <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Atividade Corrigida
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {submission?.graded_at && `Corrigido ${formatDistanceToNow(new Date(submission.graded_at), { addSuffix: true, locale: ptBR })}`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nota em Destaque */}
+              <div className="flex items-baseline gap-3 mb-3">
+                <span className="text-5xl font-bold text-slate-900 dark:text-white">
+                  {submission.grade}
+                </span>
+                <div>
+                  <span className="text-xl text-slate-600 dark:text-slate-400 font-semibold">
+                    / {activity?.max_score || 100}
+                  </span>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    pontos
+                  </p>
+                </div>
+              </div>
+
+              {/* Barra de Progresso */}
+              <div className="relative h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className={cn(
+                    'h-full transition-all duration-1000 ease-out rounded-full',
+                    gradePercentage >= 90 ? 'bg-emerald-500' :
+                    gradePercentage >= 70 ? 'bg-blue-500' :
+                    gradePercentage >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                  )}
+                  style={{ width: `${gradePercentage}%` }}
+                />
+              </div>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-2 text-right">
+                {gradePercentage.toFixed(1)}% de aproveitamento
+              </p>
             </div>
-          </div>
-        </div>
-      </Card>
+          </Card>
+        )}
+
+        {/* Card de Feedback do Professor */}
+        {submission?.feedback && (
+          <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <MessageSquare className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                <h4 className="font-bold text-lg text-slate-900 dark:text-white">
+                  Feedback do Professor
+                </h4>
+              </div>
+              
+              {/* Feedback Text */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-800">
+                <div className="w-full max-w-full break-words">
+                  <TextWithLineBreaks 
+                    text={submission.feedback} 
+                    className="text-base text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap break-words w-full"
+                    preserveWhitespace={true}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+      </div>
     );
   };
 

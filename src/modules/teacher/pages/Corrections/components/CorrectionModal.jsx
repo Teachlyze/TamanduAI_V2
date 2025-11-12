@@ -182,10 +182,11 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
   };
 
   const handleGenerateAIFeedback = async () => {
-    if (!grade) {
+    // Para atividades FECHADAS (quiz), não permitir correção com IA
+    if (submission.activity?.type === 'quiz') {
       toast({
-        title: 'Erro',
-        description: 'Atribua uma nota antes de gerar feedback com IA',
+        title: 'Não disponível',
+        description: 'Atividades fechadas têm correção automática, não precisam de IA',
         variant: 'destructive'
       });
       return;
@@ -193,19 +194,33 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
 
     setLoadingAI(true);
     try {
+      // IA vai PROPOR nota e feedback baseado na resposta do aluno
+      // NÃO exigir nota prévia - a IA analisa e sugere
       const { data, error } = await suggestFeedbackWithAI({
         content: submission.content,
-        grade: parseFloat(grade),
+        grade: grade ? parseFloat(grade) : null, // Nota opcional
         maxScore: maxScore,
-        activityType: submission.activity?.type
+        activityType: submission.activity?.type,
+        activityDescription: submission.activity?.description,
+        questions: submission.activity?.content?.questions
       });
 
       if (error) throw error;
 
+      // Se a IA sugeriu uma nota e ainda não há nota preenchida
+      if (data.suggestedGrade && !grade) {
+        setGrade(data.suggestedGrade.toString());
+        toast({
+          title: '✨ Nota sugerida pela IA',
+          description: `A IA analisou a resposta e sugeriu nota ${data.suggestedGrade}/${maxScore}. Revise antes de salvar.`,
+          duration: 5000
+        });
+      }
+
       if (data.suggestion) {
         setFeedback(prev => prev ? `${prev}\n\n${data.suggestion}` : data.suggestion);
         toast({
-          title: 'Feedback gerado',
+          title: 'Feedback gerado com IA',
           description: data.warning || 'Revise e personalize antes de salvar'
         });
       }
@@ -317,7 +332,8 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
                 <SubmissionView submission={submission} />
               </Card>
 
-              {submission.activity?.plagiarism_enabled && (
+              {/* Antiplágio apenas para atividades ABERTAS e MISTAS (não para quiz/fechadas) */}
+              {submission.activity?.plagiarism_enabled && submission.activity?.type !== 'quiz' && (
                 <Card className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-semibold text-lg">Verificação de Plágio</h3>
@@ -420,14 +436,18 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-semibold text-lg">Feedback</h3>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateAIFeedback}
-                      disabled={loadingAI || !grade}
-                    >
-                      {loadingAI ? 'Gerando...' : '✨ IA'}
-                    </Button>
+                    {/* Botão IA apenas para atividades ABERTAS e MISTAS (não para quiz/fechadas) */}
+                    {submission.activity?.type !== 'quiz' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateAIFeedback}
+                        disabled={loadingAI}
+                        title="IA irá analisar a resposta e sugerir nota + feedback"
+                      >
+                        {loadingAI ? 'Analisando...' : '✨ Corrigir com IA'}
+                      </Button>
+                    )}
                     <FeedbackTemplatesSelector
                       templates={templates}
                       onSelect={handleTemplateSelect}

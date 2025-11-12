@@ -434,10 +434,10 @@ const StudentActivityDetailsPageRedesigned = () => {
 
             {/* Resultado e Feedback (após correção) */}
             {activityStatus === 'graded' && (
-              <Card className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-green-200 dark:border-green-800">
+              <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold flex items-center gap-2">
-                    🎯 RESULTADO
+                  <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                    Resultado
                   </h3>
                   {activity?.class_name && (
                     <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -460,9 +460,9 @@ const StudentActivityDetailsPageRedesigned = () => {
 
                 {/* Feedback do Professor */}
                 {submission.feedback && (
-                  <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-200 dark:border-slate-700">
-                    <h4 className="font-bold mb-2 flex items-center gap-2">
-                      💬 FEEDBACK DO PROFESSOR
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <h4 className="font-bold mb-2 text-slate-900 dark:text-white">
+                      Feedback do Professor
                     </h4>
                     <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                       {submission.feedback}
@@ -471,8 +471,8 @@ const StudentActivityDetailsPageRedesigned = () => {
                 )}
 
                 {/* Sua Resposta */}
-                <div className="mt-6 p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-200 dark:border-slate-700">
-                  <h4 className="font-bold mb-2">📝 SUA RESPOSTA</h4>
+                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <h4 className="font-bold mb-2 text-slate-900 dark:text-white">Sua Resposta</h4>
                   <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
                     {answer}
                   </p>

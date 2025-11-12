@@ -421,12 +421,12 @@ const StudentClassDetailsPageRedesigned = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
-          <TabsTrigger value="feed">📢 Feed</TabsTrigger>
-          <TabsTrigger value="announcements">📣 Comunicados</TabsTrigger>
-          <TabsTrigger value="activities">📝 Atividades</TabsTrigger>
-          <TabsTrigger value="materials">📚 Materiais</TabsTrigger>
-          <TabsTrigger value="grades">⭐ Notas</TabsTrigger>
-          <TabsTrigger value="students">👥 Alunos</TabsTrigger>
+          <TabsTrigger value="feed">Feed</TabsTrigger>
+          <TabsTrigger value="announcements">Comunicados</TabsTrigger>
+          <TabsTrigger value="activities">Atividades</TabsTrigger>
+          <TabsTrigger value="materials">Materiais</TabsTrigger>
+          <TabsTrigger value="grades">Notas</TabsTrigger>
+          <TabsTrigger value="students">Alunos</TabsTrigger>
         </TabsList>
 
         {/* Tab: Feed */}

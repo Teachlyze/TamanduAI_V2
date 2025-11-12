@@ -12,13 +12,22 @@ export const StatCard = ({ icon: Icon, value, label, gradient, trend }) => {
     slate: 'from-slate-600 to-slate-800'
   };
 
+  const iconBgColors = {
+    blue: 'bg-blue-100 dark:bg-blue-900/30',
+    orange: 'bg-orange-100 dark:bg-orange-900/30',
+    green: 'bg-emerald-100 dark:bg-emerald-900/30',
+    yellow: 'bg-yellow-100 dark:bg-yellow-900/30',
+    purple: 'bg-purple-100 dark:bg-purple-900/30',
+    slate: 'bg-slate-100 dark:bg-slate-800'
+  };
+
   const iconColors = {
-    blue: 'text-blue-600',
-    orange: 'text-orange-600',
-    green: 'text-green-600',
-    yellow: 'text-yellow-600',
-    purple: 'text-purple-600',
-    slate: 'text-slate-600'
+    blue: 'text-blue-600 dark:text-blue-400',
+    orange: 'text-orange-600 dark:text-orange-400',
+    green: 'text-emerald-600 dark:text-emerald-400',
+    yellow: 'text-yellow-600 dark:text-yellow-400',
+    purple: 'text-purple-600 dark:text-purple-400',
+    slate: 'text-slate-600 dark:text-slate-400'
   };
 
   return (
@@ -36,7 +45,7 @@ export const StatCard = ({ icon: Icon, value, label, gradient, trend }) => {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-3">
             {Icon && (
-              <div className={`p-3 rounded-xl bg-gradient-to-br ${gradientClasses[gradient] || gradientClasses.blue} bg-opacity-10`}>
+              <div className={`p-3 rounded-xl ${iconBgColors[gradient] || iconBgColors.blue}`}>
                 <Icon className={`w-6 h-6 ${iconColors[gradient] || iconColors.blue}`} />
               </div>
             )}

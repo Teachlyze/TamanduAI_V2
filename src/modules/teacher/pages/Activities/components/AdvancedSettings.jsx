@@ -154,14 +154,14 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
         </div>
       </div>
 
-      {/* Antiplágio (apenas para abertas) */}
+      {/* Antiplágio (apenas para abertas e mistas - NÃO para fechadas/quiz) */}
       {(activityType === 'open' || activityType === 'assignment' || activityType === 'mixed') && (
         <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
           <h3 className="font-semibold">Antiplágio</h3>
           <div className="flex items-center justify-between">
             <div>
               <Label>Ativar Detecção de Antiplágio</Label>
-              <p className="text-xs text-gray-500">Verificar originalidade das respostas</p>
+              <p className="text-xs text-gray-500">Verificar originalidade das respostas dissertativas</p>
             </div>
             <Switch
               checked={settings.plagiarismEnabled}

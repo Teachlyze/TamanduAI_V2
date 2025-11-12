@@ -122,6 +122,7 @@ export const useFeedbackTemplate = async (templateId) => {
 
 /**
  * Sugere feedback com IA usando Edge Function
+ * A IA irá analisar a resposta e propor nota + feedback
  */
 export const suggestFeedbackWithAI = async (submissionData) => {
   try {
@@ -135,9 +136,24 @@ export const suggestFeedbackWithAI = async (submissionData) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        // Enviar conteúdo da submissão
         submissionData: submissionData.content,
-        grade: submissionData.grade,
+        
+        // Nota é OPCIONAL - se não tiver, IA vai propor
+        grade: submissionData.grade || null,
+        
+        // Escala de nota do professor (essencial para IA propor nota correta)
+        maxScore: submissionData.maxScore || 10,
+        
+        // Tipo de atividade
         activityType: submissionData.activityType || 'assignment',
+        
+        // Contexto adicional para IA analisar melhor
+        activityDescription: submissionData.activityDescription,
+        questions: submissionData.questions,
+        
+        // Flag para indicar que queremos nota sugerida
+        suggestGrade: !submissionData.grade
       }),
     });
 
@@ -150,6 +166,7 @@ export const suggestFeedbackWithAI = async (submissionData) => {
     return {
       data: {
         suggestion: data.feedback,
+        suggestedGrade: data.suggestedGrade || null, // Nota proposta pela IA
         isAI: true,
         warning: data.warning || 'Esta é uma sugestão gerada por IA. Revise e personalize antes de usar.'
       },
@@ -158,9 +175,33 @@ export const suggestFeedbackWithAI = async (submissionData) => {
   } catch (error) {
     logger.error('Erro ao gerar sugestão com IA:', error)
     
-    // Fallback para sugestão genérica
-    const { grade, maxScore = 10 } = submissionData;
-    const percentage = (grade / maxScore) * 100;
+    // Fallback para sugestão genérica COM nota proposta
+    const { grade, maxScore = 10, content } = submissionData;
+    
+    // Se não tiver nota, propor uma baseado no tamanho da resposta (fallback simples)
+    let suggestedGrade = grade;
+    let percentage = grade ? (grade / maxScore) * 100 : null;
+    
+    if (!grade && content) {
+      const contentLength = typeof content === 'string' 
+        ? content.length 
+        : JSON.stringify(content).length;
+      
+      // Heurística simples: baseado no tamanho da resposta
+      if (contentLength > 500) {
+        suggestedGrade = Math.round(maxScore * 0.8); // 80% para respostas longas
+        percentage = 80;
+      } else if (contentLength > 200) {
+        suggestedGrade = Math.round(maxScore * 0.7); // 70% para respostas médias
+        percentage = 70;
+      } else if (contentLength > 50) {
+        suggestedGrade = Math.round(maxScore * 0.6); // 60% para respostas curtas
+        percentage = 60;
+      } else {
+        suggestedGrade = Math.round(maxScore * 0.5); // 50% para respostas muito curtas
+        percentage = 50;
+      }
+    }
 
     let suggestion = '';
     
@@ -177,8 +218,9 @@ export const suggestFeedbackWithAI = async (submissionData) => {
     return {
       data: {
         suggestion,
+        suggestedGrade: suggestedGrade || null,
         isAI: false,
-        warning: 'Falha ao conectar com IA. Usando feedback genérico.'
+        warning: 'Falha ao conectar com IA. Usando análise automática básica. Revise a nota e o feedback sugeridos.'
       },
       error: null
     };

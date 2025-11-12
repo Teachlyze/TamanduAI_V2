@@ -264,28 +264,28 @@ const StudentActivitiesPageRedesigned = () => {
             <TabsTrigger value="all" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Todas
-              <span className="ml-1 px-2 py-0.5 bg-slate-200 dark:bg-slate-700 rounded-full text-xs">
+              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.total}
               </span>
             </TabsTrigger>
             <TabsTrigger value="pending" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Pendentes
-              <span className="ml-1 px-2 py-0.5 bg-orange-200 dark:bg-orange-900 rounded-full text-xs">
+              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.pending}
               </span>
             </TabsTrigger>
             <TabsTrigger value="completed" className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4" />
               Concluídas
-              <span className="ml-1 px-2 py-0.5 bg-green-200 dark:bg-green-900 rounded-full text-xs">
+              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.completed}
               </span>
             </TabsTrigger>
             <TabsTrigger value="late" className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4" />
               Atrasadas
-              <span className="ml-1 px-2 py-0.5 bg-red-200 dark:bg-red-900 rounded-full text-xs">
+              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.late}
               </span>
             </TabsTrigger>
@@ -328,9 +328,9 @@ const StudentActivitiesPageRedesigned = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="objective">📝 Objetiva</SelectItem>
-                <SelectItem value="open">✍️ Aberta</SelectItem>
-                <SelectItem value="mixed">🎯 Mista</SelectItem>
+                <SelectItem value="objective">Objetiva</SelectItem>
+                <SelectItem value="open">Aberta</SelectItem>
+                <SelectItem value="mixed">Mista</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -344,9 +344,10 @@ const StudentActivitiesPageRedesigned = () => {
           animate={{ opacity: 1, scale: 1 }}
           className="mb-8"
         >
-          <Card className="p-6 border-2 border-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
-            <h2 className="text-xl font-bold text-orange-900 dark:text-orange-100 mb-4 flex items-center gap-2">
-              🔥 URGENTE - Prazo nas próximas 24 horas!
+          <Card className="p-6 border-l-4 border-amber-500 bg-white dark:bg-slate-900">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Atividades Urgentes - Prazo nas próximas 24 horas
             </h2>
             <div className="space-y-4">
               {urgentActivities.map((activity, index) => (
