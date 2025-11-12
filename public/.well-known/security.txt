@@ -1,0 +1,94 @@
+# Arquivo padrão RFC 9116 para reportar vulnerabilidades de segurança
+# https://securitytxt.org/
+# Gerado em: 2025-11-10
+
+Contact: mailto:security@tamanduai.com
+Contact: https://tamanduai.com/security
+Expires: 2026-12-31T23:59:59.000Z
+Encryption: https://tamanduai.com/pgp-key.txt
+Acknowledgments: https://tamanduai.com/security/hall-of-fame
+Preferred-Languages: pt-BR, en
+Canonical: https://tamanduai.com/.well-known/security.txt
+Policy: https://tamanduai.com/security-policy
+
+# ==========================================
+# REPORTAR VULNERABILIDADES DE SEGURANÇA
+# ==========================================
+
+# Se você encontrou uma vulnerabilidade de segurança no TamanduAI,
+# pedimos que reporte de forma responsável através de:
+# 
+# E-mail: security@tamanduai.com
+# Web: https://tamanduai.com/security
+#
+# Por favor inclua:
+# - Descrição detalhada da vulnerabilidade
+# - Passos para reproduzir
+# - Potencial impacto
+# - Qualquer prova de conceito (PoC)
+#
+# Responderemos em até 48 horas.
+
+# ==========================================
+# PROGRAMA DE RECOMPENSAS
+# ==========================================
+
+# Oferecemos reconhecimento público e recompensas para
+# descobertas responsáveis de vulnerabilidades de segurança.
+# 
+# Hall of Fame: https://tamanduai.com/security/hall-of-fame
+
+# ==========================================
+# ESCOPO
+# ==========================================
+
+# Em escopo:
+# - tamanduai.com
+# - *.tamanduai.com
+# - Aplicativos mobile oficiais TamanduAI
+# - APIs públicas documentadas
+# - Edge Functions do Supabase
+
+# Fora de escopo:
+# - Ataques de força bruta
+# - Ataques DoS/DDoS
+# - Phishing ou engenharia social
+# - Vulnerabilidades em serviços de terceiros (Supabase, Vercel)
+# - Vulnerabilidades já conhecidas e reportadas
+# - Spam
+
+# ==========================================
+# DIVULGAÇÃO RESPONSÁVEL
+# ==========================================
+
+# Pedimos que:
+# 1. Não divulgue publicamente até recebermos confirmação
+# 2. Não acesse ou modifique dados de usuários sem autorização
+# 3. Não execute testes que possam causar degradação de serviço
+# 4. Siga a lei e nossos termos de serviço
+#
+# Respeitaremos pesquisadores que seguirem estas diretrizes
+# e não tomaremos ações legais contra reportes responsáveis.
+
+# ==========================================
+# CONFORMIDADE
+# ==========================================
+
+# TamanduAI está em conformidade com:
+# - LGPD (Lei Geral de Proteção de Dados - Brasil)
+# - GDPR (General Data Protection Regulation - EU)
+# - OWASP Top 10 (2021)
+# - RFC 9116 (security.txt)
+
+# Para questões de privacidade e proteção de dados:
+# E-mail: privacy@tamanduai.com
+# DPO: dpo@tamanduai.com
+
+# ==========================================
+# CONTATO GERAL
+# ==========================================
+
+# Suporte técnico: support@tamanduai.com
+# Privacidade/LGPD: privacy@tamanduai.com
+# DPO (Encarregado): dpo@tamanduai.com
+# Segurança: security@tamanduai.com
