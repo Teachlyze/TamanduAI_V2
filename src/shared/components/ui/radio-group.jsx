@@ -27,9 +27,10 @@ const RadioGroup = React.forwardRef(({
     >
       {React.Children.map(children, (child) => {
         if (React.isValidElement(child)) {
+          const isChecked = String(child.props.value) === String(value);
           return React.cloneElement(child, {
             ...child.props,
-            checked: child.props.value === value,
+            checked: isChecked,
             onChange: () => onValueChange?.(child.props.value),
             disabled: disabled || child.props.disabled,
           });
@@ -64,6 +65,9 @@ const RadioGroupItem = React.forwardRef(({
   ...props
 }, ref) => {
   const inputId = id || `radio-${value}`;
+  
+  // Sempre fornecer onChange para evitar warning do React
+  const handleChange = onChange || (() => {});
 
   return (
     <div className={cn("flex items-center space-x-2", className)}>
@@ -74,10 +78,10 @@ const RadioGroupItem = React.forwardRef(({
         value={value}
         checked={checked}
         disabled={disabled}
-        onChange={onChange}
+        onChange={handleChange}
         className={cn(
           "w-4 h-4 text-primary border-gray-300 focus:ring-primary focus:ring-2 focus:ring-offset-2",
-          "disabled:opacity-50 disabled:cursor-not-allowed"
+          "disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         )}
         {...props}
       />

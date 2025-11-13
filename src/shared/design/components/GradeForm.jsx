@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Save, X } from 'lucide-react';
+import { Save, X, Sparkles, Zap } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/label';
@@ -22,11 +22,17 @@ const GradeForm = ({
   initialFeedback = '',
   onSave,
   onCancel,
-  loading = false
+  onAutoGrade,
+  onAISuggestion,
+  loading = false,
+  canUseAutoGrade = false,
+  canUseAI = false
 }) => {
   const [grade, setGrade] = useState(initialGrade?.toString() || '');
   const [feedback, setFeedback] = useState(initialFeedback);
   const [errors, setErrors] = useState({});
+  const [autoGrading, setAutoGrading] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
 
   const validate = () => {
     const newErrors = {};
@@ -119,6 +125,77 @@ const GradeForm = ({
             </div>
           )}
         </div>
+
+        {(canUseAutoGrade || canUseAI) && (
+          <div className="flex gap-2">
+            {canUseAutoGrade && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setAutoGrading(true);
+                  try {
+                    const result = await onAutoGrade?.();
+                    if (result) {
+                      setGrade(result.grade?.toString() || '');
+                      setFeedback(result.feedback || '');
+                    }
+                  } finally {
+                    setAutoGrading(false);
+                  }
+                }}
+                disabled={loading || autoGrading || aiGenerating}
+                className="flex-1"
+              >
+                {autoGrading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-2" />
+                    Corrigindo...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2 text-amber-500" />
+                    Correção Automática
+                  </>
+                )}
+              </Button>
+            )}
+            
+            {canUseAI && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setAiGenerating(true);
+                  try {
+                    const result = await onAISuggestion?.();
+                    if (result?.feedback) {
+                      setFeedback(result.feedback);
+                    }
+                  } finally {
+                    setAiGenerating(false);
+                  }
+                }}
+                disabled={loading || autoGrading || aiGenerating}
+                className="flex-1"
+              >
+                {aiGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin mr-2" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2 text-purple-500" />
+                    Sugestão por IA
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Feedback Textarea */}
         <div>

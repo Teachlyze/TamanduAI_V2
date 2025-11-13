@@ -784,17 +784,20 @@ const TeacherDashboard = () => {
 
       {/* Alunos em Alerta */}
       {alertStudents.length > 0 && (
-        <Card className="p-6 mb-8 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-2 border-yellow-200 dark:border-yellow-800">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-full bg-yellow-100 dark:bg-yellow-900/40">
-              <AlertTriangle className="w-6 h-6 text-yellow-600" />
+        <Card className="p-6 mb-8 bg-white dark:bg-slate-900 border border-yellow-200 dark:border-yellow-800">
+          <div className="flex items-center gap-4 mb-6 pb-4 border-b border-yellow-200 dark:border-yellow-800">
+            <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 shadow-lg">
+              <AlertTriangle className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 Alunos que Precisam de Atenção
+                <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
+                  {alertStudents.length}
+                </Badge>
               </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {alertStudents.length} aluno{alertStudents.length > 1 ? 's' : ''} com desempenho abaixo de 6.0
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                Desempenho abaixo de 6.0 - requerem acompanhamento especial
               </p>
             </div>
           </div>
@@ -803,31 +806,30 @@ const TeacherDashboard = () => {
             {alertStudents.map((student, index) => (
               <motion.div
                 key={student.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center gap-4 p-4 rounded-lg bg-white dark:bg-slate-900 border-2 border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-all"
+                className="group flex items-center gap-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
               >
-                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-lg">
-                  {student.name?.[0] || 'A'}
+                <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-md">
+                  {student.name?.[0]?.toUpperCase() || 'A'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                  <h3 className="font-semibold text-slate-900 dark:text-white truncate text-lg">
                     {student.name}
                   </h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs">
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-semibold">
                       Média: {student.avgGrade.toFixed(1)}
                     </Badge>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       {student.totalActivities} atividade{student.totalActivities > 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="whitespace-nowrap border-yellow-600 text-yellow-700 hover:bg-yellow-50"
+                  className="whitespace-nowrap bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-md"
                   onClick={() => navigate(`/dashboard/students/${student.id}`)}
                 >
                   Ver Detalhes
@@ -839,9 +841,9 @@ const TeacherDashboard = () => {
       )}
 
       {/* Submissões Pendentes */}
-      <Card className="p-6 mb-8 bg-white dark:bg-slate-900">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+      <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-white dark:bg-slate-900">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
             <Clock className="w-5 h-5" />
             Submissões Pendentes de Correção
           </h2>
@@ -897,25 +899,27 @@ const TeacherDashboard = () => {
       </Card>
 
       {/* Botões de Ação Rápida */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {quickActions.map((action, index) => (
-          <motion.div
-            key={action.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <Link to={action.href}>
-              <Button
-                size="lg"
-                className={`w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r ${action.gradient} hover:opacity-90 text-white h-16 text-lg`}
-              >
-                <action.icon className="w-6 h-6" />
-                <span>{action.label}</span>
-              </Button>
-            </Link>
-          </motion.div>
-        ))}
+      <div className="flex justify-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full">
+          {quickActions.map((action, index) => (
+            <motion.div
+              key={action.label}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <Link to={action.href}>
+                <Button
+                  size="lg"
+                  className={`w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r ${action.gradient} hover:opacity-90 text-white h-16 text-lg shadow-lg hover:shadow-xl transition-all`}
+                >
+                  <action.icon className="w-6 h-6" />
+                  <span>{action.label}</span>
+                </Button>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       </div>
 
       {/* Modal para Postar Atividade */}

@@ -1,7 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { X, Save, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
-import { Dialog, DialogContent } from '@/shared/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/shared/components/ui/dialog';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -272,7 +272,11 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
   };
 
   return (
-    <Dialog open={true} onOpenChange={() => {}}>
+    <Dialog open onOpenChange={onClose}>
+      <DialogTitle className="sr-only">Corrigir Submissão</DialogTitle>
+      <DialogDescription className="sr-only">
+        Formulário de correção para a submissão de {submission.student?.full_name || 'aluno'}
+      </DialogDescription>
       <DialogContent className="max-w-7xl h-[90vh] p-0 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-white dark:bg-slate-900">

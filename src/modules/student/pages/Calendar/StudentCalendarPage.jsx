@@ -304,25 +304,25 @@ const StudentCalendarPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-white shadow-lg">
+      <div className="relative mb-4 sm:mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 p-4 sm:p-6 md:p-8 text-white shadow-lg">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative z-10"
         >
-          <h1 className="text-3xl font-bold mb-2">Minha Agenda</h1>
-          <p className="text-cyan-100">Acompanhe suas aulas, eventos e prazos</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Minha Agenda</h1>
+          <p className="text-sm sm:text-base text-cyan-100">Acompanhe suas aulas, eventos e prazos</p>
         </motion.div>
       </div>
 
       {/* Navegação do Calendário */}
-      <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+      <Card className="p-3 sm:p-4 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white capitalize">
               {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
             </h2>
             <Button size="sm" variant="outline" onClick={handleToday}>
@@ -340,15 +340,15 @@ const StudentCalendarPage = () => {
         </div>
 
         {/* Grid do Calendário */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
           {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
-            <div key={day} className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 py-2">
+            <div key={day} className="text-center text-[10px] sm:text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-400 py-1 sm:py-2">
               {day}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
           {days.map(day => {
             const dayEvents = getEventsForDay(day);
             const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -357,7 +357,7 @@ const StudentCalendarPage = () => {
             return (
               <div
                 key={day.toISOString()}
-                className={`min-h-[100px] p-2 rounded-lg border transition-colors ${
+                className={`h-14 sm:h-20 md:h-24 p-1 sm:p-2 rounded-lg border transition-colors ${
                   isDayToday
                     ? 'border-blue-600 bg-blue-50 dark:bg-blue-950/30'
                     : 'border-slate-200 dark:border-slate-800'

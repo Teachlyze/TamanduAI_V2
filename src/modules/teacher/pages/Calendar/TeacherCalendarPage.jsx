@@ -25,25 +25,25 @@ const CalendarDay = React.memo(({ day, dayEvents, isCurrentDay, isSameMonthDay, 
       transition={{ duration: 0.2 }}
       onClick={onClick}
       className={`
-        min-h-[120px] p-3 border rounded-xl cursor-pointer transition-all hover:shadow-lg group relative
+        min-h-[70px] sm:min-h-[100px] md:min-h-[120px] p-1.5 sm:p-2 md:p-3 border rounded-lg sm:rounded-xl cursor-pointer transition-all hover:shadow-lg group relative
         ${isCurrentDay ? 'border-2 border-blue-600 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/30 dark:to-cyan-950/30 shadow-md' : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'}
         ${!isSameMonthDay && 'opacity-40'}
         hover:bg-gradient-to-br hover:from-slate-50 hover:to-blue-50 dark:hover:from-slate-800 dark:hover:to-blue-950/30
       `}
     >
       <div className={`
-        text-sm font-bold mb-2 flex items-center justify-between
+        text-xs sm:text-sm font-bold mb-1 sm:mb-2 flex items-center justify-between
         ${isCurrentDay ? 'text-blue-600' : 'text-slate-900 dark:text-white'}
       `}>
         <span>{format(day, 'd')}</span>
         {dayEvents.length > 0 && (
-          <span className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
+          <span className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 rounded-full bg-blue-600 text-white text-[8px] sm:text-[10px] md:text-xs flex items-center justify-center">
             {dayEvents.length}
           </span>
         )}
       </div>
 
-      <div className="space-y-1.5">
+      <div className="space-y-1 sm:space-y-1.5 hidden sm:block">
         {dayEvents.slice(0, 2).map((event) => (
           <div
             key={event.id}
@@ -221,24 +221,24 @@ const TeacherCalendarPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-3 sm:p-4 md:p-6">
       {/* Header */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 p-8 text-white shadow-lg">
+      <div className="relative mb-4 sm:mb-6 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 p-4 sm:p-6 md:p-8 text-white shadow-lg">
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 flex items-center justify-between"
+          className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0"
         >
-          <div>
-            <h1 className="text-3xl font-bold mb-2">Minha Agenda</h1>
-            <p className="text-cyan-100">Gerencie aulas, reuniões e eventos</p>
+          <div className="w-full md:w-auto">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Minha Agenda</h1>
+            <p className="text-sm sm:text-base text-cyan-100">Gerencie aulas, reuniões e eventos</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto">
             <Button
               onClick={handleToday}
               variant="outline"
-              className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
+              className="bg-white/10 hover:bg-white/20 border-white/20 text-white justify-center"
             >
               Hoje
             </Button>
@@ -247,7 +247,7 @@ const TeacherCalendarPage = () => {
                 setSelectedDate(new Date());
                 setShowCreateModal(true);
               }}
-              className="bg-white text-blue-600 hover:bg-white/90"
+              className="bg-white text-blue-600 hover:bg-white/90 justify-center"
             >
               <Plus className="w-4 h-4 mr-2" />
               Novo Evento
@@ -256,12 +256,12 @@ const TeacherCalendarPage = () => {
         </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
         {/* Calendário Principal */}
         <div className={showDaySidebar ? 'lg:col-span-8 transition-all duration-300' : 'lg:col-span-9 transition-all duration-300'}>
-          <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <Card className="p-3 sm:p-4 md:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             {/* Navegação do Mês */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
               <Button
                 variant="ghost"
                 size="sm"
@@ -270,7 +270,7 @@ const TeacherCalendarPage = () => {
                 <ChevronLeft className="w-5 h-5" />
               </Button>
               
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white capitalize">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white capitalize">
                 {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
               </h2>
 
@@ -284,12 +284,12 @@ const TeacherCalendarPage = () => {
             </div>
 
             {/* Grid do Calendário */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {/* Dias da Semana */}
               {weekDays.map((day) => (
                 <div
                   key={day}
-                  className="text-center text-sm font-semibold text-slate-600 dark:text-slate-400 py-2"
+                  className="text-center text-[10px] sm:text-xs md:text-sm font-semibold text-slate-600 dark:text-slate-400 py-1 sm:py-2"
                 >
                   {day}
                 </div>

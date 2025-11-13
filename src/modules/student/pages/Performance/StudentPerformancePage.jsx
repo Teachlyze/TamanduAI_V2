@@ -438,9 +438,9 @@ const StudentPerformancePage = () => {
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <StatsCard title="Média Geral" value={stats.avgGrade} icon={BarChart3} gradient="from-blue-500 to-cyan-600" delay={0} />
-        <StatsCard title="Atividades Concluídas" value={stats.totalActivities} icon={Award} gradient="from-cyan-500 to-blue-700" delay={0.1} />
-        <StatsCard title="Taxa de Conclusão" value={`${stats.completionRate}%`} icon={TrendingUp} gradient="from-emerald-500 to-cyan-500" format="text" delay={0.2} />
+        <StatsCard title="Média Geral" value={stats.avgGrade} gradient="from-blue-500 to-cyan-600" delay={0} />
+        <StatsCard title="Atividades Concluídas" value={stats.totalActivities} gradient="from-cyan-500 to-blue-700" delay={0.1} />
+        <StatsCard title="Taxa de Conclusão" value={`${stats.completionRate}%`} gradient="from-emerald-500 to-cyan-500" format="text" delay={0.2} />
       </div>
 
       {/* Evolução de Notas */}
@@ -517,26 +517,18 @@ const StudentPerformancePage = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Sugestões de Estudo (Analytics ML) */}
         <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border border-blue-200 dark:border-blue-800">
-          <div className="flex items-center gap-2 mb-4">
-            <Lightbulb className="w-5 h-5 text-blue-600" />
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Sugestões de Estudo</h3>
-          </div>
+          <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Sugestões de Estudo</h3>
           {studySuggestions.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {studySuggestions.map((suggestion, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg"
+                  className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-blue-100 dark:border-blue-900"
                 >
-                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40">
-                    <Target className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-700 dark:text-slate-300">{suggestion.text || suggestion}</p>
-                  </div>
+                  <p className="text-sm text-slate-700 dark:text-slate-300">{suggestion.text || suggestion}</p>
                 </motion.div>
               ))}
             </div>
@@ -547,34 +539,25 @@ const StudentPerformancePage = () => {
 
         {/* Áreas de Atenção */}
         <Card className="p-6 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border border-yellow-200 dark:border-yellow-800">
-          <div className="flex items-center gap-2 mb-4">
-            <AlertTriangle className="w-5 h-5 text-yellow-600" />
-            <h3 className="font-bold text-lg text-slate-900 dark:text-white">Áreas de Atenção</h3>
-          </div>
+          <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4">Áreas de Atenção</h3>
           {attentionAreas.length > 0 ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {attentionAreas.map((area, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="flex items-start gap-3 p-3 bg-white dark:bg-slate-900 rounded-lg"
+                  className="p-3 bg-white dark:bg-slate-900 rounded-lg border border-yellow-100 dark:border-yellow-900"
                 >
-                  <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/40">
-                    <TrendingDown className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-900 dark:text-white">{area.subject || area.title}</p>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{area.description || area.text}</p>
-                  </div>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{area.subject || area.title}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">{area.description || area.text}</p>
                 </motion.div>
               ))}
             </div>
           ) : (
             <div className="text-center py-4">
-              <Trophy className="w-12 h-12 mx-auto mb-2 text-yellow-600" />
-              <p className="text-sm text-slate-600 dark:text-slate-400">Excelente! Não há áreas críticas no momento.</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">✓ Excelente! Não há áreas críticas no momento.</p>
             </div>
           )}
         </Card>
@@ -583,8 +566,7 @@ const StudentPerformancePage = () => {
       {/* Recomendações com IA */}
       <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border border-blue-200 dark:border-blue-800">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-600" />
+          <div className="flex items-center gap-3">
             <h3 className="font-bold text-lg text-slate-900 dark:text-white">Recomendações Personalizadas com IA</h3>
             <Badge variant={usageToday >= dailyLimit ? "destructive" : "secondary"} className="text-xs">
               {usageToday}/{dailyLimit} hoje
@@ -608,8 +590,7 @@ const StudentPerformancePage = () => {
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Gerar Recomendações
+                  Gerar Recomendações ✨
                 </>
               )}
             </Button>
@@ -631,19 +612,14 @@ const StudentPerformancePage = () => {
                 transition={{ delay: idx * 0.1 }}
                 className="p-4 bg-white dark:bg-slate-900 rounded-lg border border-blue-200 dark:border-blue-800"
               >
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex-shrink-0">
-                    <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-1">{rec.title}</h4>
-                    <p className="text-xs text-slate-600 dark:text-slate-400">{rec.description}</p>
-                    {rec.reason && (
-                      <Badge variant="outline" className="mt-2 text-xs">
-                        {rec.reason}
-                      </Badge>
-                    )}
-                  </div>
+                <div>
+                  <h4 className="font-semibold text-sm text-slate-900 dark:text-white mb-1">{rec.title}</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">{rec.description}</p>
+                  {rec.reason && (
+                    <Badge variant="outline" className="mt-2 text-xs">
+                      {rec.reason}
+                    </Badge>
+                  )}
                 </div>
               </motion.div>
             ))}

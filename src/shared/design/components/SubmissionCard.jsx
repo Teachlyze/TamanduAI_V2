@@ -64,11 +64,11 @@ const SubmissionCard = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
     >
-      <Card className={`p-6 ${components.card.hover} bg-white dark:bg-slate-900`}>
+      <Card className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer group">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
           {/* Student Info */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 transition-transform duration-300 group-hover:translate-x-1">
             {student?.avatar ? (
               <img
                 src={student.avatar}
@@ -81,10 +81,10 @@ const SubmissionCard = ({
               </div>
             )}
             <div>
-              <h3 className="font-semibold text-slate-900 dark:text-white">
+              <h3 className="font-semibold text-slate-900 dark:text-white transition-colors duration-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                 {valueOrEmpty(student?.name)}
               </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="text-sm text-slate-600 dark:text-slate-400 transition-colors duration-300 group-hover:text-slate-700 dark:group-hover:text-slate-300">
                 {valueOrEmpty(activity?.title)}
               </p>
             </div>
@@ -140,7 +140,7 @@ const SubmissionCard = ({
               variant="outline"
               size="sm"
               onClick={() => onView(submission)}
-              className="flex-1"
+              className="flex-1 transition-all duration-300 hover:scale-105 hover:shadow-md"
             >
               <FileText className="w-4 h-4 mr-2" />
               Ver Submissão
@@ -151,10 +151,21 @@ const SubmissionCard = ({
             <Button
               size="sm"
               onClick={() => onGrade(submission)}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Corrigir
+            </Button>
+          )}
+          
+          {status === 'graded' && onView && (
+            <Button
+              size="sm"
+              onClick={() => onView(submission)}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white transition-all duration-300 hover:scale-105 hover:shadow-lg"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              Ver Correção
             </Button>
           )}
         </div>

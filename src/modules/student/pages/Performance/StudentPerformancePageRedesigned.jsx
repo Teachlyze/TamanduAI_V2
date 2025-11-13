@@ -859,7 +859,7 @@ const StudentPerformancePageRedesigned = () => {
               Recomendações Personalizadas da IA
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {/* Pontos Fortes */}
               <div>
                 <h3 className="font-bold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
@@ -939,7 +939,7 @@ const StudentPerformancePageRedesigned = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <StatCard
           icon={Star}
           value={stats.avgGrade > 0 ? stats.avgGrade.toFixed(1) : '--'}
@@ -967,13 +967,13 @@ const StudentPerformancePageRedesigned = () => {
       </div>
 
       {/* Grid Principal */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-8">
         {/* Coluna Esquerda (2/3) */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-4 md:space-y-6 lg:space-y-8">
           {/* Gráfico de Evolução */}
           {filteredEvolutionData.length > 0 && (
-            <Card className="p-6">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+            <Card className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-green-600" />
                 Evolução das Notas
               </h2>
@@ -1005,8 +1005,8 @@ const StudentPerformancePageRedesigned = () => {
           )}
 
           {/* Últimas Notas */}
-          <Card className="p-6">
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+          <Card className="p-4 sm:p-6">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">
               📝 Últimas Notas
             </h2>
             {recentGrades.length > 0 ? (
@@ -1032,11 +1032,11 @@ const StudentPerformancePageRedesigned = () => {
         </div>
 
         {/* Coluna Direita (1/3) */}
-        <div className="space-y-8">
+        <div className="space-y-4 md:space-y-6 lg:space-y-8">
           {/* Desempenho por Turma */}
           {filteredClassPerformance.length > 0 && (
-            <Card className="p-6">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
+            <Card className="p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">
                 📊 Por Turma
               </h2>
               <div className="overflow-x-auto">

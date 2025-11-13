@@ -32,6 +32,10 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
     chatbot_enabled: false
   });
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+
   const [newSchedule, setNewSchedule] = useState({
     day: 'monday',
     start_time: '08:00',
@@ -212,8 +216,8 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-black/80 backdrop-blur-md p-4">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-700">
         <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-cyan-500 p-6 rounded-t-2xl z-10">
           <div className="flex items-center justify-between">
             <div>
@@ -227,21 +231,22 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-slate-200 dark:border-slate-800 px-6">
+        <div className="border-b border-slate-200 dark:border-slate-700 px-6 bg-slate-50 dark:bg-slate-800/50">
           <div className="flex gap-4">
             {[
               { id: 'invite', label: 'Código de Convite' },
               { id: 'schedule', label: 'Horários' },
               { id: 'location', label: 'Local/Link' },
-              { id: 'chatbot', label: 'Chatbot' }
+              { id: 'chatbot', label: 'Chatbot' },
+              { id: 'danger', label: 'Zona de Perigo' }
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-4 py-3 border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-blue-600 text-blue-600 font-medium'
-                    : 'border-transparent text-slate-600 hover:text-slate-900'
+                    ? 'border-blue-600 text-blue-600 dark:text-blue-400 font-medium'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 {tab.label}
@@ -255,7 +260,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
           {activeTab === 'invite' && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                   Código Atual
                 </label>
                 <div className="flex gap-2">
@@ -263,7 +268,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                     type="text"
                     value={settings.invite_code}
                     readOnly
-                    className="flex-1 px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-800 font-mono text-lg"
+                    className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white font-mono text-lg"
                   />
                   <Button onClick={handleGenerateNewCode} variant="outline">
                     <RefreshCw className="w-4 h-4 mr-2" />
@@ -277,28 +282,28 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                     Máximo de Usos
                   </label>
                   <input
                     type="number"
                     value={settings.code_max_uses || ''}
                     onChange={(e) => setSettings({ ...settings, code_max_uses: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     placeholder="Ilimitado"
                     min="1"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                     Data de Expiração
                   </label>
                   <input
                     type="date"
                     value={settings.code_expiration ? settings.code_expiration.split('T')[0] : ''}
                     onChange={(e) => setSettings({ ...settings, code_expiration: e.target.value ? new Date(e.target.value).toISOString() : null })}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-800"
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -310,7 +315,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                   onChange={(e) => setSettings({ ...settings, is_code_active: e.target.checked })}
                   className="w-4 h-4"
                 />
-                <label className="text-sm text-slate-700 dark:text-slate-300">
+                <label className="text-sm text-slate-700 dark:text-slate-200">
                   Código ativo (desmarque para desabilitar temporariamente)
                 </label>
               </div>
@@ -318,13 +323,13 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
               {/* Histórico */}
               {codeHistory.length > 0 && (
                 <div>
-                  <h3 className="font-semibold mb-3">Histórico de Códigos</h3>
+                  <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">Histórico de Códigos</h3>
                   <div className="space-y-2">
                     {codeHistory.slice(0, 5).map((code) => (
-                      <div key={code.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                        <span className="font-mono">{code.code}</span>
+                      <div key={code.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <span className="font-mono text-slate-900 dark:text-white">{code.code}</span>
                         <div className="flex items-center gap-3">
-                          <span className="text-sm text-slate-600">
+                          <span className="text-sm text-slate-600 dark:text-slate-400">
                             {code.uses_count} {code.uses_count === 1 ? 'uso' : 'usos'}
                           </span>
                           <Badge variant="outline">Desativado</Badge>
@@ -341,12 +346,12 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
           {activeTab === 'schedule' && (
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold mb-3">Horários de Aula</h3>
+                <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">Horários de Aula</h3>
                 <div className="space-y-2">
                   {settings.schedule.map((item, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                    <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                       <Clock className="w-5 h-5 text-slate-400" />
-                      <span className="flex-1">
+                      <span className="flex-1 text-slate-900 dark:text-white">
                         {weekDays[item.day]}: {item.start_time} - {item.end_time}
                       </span>
                       <button
@@ -361,12 +366,12 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">Adicionar Horário</h4>
+                <h4 className="font-medium mb-3 text-slate-900 dark:text-white">Adicionar Horário</h4>
                 <div className="grid grid-cols-3 gap-3 mb-3">
                   <select
                     value={newSchedule.day}
                     onChange={(e) => setNewSchedule({ ...newSchedule, day: e.target.value })}
-                    className="px-3 py-2 border rounded-lg dark:bg-slate-800"
+                    className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   >
                     {Object.entries(weekDays).map(([key, label]) => (
                       <option key={key} value={key}>{label}</option>
@@ -376,13 +381,13 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                     type="time"
                     value={newSchedule.start_time}
                     onChange={(e) => setNewSchedule({ ...newSchedule, start_time: e.target.value })}
-                    className="px-3 py-2 border rounded-lg dark:bg-slate-800"
+                    className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                   <input
                     type="time"
                     value={newSchedule.end_time}
                     onChange={(e) => setNewSchedule({ ...newSchedule, end_time: e.target.value })}
-                    className="px-3 py-2 border rounded-lg dark:bg-slate-800"
+                    className="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   />
                 </div>
                 <Button onClick={handleAddSchedule} size="sm">
@@ -397,7 +402,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
           {activeTab === 'location' && (
             <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-3">
                   Modalidade
                 </label>
                 <div className="flex gap-4">
@@ -408,7 +413,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                       onChange={() => setSettings({ ...settings, modality: 'online' })}
                       className="w-4 h-4"
                     />
-                    <span>Online</span>
+                    <span className="text-slate-900 dark:text-white">Online</span>
                   </label>
                   <label className="flex items-center gap-2">
                     <input
@@ -417,14 +422,14 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                       onChange={() => setSettings({ ...settings, modality: 'presential' })}
                       className="w-4 h-4"
                     />
-                    <span>Presencial</span>
+                    <span className="text-slate-900 dark:text-white">Presencial</span>
                   </label>
                 </div>
               </div>
 
               {settings.modality === 'online' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                     Link da Reunião
                   </label>
                   <div className="relative">
@@ -433,7 +438,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                       type="url"
                       value={settings.meeting_link}
                       onChange={(e) => setSettings({ ...settings, meeting_link: e.target.value })}
-                      className="w-full pl-10 pr-3 py-2 border rounded-lg dark:bg-slate-800"
+                      className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                       placeholder="https://meet.google.com/..."
                     />
                   </div>
@@ -442,7 +447,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
 
               {settings.modality === 'presential' && (
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
                     Local/Endereço
                   </label>
                   <div className="relative">
@@ -451,7 +456,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
                       value={settings.location}
                       onChange={(e) => setSettings({ ...settings, location: e.target.value })}
                       rows={3}
-                      className="w-full pl-10 pr-3 py-2 border rounded-lg dark:bg-slate-800"
+                      className="w-full pl-10 pr-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                       placeholder="Ex: Sala 203, Bloco B, Campus Centro"
                     />
                   </div>
@@ -463,8 +468,8 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
           {/* Tab: Chatbot */}
           {activeTab === 'chatbot' && (
             <div className="space-y-6">
-              <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
-                <MessageCircle className="w-8 h-8 text-blue-600" />
+              <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <MessageCircle className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 <div className="flex-1">
                   <h3 className="font-semibold text-slate-900 dark:text-white">
                     Assistente Virtual (Chatbot)
@@ -487,10 +492,169 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
               {settings.chatbot_enabled && (
                 <div className="p-4 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                   <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    ℹ️ Você poderá treinar e configurar o chatbot posteriormente na página específica de Chatbot.
+                    Você poderá treinar e configurar o chatbot posteriormente na página específica de Chatbot.
                   </p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Tab: Zona de Perigo */}
+          {activeTab === 'danger' && (
+            <div className="space-y-6">
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <h3 className="font-semibold text-red-900 dark:text-red-200 mb-2 flex items-center gap-2">
+                  <Trash2 className="w-5 h-5" />
+                  Zona de Perigo
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  As ações abaixo são irreversíveis. Tenha certeza antes de prosseguir.
+                </p>
+              </div>
+
+              <div className="border border-red-200 dark:border-red-800 rounded-lg p-6 space-y-4">
+                <div>
+                  <h4 className="font-semibold text-slate-900 dark:text-white mb-2">
+                    Excluir Turma Definitivamente
+                  </h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    Esta ação excluirá permanentemente a turma <strong className="text-slate-900 dark:text-white">{classData.name}</strong>, incluindo:
+                  </p>
+                  <ul className="text-sm text-slate-600 dark:text-slate-400 space-y-1 mb-4 ml-4 list-disc">
+                    <li>Todas as atividades e submissões</li>
+                    <li>Todos os materiais compartilhados</li>
+                    <li>Histórico de notas e feedback</li>
+                    <li>Todas as configurações da turma</li>
+                  </ul>
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-4">
+                    Esta ação NÃO pode ser desfeita!
+                  </p>
+                </div>
+
+                {!showDeleteConfirm ? (
+                  <Button
+                    onClick={() => setShowDeleteConfirm(true)}
+                    variant="outline"
+                    className="w-full border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir Turma Definitivamente
+                  </Button>
+                ) : (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
+                        Para confirmar, digite o nome da turma: <strong className="text-red-600 dark:text-red-400">{classData.name}</strong>
+                      </label>
+                      <input
+                        type="text"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                        placeholder={classData.name}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeleteConfirmText('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                        disabled={deleting}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={async () => {
+                          if (deleteConfirmText !== classData.name) {
+                            toast({
+                              title: 'Nome incorreto',
+                              description: 'Digite o nome exato da turma para confirmar.',
+                              variant: 'destructive'
+                            });
+                            return;
+                          }
+                          
+                          setDeleting(true);
+                          try {
+                            // Delete related records first (cascade)
+                            // 1. Delete class member history
+                            await supabase
+                              .from('class_member_history')
+                              .delete()
+                              .eq('class_id', classData.id);
+                            
+                            // 2. Delete class members
+                            await supabase
+                              .from('class_members')
+                              .delete()
+                              .eq('class_id', classData.id);
+                            
+                            // 3. Delete activity assignments
+                            await supabase
+                              .from('activity_class_assignments')
+                              .delete()
+                              .eq('class_id', classData.id);
+                            
+                            // 4. Delete class settings
+                            await supabase
+                              .from('class_settings')
+                              .delete()
+                              .eq('class_id', classData.id);
+                            
+                            // 5. Delete class materials
+                            await supabase
+                              .from('class_materials')
+                              .delete()
+                              .eq('class_id', classData.id);
+                            
+                            // 6. Delete class
+                            const { error } = await supabase
+                              .from('classes')
+                              .delete()
+                              .eq('id', classData.id);
+                            
+                            if (error) throw error;
+                            
+                            toast({
+                              title: 'Turma excluída',
+                              description: 'A turma foi excluída definitivamente.'
+                            });
+                            
+                            onSuccess?.();
+                            onClose();
+                          } catch (error) {
+                            logger.error('Erro ao excluir turma:', error);
+                            toast({
+                              title: 'Erro ao excluir',
+                              description: error?.message || 'Não foi possível excluir a turma.',
+                              variant: 'destructive'
+                            });
+                          } finally {
+                            setDeleting(false);
+                          }
+                        }}
+                        disabled={deleteConfirmText !== classData.name || deleting}
+                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        {deleting ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            Excluindo...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Confirmar Exclusão
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>

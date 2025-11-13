@@ -37,102 +37,124 @@ export const ActivityCard = ({ activity, onStart, onView, index = 0 }) => {
         }
       }}
     >
-      <Card className="p-6 border border-slate-200 dark:border-slate-700 transition-all duration-300 hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 bg-white dark:bg-slate-900 cursor-pointer group">
-        <div className="flex items-start justify-between gap-4">
+      <Card className="p-5 sm:p-6 border border-slate-200/60 dark:border-slate-700/60 transition-all duration-200 hover:shadow-xl hover:border-blue-500/50 dark:hover:border-blue-400/50 bg-white dark:bg-slate-900 cursor-pointer group overflow-hidden relative">
+        {/* Status Indicator Bar */}
+        <div className={`absolute top-0 left-0 right-0 h-1 transition-colors ${
+          isCompleted ? 'bg-emerald-500' :
+          isLate ? 'bg-red-500' :
+          isUrgent ? 'bg-amber-500' :
+          'bg-blue-500'
+        }`} />
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            {/* Header com Status Icon */}
-            <div className="flex items-center gap-2 mb-2">
-              {isLate && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
-              {isUrgent && !isLate && <Clock className="w-4 h-4 text-amber-500 flex-shrink-0" />}
-              {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />}
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                {activity.title}
-              </h3>
-            </div>
-            
-            {/* Turma */}
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
-              {activity.class_name || activity.class?.name || 'Turma'}
-            </p>
-            
-            {/* Info Row */}
-            <div className="flex items-center gap-3 flex-wrap mb-2">
-              {/* Tipo */}
-              <Badge variant="outline" className="text-xs">
-                {activity.type === 'objective' ? 'Objetiva' :
-                 activity.type === 'open' ? 'Aberta' :
-                 activity.type === 'mixed' ? 'Mista' :
-                 'Atividade'}
-              </Badge>
-              
-              {/* Prazo */}
-              <span className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
-                <Clock className="w-4 h-4" />
-                {format(dueDate, "dd/MM 'às' HH:mm", { locale: ptBR })}
-              </span>
-              
-              {/* Pontos */}
-              <span className="flex items-center gap-1 text-sm text-slate-600 dark:text-slate-400">
-                <Target className="w-4 h-4" />
-                {activity.max_score} pts
-              </span>
-              
-              {/* Nota (se já corrigida) */}
-              {(submission?.grade !== null && submission?.grade !== undefined) && (
-                <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 text-xs">
-                  {submission.grade}/{activity.max_score}
-                </Badge>
-              )}
-              
-              {/* Indicador de Entregue (sem nota ainda) */}
-              {hasSubmission && !submission?.grade && (
-                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 text-xs">
-                  Entregue
-                </Badge>
-              )}
-            </div>
-            
-            {/* Tempo Restante (para pendentes) */}
-            {isPending && hoursLeft >= 0 && (
-              <div className={`text-sm font-medium mt-2 flex items-center gap-1 ${
-                isUrgent ? 'text-amber-600 dark:text-amber-400' : 'text-slate-600 dark:text-slate-400'
+            {/* Header */}
+            <div className="flex items-start gap-3 mb-3">
+              <div className={`p-2 rounded-lg ${
+                isCompleted ? 'bg-emerald-50 dark:bg-emerald-950/30' :
+                isLate ? 'bg-red-50 dark:bg-red-950/30' :
+                isUrgent ? 'bg-amber-50 dark:bg-amber-950/30' :
+                'bg-blue-50 dark:bg-blue-950/30'
               }`}>
-                <Clock className="w-3.5 h-3.5" />
+                <FileText className={`w-5 h-5 ${
+                  isCompleted ? 'text-emerald-600 dark:text-emerald-400' :
+                  isLate ? 'text-red-600 dark:text-red-400' :
+                  isUrgent ? 'text-amber-600 dark:text-amber-400' :
+                  'text-blue-600 dark:text-blue-400'
+                }`} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-tight mb-1">
+                  {activity.title}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {activity.class_name || activity.class?.name || 'Turma'}
+                </p>
+              </div>
+            </div>
+            
+            
+            {/* Info Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Prazo</span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  {format(dueDate, "dd/MM/yy", { locale: ptBR })}
+                </span>
+              </div>
+              
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Horário</span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  {format(dueDate, "HH:mm", { locale: ptBR })}
+                </span>
+              </div>
+              
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Pontos</span>
+                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  {activity.max_score}
+                </span>
+              </div>
+              
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1">Status</span>
+                {(submission?.grade !== null && submission?.grade !== undefined) ? (
+                  <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                    {submission.grade}/{activity.max_score}
+                  </span>
+                ) : hasSubmission ? (
+                  <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                    Entregue
+                  </span>
+                ) : isPending ? (
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                    Pendente
+                  </span>
+                ) : (
+                  <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                    Atrasado
+                  </span>
+                )}
+              </div>
+            </div>
+            
+            {/* Status Message */}
+            {isPending && hoursLeft >= 0 && (
+              <div className={`p-2 rounded-lg text-sm font-medium ${
+                isUrgent 
+                  ? 'bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300' 
+                  : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+              }`}>
                 {hoursLeft > 24 
-                  ? `Faltam ${Math.floor(hoursLeft / 24)} dias`
+                  ? `Faltam ${Math.floor(hoursLeft / 24)} dias para o prazo`
                   : hoursLeft > 1
-                  ? `Faltam ${hoursLeft} horas`
+                  ? `Faltam ${hoursLeft} horas para o prazo`
                   : minutesLeft > 0
-                  ? `Faltam ${minutesLeft} minutos`
+                  ? `Últimos ${minutesLeft} minutos!`
                   : 'Prazo expirando!'}
               </div>
             )}
             
-            {/* Mensagem de Atrasado */}
             {isLate && (
-              <div className="text-sm font-medium text-red-600 dark:text-red-400 mt-2 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" />
+              <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/20 text-sm font-medium text-red-700 dark:text-red-300">
                 Atrasado há {formatDistanceToNow(dueDate, { locale: ptBR })}
               </div>
             )}
             
-            {/* Feedback (se concluída) */}
-            {isCompleted && (submission?.feedback || activity.feedback) && (
-              <div className="mt-2 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg text-sm text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800">
-                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Feedback</p>
-                {submission?.feedback || activity.feedback}
-              </div>
-            )}
           </div>
           
           {/* Botão de Ação */}
           <Button
             onClick={isCompleted ? onView : onStart}
-            className="whitespace-nowrap transition-all group-hover:scale-105"
-            variant={isCompleted ? "outline" : "default"}
-            size="default"
+            className={`w-full sm:w-auto whitespace-nowrap transition-all font-medium ${
+              isCompleted 
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+            size="lg"
           >
-            {isCompleted ? 'Ver' : 'Fazer'}
+            {isCompleted ? 'Ver Resultado' : 'Iniciar Atividade'}
           </Button>
         </div>
       </Card>

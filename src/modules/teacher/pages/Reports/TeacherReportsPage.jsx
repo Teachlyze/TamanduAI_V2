@@ -540,20 +540,20 @@ const TeacherReportsPage = () => {
       />
 
       {/* Filtros Obrigatórios */}
-      <Card className="mt-6 p-6 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800">
-        <div className="flex items-start gap-4">
+      <Card className="mt-4 sm:mt-6 p-4 sm:p-6 bg-blue-50 dark:bg-blue-950/20 border-2 border-blue-200 dark:border-blue-800">
+        <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
           <div className="p-3 rounded-lg bg-blue-100 dark:bg-blue-900/30">
             <Filter className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">
+            <h3 className="text-base sm:text-lg font-bold mb-2 text-blue-900 dark:text-blue-100">
               Selecione o Escopo do Relatório
             </h3>
             <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
               Escolha para quem deseja gerar o relatório antes de selecionar um template
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {/* Tipo de Filtro */}
               <div>
                 <Label className="text-sm font-medium mb-2 block">Tipo de Relatório</Label>
@@ -662,7 +662,7 @@ const TeacherReportsPage = () => {
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {REPORT_TEMPLATES.map((template, index) => {
               const Icon = template.icon;
               const disabled = isTemplateDisabled(template.id);
@@ -766,7 +766,7 @@ const TeacherReportsPage = () => {
           {/* Quick Actions */}
           <Card className="mt-8 p-6">
             <h3 className="text-lg font-bold mb-4">Formatos de Exportação</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <Button 
                 variant="outline" 
                 className="h-24 flex flex-col items-center justify-center hover:bg-red-50 hover:border-red-300 dark:hover:bg-red-950/20"

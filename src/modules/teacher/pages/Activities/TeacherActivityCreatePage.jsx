@@ -421,7 +421,7 @@ const TeacherActivityCreatePage = () => {
         });
 
         // Navegar para tela de edição
-        navigate(`/teacher/activities/${data.id}/edit`, { replace: true });
+        navigate(`/dashboard/activities/${data.id}/edit`, { replace: true });
       }
 
       setLastSaved(new Date());

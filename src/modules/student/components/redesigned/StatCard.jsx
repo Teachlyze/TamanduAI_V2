@@ -37,16 +37,16 @@ export const StatCard = ({ icon: Icon, value, label, gradient, trend }) => {
       whileHover={{ scale: 1.05, y: -5 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
     >
-      <Card className="p-6 relative overflow-hidden border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 transition-all hover:shadow-xl">
+      <Card className="p-4 sm:p-6 relative overflow-hidden border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 transition-all hover:shadow-xl">
         {/* Gradiente de fundo */}
         <div className={`absolute inset-0 opacity-5 bg-gradient-to-br ${gradientClasses[gradient] || gradientClasses.blue}`} />
         
         {/* Conteúdo */}
         <div className="relative z-10">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2 sm:mb-3">
             {Icon && (
-              <div className={`p-3 rounded-xl ${iconBgColors[gradient] || iconBgColors.blue}`}>
-                <Icon className={`w-6 h-6 ${iconColors[gradient] || iconColors.blue}`} />
+              <div className={`p-2 sm:p-3 rounded-xl ${iconBgColors[gradient] || iconBgColors.blue}`}>
+                <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${iconColors[gradient] || iconColors.blue}`} />
               </div>
             )}
             {trend !== undefined && trend !== null && (
@@ -65,7 +65,7 @@ export const StatCard = ({ icon: Icon, value, label, gradient, trend }) => {
               </motion.span>
             )}
           </div>
-          <div className="text-3xl font-bold text-slate-900 dark:text-white mb-1">
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-1">
             {value}
           </div>
           <div className="text-sm font-medium text-slate-600 dark:text-slate-400">

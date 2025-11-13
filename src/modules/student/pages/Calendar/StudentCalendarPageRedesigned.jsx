@@ -208,29 +208,29 @@ const StudentCalendarPageRedesigned = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-4 md:p-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6 md:mb-8"
       >
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-3">
-          <Calendar className="w-8 h-8 text-blue-600" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2 sm:gap-3">
+          <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
           Minha Agenda
         </h1>
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
           Eventos, reuniões e prazos de atividades
         </p>
       </motion.div>
 
       {/* Controles do Calendário */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
           <Button onClick={handlePrevMonth} variant="outline" size="sm">
             <ChevronLeft className="w-4 h-4" />
           </Button>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white min-w-[200px] text-center">
+          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white text-center capitalize">
             {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
           </h2>
           <Button onClick={handleNextMonth} variant="outline" size="sm">
@@ -238,25 +238,25 @@ const StudentCalendarPageRedesigned = () => {
           </Button>
         </div>
 
-        <Button onClick={handleToday} variant="default">
+        <Button onClick={handleToday} variant="default" size="sm" className="w-full sm:w-auto">
           Hoje
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
         {/* Calendário (2/3) */}
-        <Card className="p-6 lg:col-span-2">
+        <Card className="p-3 sm:p-4 md:p-6 lg:col-span-2">
           {/* Dias da Semana */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
+          <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2 sm:mb-4">
             {weekDays.map(day => (
-              <div key={day} className="text-center font-bold text-slate-600 dark:text-slate-400 text-sm py-2">
+              <div key={day} className="text-center font-bold text-slate-600 dark:text-slate-400 text-[10px] sm:text-xs md:text-sm py-1 sm:py-2">
                 {day}
               </div>
             ))}
           </div>
 
           {/* Dias do Mês */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
             {days.map(day => {
               const dayEvents = getEventsForDay(day);
               const isCurrentMonth = isSameMonth(day, currentMonth);
@@ -271,16 +271,16 @@ const StudentCalendarPageRedesigned = () => {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedDate(day)}
                   className={`
-                    aspect-square p-2 rounded-lg border-2 transition-all
+                    w-full h-14 sm:h-20 md:h-24 p-2 sm:p-3 rounded-lg border sm:border-2 transition-all flex flex-col items-center justify-center
                     ${isCurrentMonth ? 'bg-white dark:bg-slate-800' : 'bg-slate-100 dark:bg-slate-900'}
                     ${isSelected ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-transparent'}
-                    ${isCurrentDay ? 'ring-2 ring-blue-500' : ''}
+                    ${isCurrentDay ? 'ring-1 sm:ring-2 ring-blue-500' : ''}
                     ${isPastDay ? 'opacity-50' : ''}
                     hover:border-blue-300 dark:hover:border-blue-700
                   `}
                 >
                   <div className={`
-                    text-sm font-semibold mb-1
+                    text-xs sm:text-sm font-semibold mb-0.5 sm:mb-1
                     ${isSelected ? 'text-blue-600' : 'text-slate-900 dark:text-white'}
                     ${!isCurrentMonth ? 'text-slate-400' : ''}
                   `}>
@@ -288,11 +288,11 @@ const StudentCalendarPageRedesigned = () => {
                   </div>
 
                   {dayEvents.length > 0 && (
-                    <div className="flex flex-wrap gap-0.5 justify-center">
+                    <div className="hidden sm:flex flex-wrap gap-0.5 justify-center">
                       {dayEvents.slice(0, 3).map((event, idx) => (
                         <div
                           key={idx}
-                          className={`w-1.5 h-1.5 rounded-full ${
+                          className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                             event.type === 'deadline' ? 'bg-red-500' :
                             event.type === 'meeting' ? 'bg-purple-500' :
                             'bg-blue-500'
@@ -312,26 +312,26 @@ const StudentCalendarPageRedesigned = () => {
           </div>
 
           {/* Legenda */}
-          <div className="flex items-center gap-6 mt-6 pt-6 border-t">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Eventos</span>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-500"></div>
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Eventos</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Reuniões</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-purple-500"></div>
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Reuniões</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-red-500"></div>
-              <span className="text-sm text-slate-600 dark:text-slate-400">Prazos</span>
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-500"></div>
+              <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Prazos</span>
             </div>
           </div>
         </Card>
 
         {/* Eventos do Dia (1/3) */}
-        <Card className="p-6">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-600" />
+        <Card className="p-4 sm:p-6">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
             {isToday(selectedDate) ? 'Hoje' : format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
           </h2>
 
@@ -364,8 +364,8 @@ const StudentCalendarPageRedesigned = () => {
       </div>
 
       {/* Lista Completa de Eventos do Mês */}
-      <Card className="p-6 mt-6">
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+      <Card className="p-4 sm:p-6 mt-4 sm:mt-6">
+        <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6 capitalize">
           📅 Eventos de {format(currentMonth, 'MMMM', { locale: ptBR })}
         </h2>
 

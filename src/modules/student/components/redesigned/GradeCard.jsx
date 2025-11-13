@@ -33,11 +33,11 @@ export const GradeCard = ({ grade, onViewDetails, index = 0 }) => {
       transition={{ delay: index * 0.05 }}
       whileHover={{ scale: 1.02, y: -2 }}
     >
-      <Card className="p-6 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 transition-all hover:shadow-lg">
-        <div className="flex items-start justify-between gap-4">
+      <Card className="p-4 sm:p-6 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 transition-all hover:shadow-lg">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
             {/* Atividade */}
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 truncate">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-2 line-clamp-2">
               {grade.activity_title || 'Atividade'}
             </h3>
 
@@ -49,10 +49,10 @@ export const GradeCard = ({ grade, onViewDetails, index = 0 }) => {
             )}
 
             {/* Nota e Badge */}
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
               <div className="flex items-center gap-2">
                 <Star className={`w-5 h-5 ${getGradeColor(percentage)}`} />
-                <span className={`text-2xl font-bold ${getGradeColor(percentage)}`}>
+                <span className={`text-xl sm:text-2xl font-bold ${getGradeColor(percentage)}`}>
                   {grade.grade}
                 </span>
                 <span className="text-slate-500 dark:text-slate-400">
@@ -104,7 +104,7 @@ export const GradeCard = ({ grade, onViewDetails, index = 0 }) => {
                     <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
                       Feedback do Professor:
                     </p>
-                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                    <p className="text-sm text-blue-700 dark:text-blue-300 break-words whitespace-pre-wrap max-w-full overflow-hidden">
                       {grade.feedback}
                     </p>
                   </div>
@@ -119,7 +119,7 @@ export const GradeCard = ({ grade, onViewDetails, index = 0 }) => {
               onClick={onViewDetails}
               variant="outline"
               size="sm"
-              className="whitespace-nowrap flex-shrink-0"
+              className="w-full sm:w-auto whitespace-nowrap flex-shrink-0"
             >
               Ver Detalhes
             </Button>

@@ -256,8 +256,8 @@ const StudentClassesPageRedesigned = () => {
       {filteredClasses.length > 0 ? (
         <div className={
           viewMode === 'grid'
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-            : 'space-y-4'
+            ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6'
+            : 'space-y-3 sm:space-y-4'
         }>
           {filteredClasses.map((classItem, index) => (
             <ClassCard
@@ -287,38 +287,38 @@ const StudentClassesPageRedesigned = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6"
+          className="mt-8 sm:mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
         >
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border-2 border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border-2 border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
                 <BookOpen className="w-5 h-5 text-blue-600" />
               </div>
               <h3 className="font-bold text-slate-900 dark:text-white">Total de Turmas</h3>
             </div>
-            <p className="text-3xl font-bold text-blue-600">{classes.length}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-blue-600">{classes.length}</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border-2 border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border-2 border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
                 <Star className="w-5 h-5 text-orange-600" />
               </div>
               <h3 className="font-bold text-slate-900 dark:text-white">Atividades Pendentes</h3>
             </div>
-            <p className="text-3xl font-bold text-orange-600">
+            <p className="text-2xl sm:text-3xl font-bold text-orange-600">
               {classes.reduce((sum, c) => sum + c.pendingActivities, 0)}
             </p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border-2 border-slate-200 dark:border-slate-700">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 border-2 border-slate-200 dark:border-slate-700">
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
                 <Star className="w-5 h-5 text-green-600" />
               </div>
               <h3 className="font-bold text-slate-900 dark:text-white">Média Geral</h3>
             </div>
-            <p className="text-3xl font-bold text-green-600">
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">
               {(() => {
                 const classesWithGrades = classes.filter(c => c.avgGrade !== null);
                 if (classesWithGrades.length === 0) return '--';

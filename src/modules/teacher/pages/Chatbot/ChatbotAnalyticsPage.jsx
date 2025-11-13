@@ -155,7 +155,7 @@ const ChatbotAnalyticsPage = () => {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <StatsCard
           title="Total de Conversas"
           value={analytics.totalConversations}
@@ -189,8 +189,8 @@ const ChatbotAnalyticsPage = () => {
       </div>
 
       {/* Insights */}
-      <Card className="p-6 bg-white dark:bg-slate-900 mb-8">
-        <h3 className="text-lg font-bold mb-4">💡 Insights Automáticos</h3>
+      <Card className="p-4 sm:p-6 bg-white dark:bg-slate-900 mb-6 md:mb-8">
+        <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">💡 Insights Automáticos</h3>
         <div className="space-y-3">
           {analytics.insights.map((insight, idx) => (
             <div
@@ -213,17 +213,17 @@ const ChatbotAnalyticsPage = () => {
         </div>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 lg:gap-8 mb-6 md:mb-8">
         {/* Top Questions */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <h3 className="text-lg font-bold mb-4">❓ Perguntas Mais Frequentes</h3>
+        <Card className="p-4 sm:p-6 bg-white dark:bg-slate-900">
+          <h3 className="text-base sm:text-lg font-bold mb-3 sm:mb-4">❓ Perguntas Mais Frequentes</h3>
           <div className="space-y-4">
             {analytics.topQuestions.length === 0 ? (
               <p className="text-sm text-slate-500 text-center py-8">
                 Nenhuma conversa registrada ainda. As perguntas aparecerão aqui quando os alunos começarem a usar o chatbot.
               </p>
             ) : analytics.topQuestions.map((q, idx) => (
-              <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div key={idx} className="p-3 sm:p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1">
                     <div className="font-semibold text-sm">{idx + 1}. "{q.question}" ({q.count}x)</div>
@@ -246,7 +246,7 @@ const ChatbotAnalyticsPage = () => {
         </Card>
 
         {/* Difficult Topics */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
+        <Card className="p-4 sm:p-6 bg-white dark:bg-slate-900">
           <h3 className="text-lg font-bold mb-4">📚 Tópicos Mais Difíceis</h3>
           <div className="space-y-4">
             {analytics.difficultTopics.length === 0 ? (

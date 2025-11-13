@@ -73,45 +73,45 @@ const GradeChart = memo(({ studentGrade, classAverage, maxGrade = 100, className
           </h4>
         </div>
 
-        <div className="flex items-end justify-center gap-12 h-64 pb-16">
+        <div className="flex items-end justify-center gap-12 pt-4 pb-4">
           {/* Coluna: Sua Nota */}
-          <div className="flex flex-col items-center w-28">
-            <div className="relative w-full h-48 mb-3">
+          <div className="flex flex-col items-center w-32">
+            <div className="relative w-full h-56 mb-4">
               <div 
                 className={cn(
-                  'absolute bottom-0 w-full rounded-t-lg transition-all duration-1000 flex items-end justify-center pb-2',
+                  'absolute bottom-0 w-full rounded-t-lg transition-all duration-1000 flex items-end justify-center pb-3',
                   studentBarColor
                 )}
-                style={{ height: `${Math.max(studentPercentage, 5)}%` }}
+                style={{ height: `${Math.max(studentPercentage, 8)}%` }}
               >
-                <span className="text-white font-bold text-base drop-shadow-lg">
+                <span className="text-white font-bold text-lg drop-shadow-lg">
                   {studentGrade.toFixed(1)}
                 </span>
               </div>
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-slate-900 dark:text-white">Você</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {studentPercentage.toFixed(0)}%
               </p>
             </div>
           </div>
 
           {/* Coluna: Média da Turma */}
-          <div className="flex flex-col items-center w-28">
-            <div className="relative w-full h-48 mb-3">
+          <div className="flex flex-col items-center w-32">
+            <div className="relative w-full h-56 mb-4">
               <div 
-                className="absolute bottom-0 w-full bg-slate-400 dark:bg-slate-600 rounded-t-lg transition-all duration-1000 flex items-end justify-center pb-2"
-                style={{ height: `${Math.max(averagePercentage, 5)}%` }}
+                className="absolute bottom-0 w-full bg-slate-400 dark:bg-slate-600 rounded-t-lg transition-all duration-1000 flex items-end justify-center pb-3"
+                style={{ height: `${Math.max(averagePercentage, 8)}%` }}
               >
-                <span className="text-white font-bold text-base drop-shadow-lg">
+                <span className="text-white font-bold text-lg drop-shadow-lg">
                   {classAverage.toFixed(1)}
                 </span>
               </div>
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-slate-900 dark:text-white">Turma</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {averagePercentage.toFixed(0)}%
               </p>
             </div>

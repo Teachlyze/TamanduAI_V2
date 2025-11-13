@@ -31,7 +31,7 @@ export const ClassCard = ({ classItem, onClick, index = 0 }) => {
     >
       <Card className="overflow-hidden border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 hover:shadow-2xl transition-all">
         {/* Header com Gradiente */}
-        <div className={`h-32 bg-gradient-to-br ${gradient} p-6 text-white relative overflow-hidden`}>
+        <div className={`h-28 sm:h-32 bg-gradient-to-br ${gradient} p-4 sm:p-6 text-white relative overflow-hidden`}>
           {/* Ícone de fundo decorativo */}
           <div className="absolute -right-8 -bottom-8 opacity-20">
             <BookOpen className="w-32 h-32" />
@@ -42,14 +42,14 @@ export const ClassCard = ({ classItem, onClick, index = 0 }) => {
             <Badge className="mb-2 bg-white/20 text-white border-white/30 backdrop-blur-sm">
               {classItem.subject || 'Matéria'}
             </Badge>
-            <h3 className="text-xl font-bold line-clamp-2">
+            <h3 className="text-lg sm:text-xl font-bold line-clamp-2">
               {classItem.name}
             </h3>
           </div>
         </div>
         
         {/* Corpo do Card */}
-        <div className="p-6 space-y-4">
+        <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
           {/* Professor */}
           <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
             <Users className="w-4 h-4" />
@@ -57,10 +57,10 @@ export const ClassCard = ({ classItem, onClick, index = 0 }) => {
           </div>
           
           {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
             {/* Pendentes */}
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {classItem.pendingActivities || 0}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400">
@@ -70,7 +70,7 @@ export const ClassCard = ({ classItem, onClick, index = 0 }) => {
             
             {/* Média */}
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+              <div className="text-xl sm:text-2xl font-bold text-green-600 dark:text-green-400">
                 {classItem.avgGrade !== null && classItem.avgGrade !== undefined 
                   ? classItem.avgGrade.toFixed(1) 
                   : '--'}
@@ -82,7 +82,7 @@ export const ClassCard = ({ classItem, onClick, index = 0 }) => {
             
             {/* Alunos */}
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              <div className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
                 {classItem.studentsCount || 0}
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400">

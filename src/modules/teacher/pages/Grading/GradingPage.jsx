@@ -12,6 +12,7 @@ import {
 } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
+import { calculateAutoGrade, generateAutoFeedback, canAutoGrade } from '@/shared/services/autoGradingService';
 
 const GradingPage = () => {
   const { submissionId } = useParams();
@@ -25,6 +26,7 @@ const GradingPage = () => {
   const [classInfo, setClassInfo] = useState(null);
   const [allSubmissions, setAllSubmissions] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [canUseAutoGrade, setCanUseAutoGrade] = useState(false);
 
   useEffect(() => {
     loadSubmission();
@@ -240,11 +242,16 @@ const GradingPage = () => {
           description: submissionError?.message || 'Não foi possível encontrar esta submissão.', 
           variant: 'destructive' 
         });
-        navigate('/dashboard/activities');
+        navigate('/dashboard/corrections');
         return;
       }
       setSubmission(submissionData);
       setActivity(submissionData.activity);
+      
+      // Check if can use auto grading
+      if (submissionData.activity) {
+        setCanUseAutoGrade(canAutoGrade(submissionData.activity));
+      }
       
       // Load class info
       if (submissionData.activity_id) {
@@ -286,6 +293,61 @@ const GradingPage = () => {
     }
   };
 
+  const handleAutoGrade = async () => {
+    if (!activity || !submission) return null;
+    
+    try {
+      const studentAnswers = typeof submission.content === 'string' 
+        ? JSON.parse(submission.content)
+        : submission.content;
+      
+      const questions = activity.content?.questions || [];
+      const result = calculateAutoGrade(questions, studentAnswers, activity.max_score);
+      
+      if (result) {
+        const feedback = generateAutoFeedback(result);
+        toast({
+          title: 'Correção automática concluída',
+          description: `Nota: ${result.grade}/${activity.max_score} (${result.correctCount}/${result.totalQuestions} corretas)`
+        });
+        return { grade: result.grade, feedback };
+      }
+    } catch (error) {
+      logger.error('Erro na correção automática:', error);
+      toast({
+        title: 'Erro na correção automática',
+        description: 'Não foi possível corrigir automaticamente.',
+        variant: 'destructive'
+      });
+    }
+    return null;
+  };
+
+  const handleAISuggestion = async () => {
+    if (!submission || !activity) return null;
+    
+    try {
+      // TODO: Implementar chamada à API de IA
+      // Por enquanto, retorna uma mensagem genérica
+      toast({
+        title: 'Sugestão por IA',
+        description: 'Em breve você poderá gerar feedback com IA!'
+      });
+      
+      const suggestedFeedback = `Revisão da submissão realizada.\n\nPontos fortes:\n- Organização das respostas\n- Compreensão do conteúdo\n\nPontos de melhoria:\n- Revisar conceitos específicos\n- Aprofundar justificativas`;
+      
+      return { feedback: suggestedFeedback };
+    } catch (error) {
+      logger.error('Erro ao gerar sugestão por IA:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível gerar sugestão.',
+        variant: 'destructive'
+      });
+    }
+    return null;
+  };
+
   const handleSaveGrade = async ({ grade, feedback }) => {
     try {
       setSaving(true);
@@ -313,7 +375,7 @@ const GradingPage = () => {
         const nextSubmission = allSubmissions[currentIndex + 1];
         navigate(`/dashboard/grading/${nextSubmission.id}`);
       } else {
-        navigate(`/dashboard/activities/${activity?.id}/submissions`);
+        navigate('/dashboard/corrections');
       }
 
     } catch (error) {
@@ -348,7 +410,7 @@ const GradingPage = () => {
       {/* Back Button */}
       <Button
         variant="ghost"
-        onClick={() => navigate(`/dashboard/activities/${activity?.id}/submissions`)}
+        onClick={() => navigate('/dashboard/corrections')}
         className="mb-4"
       >
         <ArrowLeft className="w-4 h-4 mr-2" />
@@ -444,8 +506,12 @@ const GradingPage = () => {
             initialGrade={submission?.grade}
             initialFeedback={submission?.feedback || ''}
             onSave={handleSaveGrade}
-            onCancel={() => navigate(`/dashboard/activities/${activity?.id}/submissions`)}
+            onCancel={() => navigate('/dashboard/corrections')}
+            onAutoGrade={handleAutoGrade}
+            onAISuggestion={handleAISuggestion}
             loading={saving}
+            canUseAutoGrade={canUseAutoGrade}
+            canUseAI={true}
           />
 
           {/* Navigation */}

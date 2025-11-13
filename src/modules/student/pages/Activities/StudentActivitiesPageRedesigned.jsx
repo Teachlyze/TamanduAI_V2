@@ -241,58 +241,58 @@ const StudentActivitiesPageRedesigned = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-4 md:p-6">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-8"
+        className="mb-6 sm:mb-8"
       >
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-3">
-          <FileText className="w-8 h-8 text-blue-600" />
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white mb-2 flex items-center gap-2 sm:gap-3">
+          <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
           Minhas Atividades
         </h1>
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400">
           Gerencie suas atividades e acompanhe seu progresso
         </p>
       </motion.div>
 
       {/* Tabs com Stats */}
-      <Card className="p-6 mb-8">
+      <Card className="p-3 sm:p-4 md:p-6 mb-6 sm:mb-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 w-full mb-6">
-            <TabsTrigger value="all" className="flex items-center gap-2">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full mb-4 sm:mb-6">
+            <TabsTrigger value="all" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <FileText className="w-4 h-4" />
               Todas
-              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
+              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.total}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="pending" className="flex items-center gap-2">
+            <TabsTrigger value="pending" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <Clock className="w-4 h-4" />
               Pendentes
-              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
+              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.pending}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="completed" className="flex items-center gap-2">
+            <TabsTrigger value="completed" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <CheckCircle2 className="w-4 h-4" />
               Concluídas
-              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
+              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.completed}
               </span>
             </TabsTrigger>
-            <TabsTrigger value="late" className="flex items-center gap-2">
+            <TabsTrigger value="late" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 text-xs sm:text-sm">
               <AlertTriangle className="w-4 h-4" />
               Atrasadas
-              <span className="ml-1 px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
+              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-xs font-medium">
                 {stats.late}
               </span>
             </TabsTrigger>
           </TabsList>
 
           {/* Filtros */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
             {/* Busca */}
             <div className="flex-1">
               <div className="relative">

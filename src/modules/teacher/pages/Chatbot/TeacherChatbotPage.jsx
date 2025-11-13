@@ -33,6 +33,39 @@ const TeacherChatbotPage = () => {
     loadData();
   }, [user]);
 
+  const handleToggleChatbot = async (classId, currentStatus) => {
+    try {
+      const newPaused = currentStatus === 'active';
+      
+      // Buscar settings atual
+      const { data: classData } = await supabase
+        .from('classes')
+        .select('settings')
+        .eq('id', classId)
+        .single();
+      
+      const currentSettings = classData?.settings || {};
+      
+      // Atualizar apenas o campo chatbot_paused
+      const { error } = await supabase
+        .from('classes')
+        .update({ 
+          settings: {
+            ...currentSettings,
+            chatbot_paused: newPaused
+          }
+        })
+        .eq('id', classId);
+      
+      if (error) throw error;
+      
+      // Recarregar dados
+      await loadData();
+    } catch (error) {
+      logger.error('Erro ao alternar chatbot:', error);
+    }
+  };
+
   const loadData = async () => {
     if (!user) return;
 
@@ -260,7 +293,9 @@ const TeacherChatbotPage = () => {
                         <Button
                           variant="outline"
                           size="icon"
-                          className={cls.chatbot.status === 'active' ? 'text-amber-600' : 'text-green-600'}
+                          onClick={() => handleToggleChatbot(cls.id, cls.chatbot.status)}
+                          className={cls.chatbot.status === 'active' ? 'text-amber-600 hover:text-amber-700' : 'text-green-600 hover:text-green-700'}
+                          title={cls.chatbot.status === 'active' ? 'Pausar chatbot' : 'Ativar chatbot'}
                         >
                           {cls.chatbot.status === 'active' ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                         </Button>

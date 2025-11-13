@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, CheckCircle, TrendingUp, AlertCircle, Filter, Download, FileText, Users, Calendar, Search } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
@@ -24,6 +24,7 @@ import CompareSubmissionsModal from './components/CompareSubmissionsModal';
 const TeacherCorrectionsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(true);
@@ -258,9 +259,8 @@ const TeacherCorrectionsPage = () => {
   // Função applyFilters removida - agora usa useMemo para filtrar sem recarregar
 
   const handleOpenCorrection = (submission, index = 0) => {
-    setSelectedSubmission(submission);
-    setCurrentSubmissionIndex(index);
-    setShowCorrectionModal(true);
+    // Redirecionar para página de correção ao invés de abrir modal
+    navigate(`/dashboard/grading/${submission.id}`);
   };
 
   const handleNavigateSubmission = (direction) => {
@@ -552,20 +552,7 @@ const TeacherCorrectionsPage = () => {
         />
       )}
 
-      {/* Modal de Correção */}
-      {showCorrectionModal && selectedSubmission && (
-        <CorrectionModal
-          submission={selectedSubmission}
-          submissions={filteredSubmissions}
-          currentIndex={currentSubmissionIndex}
-          onClose={() => {
-            setShowCorrectionModal(false);
-            setSelectedSubmission(null);
-          }}
-          onSaved={handleCorrectionSaved}
-          onNavigate={handleNavigateSubmission}
-        />
-      )}
+      {/* Modal removido - agora usa página separada */}
 
       {/* Modal de Correção em Lote */}
       {showBulkModal && (
