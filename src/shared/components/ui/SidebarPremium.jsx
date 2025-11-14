@@ -16,7 +16,8 @@ import {
   X,
   GraduationCap,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Brain
 } from 'lucide-react';
 import { cn } from '@/shared/utils/cn';
 import { useAuth } from '@/shared/hooks/useAuth';
@@ -40,6 +41,7 @@ const studentNavigation = [
   { name: 'Dashboard', href: '/students', icon: Home },
   { name: 'Turmas', href: '/students/classes', icon: Users },
   { name: 'Atividades', href: '/students/activities', icon: BookOpen },
+  { name: 'Flashcards', href: '/students/flashcards', icon: Brain },
   { name: 'Meu Desempenho', href: '/students/performance', icon: BarChart3 },
   { name: 'Agenda', href: '/students/calendar', icon: Calendar },
   { name: 'Histórico', href: '/students/history', icon: FileText },

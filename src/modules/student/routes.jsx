@@ -21,6 +21,17 @@ const StudentProfilePage = React.lazy(() => import('./pages/Profile/StudentProfi
 const StudentFeedbackPage = React.lazy(() => import('./pages/Profile/StudentFeedbackPage'));
 const StudentSettingsPage = React.lazy(() => import('./pages/Settings/StudentSettingsPage'));
 
+// Flashcards
+const FlashcardsPage = React.lazy(() => import('./pages/Flashcards/FlashcardsPage'));
+const FlashcardsStatsPage = React.lazy(() => import('./pages/Flashcards/FlashcardsStatsPage'));
+const CreateDeckPage = React.lazy(() => import('./pages/Flashcards/CreateDeckPage'));
+const DeckDetailPage = React.lazy(() => import('./pages/Flashcards/DeckDetailPage'));
+const ReviewPage = React.lazy(() => import('./pages/Flashcards/ReviewPage'));
+const CramModePage = React.lazy(() => import('./pages/Flashcards/CramModePage'));
+const CardEditorPage = React.lazy(() => import('./pages/Flashcards/CardEditorPage'));
+const FlashcardsSettingsPage = React.lazy(() => import('./pages/Flashcards/FlashcardsSettingsPage'));
+const DeckSettingsPage = React.lazy(() => import('./pages/Flashcards/DeckSettingsPage'));
+
 const StudentRoutes = () => {
   return (
     <StudentLayout>
@@ -50,6 +61,18 @@ const StudentRoutes = () => {
       <Route path="discussion" element={<StudentDiscussionPage />} />
       <Route path="quizzes" element={<StudentPublicQuizzesPage />} />
       <Route path="quiz/:quizId" element={<StudentQuizPlayPage />} />
+      
+      {/* Flashcards */}
+      <Route path="flashcards" element={<FlashcardsPage />} />
+      <Route path="flashcards/settings" element={<FlashcardsSettingsPage />} />
+      <Route path="flashcards/stats" element={<FlashcardsStatsPage />} />
+      <Route path="flashcards/decks/new" element={<CreateDeckPage />} />
+      <Route path="flashcards/decks/:deckId" element={<DeckDetailPage />} />
+      <Route path="flashcards/decks/:deckId/settings" element={<DeckSettingsPage />} />
+      <Route path="flashcards/decks/:deckId/review" element={<ReviewPage />} />
+      <Route path="flashcards/decks/:deckId/cram" element={<CramModePage />} />
+      <Route path="flashcards/decks/:deckId/cards/new" element={<CardEditorPage />} />
+      <Route path="flashcards/decks/:deckId/cards/:cardId/edit" element={<CardEditorPage />} />
       
       {/* Profile */}
       <Route path="profile" element={<StudentProfilePage />} />

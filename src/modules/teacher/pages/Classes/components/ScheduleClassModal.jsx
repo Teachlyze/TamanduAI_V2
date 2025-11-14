@@ -230,7 +230,7 @@ const ScheduleClassModal = ({ isOpen, onClose, onSave, initialData }) => {
           {/* Info */}
           <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
             <p className="text-xs text-blue-700 dark:text-blue-300">
-              💡 <strong>Dica:</strong> Este horário será adicionado à agenda dos alunos da turma automaticamente.
+              <strong>Dica:</strong> Este horário será adicionado à agenda dos alunos da turma automaticamente.
             </p>
           </div>
 

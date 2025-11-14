@@ -60,23 +60,15 @@ const StudentCalendarPageRedesigned = () => {
         .order('start_time', { ascending: true });
 
       // Buscar eventos onde é participante (reuniões)
-      // NOTA: participants é UUID[], usar filter com @>
       logger.debug('[Calendar] Buscando eventos como participante:', { userId: user.id });
-      
-      // Buscar todos eventos e filtrar no cliente (workaround para operador)
-      const { data: allAttendeeEvents, error: attendeeError } = await supabase
+
+      const { data: attendeeEvents, error: attendeeError } = await supabase
         .from('calendar_events')
-        .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, participants, class_id, created_by')
-        .not('participants', 'is', null)
+        .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, attendees, class_id, created_by')
+        .contains('attendees', [user.id])
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString())
         .order('start_time', { ascending: true });
-      
-      // Filtrar no cliente onde user está em participants
-      const attendeeEvents = allAttendeeEvents?.filter(event => 
-        event.participants && Array.isArray(event.participants) && 
-        event.participants.includes(user.id)
-      ) || [];
 
       if (attendeeError) {
         logger.error('[Calendar] Erro ao buscar eventos como participante:', attendeeError);

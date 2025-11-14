@@ -25,17 +25,27 @@ const EventDetailsModal = ({ open, onClose, event }) => {
 
       // Carregar participantes (se for reunião)
       if (event.type === 'reunião' || event.type === 'meeting') {
-        const { data: attendeesData, error: attendeesError } = await supabase
-          .from('meeting_attendees')
-          .select(`
-            user_id,
-            status,
-            profiles:profiles!meeting_attendees_user_id_fkey(id, full_name, email)
-          `)
-          .eq('meeting_id', event.id);
+        if (Array.isArray(event.attendees) && event.attendees.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', event.attendees);
 
-        if (attendeesError) throw attendeesError;
-        setAttendees(attendeesData || []);
+          if (profilesError) throw profilesError;
+
+          const attendeesData = (profilesData || []).map(profile => ({
+            user_id: profile.id,
+            status: 'pending',
+            profiles: {
+              full_name: profile.full_name,
+              email: profile.email
+            }
+          }));
+
+          setAttendees(attendeesData);
+        } else {
+          setAttendees([]);
+        }
       }
 
       // Carregar atividade linkada (se houver)

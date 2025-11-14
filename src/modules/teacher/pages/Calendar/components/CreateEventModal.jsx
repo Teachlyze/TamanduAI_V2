@@ -491,7 +491,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId,
                       : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
                   }`}
                 >
-                  📢 Todos
+                  Todos
                 </button>
                 <button
                   type="button"
@@ -502,7 +502,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId,
                       : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
                   }`}
                 >
-                  🎓 Por Turma
+                  Por Turma
                 </button>
                 <button
                   type="button"
@@ -513,7 +513,7 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId,
                       : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
                   }`}
                 >
-                  👤 Individual
+                  Individual
                 </button>
               </div>
             </div>

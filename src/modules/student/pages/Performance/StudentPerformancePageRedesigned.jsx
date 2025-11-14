@@ -1007,7 +1007,7 @@ const StudentPerformancePageRedesigned = () => {
           {/* Últimas Notas */}
           <Card className="p-4 sm:p-6">
             <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">
-              📝 Últimas Notas
+              Últimas Notas
             </h2>
             {recentGrades.length > 0 ? (
               <div className="space-y-4">
@@ -1037,7 +1037,7 @@ const StudentPerformancePageRedesigned = () => {
           {filteredClassPerformance.length > 0 && (
             <Card className="p-4 sm:p-6">
               <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4 sm:mb-6">
-                📊 Por Turma
+                Por Turma
               </h2>
               <div className="overflow-x-auto">
                 <ResponsiveContainer width="100%" height={Math.max(150, filteredClassPerformance.length * 50)} className="min-w-[300px]">
@@ -1069,7 +1069,7 @@ const StudentPerformancePageRedesigned = () => {
           {filteredRadarData.length > 0 && (
             <Card className="p-6">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-                🎯 Por Tipo
+                Por Tipo
               </h2>
               <ResponsiveContainer width="100%" height={220}>
                 <RadarChart data={filteredRadarData} margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>

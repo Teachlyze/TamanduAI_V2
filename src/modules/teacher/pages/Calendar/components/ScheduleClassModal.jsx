@@ -298,7 +298,7 @@ const ScheduleClassModal = ({ isOpen, onClose, onSuccess, teacherId }) => {
                     : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
                 }`}
               >
-                🏫 Presencial
+                Presencial
               </button>
               <button
                 type="button"
@@ -309,7 +309,7 @@ const ScheduleClassModal = ({ isOpen, onClose, onSuccess, teacherId }) => {
                     : 'border-slate-200 dark:border-slate-700 hover:border-blue-300'
                 }`}
               >
-                💻 Online
+                Online
               </button>
             </div>
           </div>

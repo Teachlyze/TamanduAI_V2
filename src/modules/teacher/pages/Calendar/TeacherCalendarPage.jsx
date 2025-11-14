@@ -413,12 +413,12 @@ const TeacherCalendarPage = () => {
                           </p>
                           {event.class?.name && (
                             <p className="text-xs text-slate-500 dark:text-slate-500">
-                              🎓 {event.class.name}
+                              {event.class.name}
                             </p>
                           )}
                           {event.location && (
                             <p className="text-xs text-slate-500 dark:text-slate-500">
-                              📍 {event.location}
+                              {event.location}
                             </p>
                           )}
                         </div>
