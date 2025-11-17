@@ -40,7 +40,7 @@ const StudentDashboardRedesigned = () => {
     completedActivities: 0,
     avgGrade: 0,
     completionRate: 0,
-    gradeTrend: 0
+    gradeTrend: null
   });
   const [pendingActivities, setPendingActivities] = useState([]);
   const [todayEvents, setTodayEvents] = useState([]);
@@ -88,7 +88,7 @@ const StudentDashboardRedesigned = () => {
       const totalClasses = classIds.length;
 
       if (classIds.length === 0) {
-        setStats({ totalClasses: 0, pendingActivities: 0, completedActivities: 0, avgGrade: 0, completionRate: 0, gradeTrend: 0 });
+        setStats({ totalClasses: 0, pendingActivities: 0, completedActivities: 0, avgGrade: 0, completionRate: 0, gradeTrend: null });
         return;
       }
 
@@ -117,6 +117,38 @@ const StudentDashboardRedesigned = () => {
         ? gradesData.reduce((sum, s) => sum + parseFloat(s.grade), 0) / gradesData.length
         : 0;
 
+      // Tendência real: compara média recente com média anterior
+      let gradeTrend = null;
+      if (gradesData.length >= 2) {
+        const sortedGrades = [...gradesData].sort((a, b) =>
+          new Date(a.submitted_at) - new Date(b.submitted_at)
+        );
+
+        const windowSize = 5;
+        const len = sortedGrades.length;
+        const recentStart = Math.max(len - windowSize, 0);
+        const previousStart = Math.max(len - 2 * windowSize, 0);
+
+        const recent = sortedGrades.slice(recentStart, len);
+        const previous = sortedGrades.slice(previousStart, recentStart);
+
+        if (previous.length > 0) {
+          const avg = (items) =>
+            items.reduce((sum, s) => sum + parseFloat(s.grade), 0) / items.length;
+
+          const prevAvg = avg(previous);
+          const recentAvg = avg(recent);
+
+          if (prevAvg > 0) {
+            gradeTrend = Math.round(((recentAvg - prevAvg) / prevAvg) * 100);
+          } else {
+            gradeTrend = 0;
+          }
+        } else {
+          gradeTrend = 0;
+        }
+      }
+
       // Taxa de conclusão
       const completionRate = activityIds.length > 0
         ? Math.round((completedActivities / activityIds.length) * 100)
@@ -128,7 +160,7 @@ const StudentDashboardRedesigned = () => {
         completedActivities,
         avgGrade,
         completionRate,
-        gradeTrend: 5 // TODO: Calcular tendência real
+        gradeTrend
       });
     } catch (error) {
       logger.error('Erro ao carregar stats:', error);
