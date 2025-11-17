@@ -23,7 +23,9 @@ const corsHeaders = {
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const MAX_CARDS = 10000;
 const BATCH_SIZE = 100;
-const MAX_MEDIA_FILES = 200;
+// Limite mais conservador para evitar WORKER_LIMIT em decks muito grandes
+// Atenção: decks com mais mídia que isso terão alguns cards sem áudio/imagem.
+const MAX_MEDIA_FILES = 150;
 
 interface ImportRequest {
   bucket: string;
@@ -498,200 +500,246 @@ function convertNoteToCard(
   if (!front || !back) {
     console.log(`[import-anki] Note ${note.id} falling back to heuristic conversion`);
 
-  if (nonEmptyFields.length === 0) {
-    console.log(`[import-anki] Note ${note.id} ignored: no non-empty fields`);
-  } else if (nonEmptyFields.length === 1) {
-    const field = nonEmptyFields[0];
+    // 1) Tentativa de mapeamento específico para modelos com campos "straw"/"strans"
+    // (como os decks Daily Changing Russian Sentences / LLama), evitando usar o
+    // campo de dicionário gigante como frente/verso.
+    if (model && model.flds && model.flds.length > 0) {
+      const fieldNamesLower = model.flds.map((f) => f.name.toLowerCase());
+      const hasStrawOrStrans =
+        fieldNamesLower.includes('straw') || fieldNamesLower.includes('strans');
 
-    // Tentativa de suporte simples a Cloze: front com lacunas, back com texto completo
-    const clozeRegex = /\{\{c\d+::(.*?)(::.*?)?\}\}/g;
-    if (clozeRegex.test(field)) {
-      const frontText = field.replace(clozeRegex, ' [...] ');
-      front = frontText.trim();
-      back = field.trim();
-    } else {
-      front = field;
-      back = field;
-    }
-  } else {
-    type FieldCandidate = {
-      index: number;
-      text: string;
-      cleanText: string;
-      length: number;
-      hasCyrillic: boolean;
-      hasCJK: boolean;
-      hasLatin: boolean;
-      latinCount: number;
-      cyrillicCount: number;
-      cjkCount: number;
-      hasHtml: boolean;
-      lineCount: number;
-      numericOnly: boolean;
-      hasSound: boolean;
-      isSoundOnly: boolean;
-      hasCloze: boolean;
-      isMetaLabel: boolean;
-      baseScore: number;
-      frontScore: number;
-      backScore: number;
-    };
+      if (hasStrawOrStrans) {
+        const getFieldValueByName = (name: string): string => {
+          const def = model!.flds.find(
+            (f) => f.name.toLowerCase() === name.toLowerCase(),
+          );
+          if (!def) return '';
+          return (rawFields[def.ord] || '').trim();
+        };
 
-    const soundRegex = /\[sound:[^\]]+\]/i;
-    const clozeRegexMulti = /\{\{c\d+::/i;
+        const straw = getFieldValueByName('straw');
+        const llamaFront = getFieldValueByName('llamafront');
+        const strans = getFieldValueByName('strans');
+        const llamaBack = getFieldValueByName('llamaback');
 
-    const candidates: FieldCandidate[] = nonEmptyFields.map((text, index) => {
-      const cleanText = text.trim();
-      const length = cleanText.length;
-      const numericOnly = /^[\d.,]+$/.test(cleanText);
-      const hasCyrillic = /[\u0400-\u04FF]/.test(cleanText);
-      const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(cleanText);
-      const hasLatin = /[A-Za-z]/.test(cleanText);
-      const latinMatches = cleanText.match(/[A-Za-z]/g) || [];
-      const cyrillicMatches = cleanText.match(/[\u0400-\u04FF]/g) || [];
-      const cjkMatches = cleanText.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g) || [];
-      const latinCount = latinMatches.length;
-      const cyrillicCount = cyrillicMatches.length;
-      const cjkCount = cjkMatches.length;
-      const hasHtml = /<[^>]+>/.test(cleanText);
-      const lineCount = (cleanText.match(/\n/g) || []).length + 1;
-      const hasSound = soundRegex.test(cleanText);
-      const textWithoutSound = cleanText.replace(soundRegex, '').trim();
-      const isSoundOnly = hasSound && textWithoutSound.length === 0;
-      const hasCloze = clozeRegexMulti.test(cleanText);
-      const isLatinOnly = hasLatin && !hasCyrillic && !hasCJK;
-      const hasPunctuation = /[.!?;:]/.test(cleanText);
-      const hasDigits = /\d/.test(cleanText);
-      const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
-      const isSingleLine = lineCount === 1;
+        const specialFront = straw || llamaFront;
+        const specialBack = strans || llamaBack || specialFront;
 
-      let baseScore = 0;
-
-      if (numericOnly) baseScore -= 10;
-      if (length < 2) baseScore -= 2;
-      if (length >= 5 && length <= 120) baseScore += 2;
-      if (length > 120 && length <= 400) baseScore += 1;
-      if (length > 800) baseScore -= 3;
-      if (lineCount > 8) baseScore -= 2;
-      if (/[A-Za-zÀ-ÿА-Яа-я]/.test(cleanText)) baseScore += 1;
-      if (isSoundOnly) baseScore -= 5;
-
-      let frontScore = baseScore;
-      const targetScriptCount = Math.max(cyrillicCount, cjkCount);
-      if (hasCyrillic || hasCJK) frontScore += 6;
-      if (!hasCyrillic && !hasCJK && hasLatin) frontScore -= 1;
-      if (targetScriptCount > 0) {
-        frontScore += Math.min(targetScriptCount, 40) * 0.3;
-        if (latinCount > 0) {
-          frontScore -= Math.min(latinCount, 40) * 0.2;
+        if (specialFront) {
+          front = specialFront;
+          back = specialBack;
+          console.log(
+            `[import-anki] Note ${note.id} mapped using straw/strans fields for model "${model.name}"`,
+          );
         }
       }
-      if (hasHtml && length > 200) frontScore -= 4;
-      if (hasHtml && length > 800) frontScore -= 4;
-
-      if (hasCloze) {
-        // Em decks de gramática, o campo com Cloze geralmente é o enunciado principal
-        frontScore += 8;
-      }
-
-      let backScore = baseScore;
-      if (hasLatin) backScore += 4;
-      if ((hasCyrillic || hasCJK) && hasLatin) backScore += 1;
-      if (!hasLatin && (hasCyrillic || hasCJK)) backScore -= 1;
-      if (latinCount > 0) {
-        backScore += Math.min(latinCount, 60) * 0.2;
-      }
-      if (targetScriptCount > 0 && latinCount === 0) {
-        backScore -= 2;
-      }
-      if (hasHtml && length > 200 && length <= 800) backScore += 1;
-      if (length > 800) backScore -= 1;
-
-      if (hasCloze) {
-        // Para o verso também é importante, mas um pouco menos que para a frente
-        backScore += 4;
-      }
-
-      const isMetaLabel =
-        isLatinOnly &&
-        isSingleLine &&
-        !hasPunctuation &&
-        !hasDigits &&
-        wordCount >= 2 &&
-        wordCount <= 6 &&
-        length <= 60;
-
-      return {
-        index,
-        text,
-        cleanText,
-        length,
-        hasCyrillic,
-        hasCJK,
-        hasLatin,
-        latinCount,
-        cyrillicCount,
-        cjkCount,
-        hasHtml,
-        lineCount,
-        numericOnly,
-        hasSound,
-        isSoundOnly,
-        hasCloze,
-        isMetaLabel,
-        baseScore,
-        frontScore,
-        backScore,
-      };
-    });
-
-    const hasLongTextCandidate = candidates.some(
-      (c) => !c.numericOnly && !c.isSoundOnly && c.length >= 80,
-    );
-
-    for (const c of candidates) {
-      if (!c.isMetaLabel) continue;
-      c.frontScore -= hasLongTextCandidate ? 8 : 4;
     }
 
-    let frontCandidate: FieldCandidate | null = null;
-    let backCandidate: FieldCandidate | null = null;
+    // 2) Se ainda não temos frente/verso definidos, aplicar heurística genérica
+    if (!front || !back) {
+      if (nonEmptyFields.length === 0) {
+        console.log(`[import-anki] Note ${note.id} ignored: no non-empty fields`);
+      } else if (nonEmptyFields.length === 1) {
+        const field = nonEmptyFields[0];
 
-    for (const c of candidates) {
-      if (c.isSoundOnly || c.numericOnly) continue;
-      if (!frontCandidate || c.frontScore > frontCandidate.frontScore) {
-        frontCandidate = c;
+        // Tentativa de suporte simples a Cloze: front com lacunas, back com texto completo
+        const clozeRegex = /\{\{c\d+::(.*?)(::.*?)?\}\}/g;
+        if (clozeRegex.test(field)) {
+          const frontText = field.replace(clozeRegex, ' [...] ');
+          front = frontText.trim();
+          back = field.trim();
+        } else {
+          front = field;
+          back = field;
+        }
+      } else {
+        type FieldCandidate = {
+          index: number;
+          text: string;
+          cleanText: string;
+          length: number;
+          hasCyrillic: boolean;
+          hasCJK: boolean;
+          hasLatin: boolean;
+          latinCount: number;
+          cyrillicCount: number;
+          cjkCount: number;
+          hasHtml: boolean;
+          lineCount: number;
+          numericOnly: boolean;
+          hasSound: boolean;
+          isSoundOnly: boolean;
+          hasCloze: boolean;
+          isMetaLabel: boolean;
+          baseScore: number;
+          frontScore: number;
+          backScore: number;
+        };
+
+        const soundRegex = /\[sound:[^\]]+\]/i;
+        const clozeRegexMulti = /\{\{c\d+::/i;
+
+        const candidates: FieldCandidate[] = nonEmptyFields.map((text, index) => {
+          const cleanText = text.trim();
+          const length = cleanText.length;
+          const numericOnly = /^[\d.,]+$/.test(cleanText);
+          const hasCyrillic = /[\u0400-\u04FF]/.test(cleanText);
+          const hasCJK = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/.test(cleanText);
+          const hasLatin = /[A-Za-z]/.test(cleanText);
+          const latinMatches = cleanText.match(/[A-Za-z]/g) || [];
+          const cyrillicMatches = cleanText.match(/[\u0400-\u04FF]/g) || [];
+          const cjkMatches = cleanText.match(/[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g) || [];
+          const latinCount = latinMatches.length;
+          const cyrillicCount = cyrillicMatches.length;
+          const cjkCount = cjkMatches.length;
+          const hasHtml = /<[^>]+>/.test(cleanText);
+          const lineCount = (cleanText.match(/\n/g) || []).length + 1;
+          const hasSound = soundRegex.test(cleanText);
+          const textWithoutSound = cleanText.replace(soundRegex, '').trim();
+          const isSoundOnly = hasSound && textWithoutSound.length === 0;
+          const hasCloze = clozeRegexMulti.test(cleanText);
+          const isLatinOnly = hasLatin && !hasCyrillic && !hasCJK;
+          const hasPunctuation = /[.!?;:]/.test(cleanText);
+          const hasDigits = /\d/.test(cleanText);
+          const wordCount = cleanText.split(/\s+/).filter(Boolean).length;
+          const isSingleLine = lineCount === 1;
+
+          let baseScore = 0;
+
+          if (numericOnly) baseScore -= 10;
+          if (length < 2) baseScore -= 2;
+          if (length >= 5 && length <= 120) baseScore += 2;
+          if (length > 120 && length <= 400) baseScore += 1;
+          if (length > 800) baseScore -= 3;
+          if (lineCount > 8) baseScore -= 2;
+          if (/[A-Za-zÀ-ÿА-Яа-я]/.test(cleanText)) baseScore += 1;
+          if (isSoundOnly) baseScore -= 5;
+
+          let frontScore = baseScore;
+          const targetScriptCount = Math.max(cyrillicCount, cjkCount);
+          if (hasCyrillic || hasCJK) frontScore += 6;
+          if (!hasCyrillic && !hasCJK && hasLatin) frontScore -= 1;
+          if (targetScriptCount > 0) {
+            frontScore += Math.min(targetScriptCount, 40) * 0.3;
+            if (latinCount > 0) {
+              frontScore -= Math.min(latinCount, 40) * 0.2;
+            }
+          }
+          if (hasHtml && length > 200) frontScore -= 4;
+          if (hasHtml && length > 800) frontScore -= 4;
+
+          if (hasCloze) {
+            // Em decks de gramática, o campo com Cloze geralmente é o enunciado principal
+            frontScore += 8;
+          }
+
+          let backScore = baseScore;
+          if (hasLatin) backScore += 4;
+          if ((hasCyrillic || hasCJK) && hasLatin) backScore += 1;
+          if (!hasLatin && (hasCyrillic || hasCJK)) backScore -= 1;
+          if (latinCount > 0) {
+            backScore += Math.min(latinCount, 60) * 0.2;
+          }
+          if (targetScriptCount > 0 && latinCount === 0) {
+            backScore -= 2;
+          }
+          if (hasHtml && length > 200 && length <= 800) backScore += 1;
+          if (length > 800) backScore -= 1;
+
+          if (hasCloze) {
+            // Para o verso também é importante, mas um pouco menos que para a frente
+            backScore += 4;
+          }
+
+          const isMetaLabel =
+            isLatinOnly &&
+            isSingleLine &&
+            !hasPunctuation &&
+            !hasDigits &&
+            wordCount >= 2 &&
+            wordCount <= 6 &&
+            length <= 60;
+
+          return {
+            index,
+            text,
+            cleanText,
+            length,
+            hasCyrillic,
+            hasCJK,
+            hasLatin,
+            latinCount,
+            cyrillicCount,
+            cjkCount,
+            hasHtml,
+            lineCount,
+            numericOnly,
+            hasSound,
+            isSoundOnly,
+            hasCloze,
+            isMetaLabel,
+            baseScore,
+            frontScore,
+            backScore,
+          };
+        });
+
+        const hasLongTextCandidate = candidates.some(
+          (c) => !c.numericOnly && !c.isSoundOnly && c.length >= 80,
+        );
+
+        for (const c of candidates) {
+          if (!c.isMetaLabel) continue;
+          c.frontScore -= hasLongTextCandidate ? 8 : 4;
+        }
+
+        let frontCandidate: FieldCandidate | null = null;
+        let backCandidate: FieldCandidate | null = null;
+
+        for (const c of candidates) {
+          if (c.isSoundOnly || c.numericOnly) continue;
+          if (!frontCandidate || c.frontScore > frontCandidate.frontScore) {
+            frontCandidate = c;
+          }
+        }
+
+        for (const c of candidates) {
+          if (c.isSoundOnly || c.numericOnly) continue;
+          if (frontCandidate && c.index === frontCandidate.index) continue;
+          if (!backCandidate || c.backScore > backCandidate.backScore) {
+            backCandidate = c;
+          }
+        }
+
+        frontCandidate =
+          frontCandidate ??
+          candidates.find((c) => !c.isSoundOnly && !c.numericOnly) ??
+          candidates[0];
+        backCandidate =
+          backCandidate ??
+          candidates.find(
+            (c) => !c.isSoundOnly && !c.numericOnly && c.index !== frontCandidate.index,
+          ) ??
+          frontCandidate;
+
+        const backExtras: FieldCandidate[] = [];
+        for (const c of candidates) {
+          if (!backCandidate) break;
+          if (c.index === frontCandidate.index || c.index === backCandidate.index) continue;
+          if (c.isSoundOnly || c.numericOnly) continue;
+          if (c.length > 600) continue;
+          if (c.backScore >= backCandidate.backScore - 2) {
+            backExtras.push(c);
+          }
+        }
+        backExtras.sort((a, b) => b.backScore - a.backScore);
+        const limitedBackExtras = backExtras.slice(0, 3);
+
+        front = frontCandidate.text;
+        const backParts = [backCandidate.text, ...limitedBackExtras.map((c) => c.text)];
+        back = backParts.join('\n\n');
       }
     }
-
-    for (const c of candidates) {
-      if (c.isSoundOnly || c.numericOnly) continue;
-      if (frontCandidate && c.index === frontCandidate.index) continue;
-      if (!backCandidate || c.backScore > backCandidate.backScore) {
-        backCandidate = c;
-      }
-    }
-
-    frontCandidate = frontCandidate ?? candidates.find((c) => !c.isSoundOnly && !c.numericOnly) ?? candidates[0];
-    backCandidate = backCandidate ?? candidates.find((c) => !c.isSoundOnly && !c.numericOnly && c.index !== frontCandidate.index) ?? frontCandidate;
-
-    const backExtras: FieldCandidate[] = [];
-    for (const c of candidates) {
-      if (!backCandidate) break;
-      if (c.index === frontCandidate.index || c.index === backCandidate.index) continue;
-      if (c.isSoundOnly || c.numericOnly) continue;
-      if (c.length > 600) continue;
-      if (c.backScore >= backCandidate.backScore - 2) {
-        backExtras.push(c);
-      }
-    }
-    backExtras.sort((a, b) => b.backScore - a.backScore);
-    const limitedBackExtras = backExtras.slice(0, 3);
-
-    front = frontCandidate.text;
-    const backParts = [backCandidate.text, ...limitedBackExtras.map((c) => c.text)];
-    back = backParts.join('\n\n');
-  }
   }  // End of fallback block
 
   // Parse tags
@@ -700,7 +748,32 @@ function convertNoteToCard(
     .split(' ')
     .filter((t: string) => t.length > 0);
 
-  // Replace media references
+  // Extrair URLs de áudio dos marcadores [sound:...] e limpar o texto
+  const frontMedia = extractAudioFromText(front, mediaUrls);
+  front = frontMedia.text;
+
+  const backMedia = extractAudioFromText(back, mediaUrls);
+  back = backMedia.text;
+
+  let audioUrl = frontMedia.audioUrl || backMedia.audioUrl || null;
+
+  // Se ainda não achamos áudio em front/back, procurar em todos os campos da nota
+  // (ex.: campos dedicados como "saudio").
+  if (!audioUrl && note.flds) {
+    const soundRegexNote = /\[sound:([^\]]+)\]/gi;
+    let matchNote: RegExpExecArray | null;
+    const allFieldsText = note.flds;
+
+    while ((matchNote = soundRegexNote.exec(allFieldsText)) !== null) {
+      const filename = matchNote[1];
+      if (filename && mediaUrls[filename]) {
+        audioUrl = mediaUrls[filename];
+        break;
+      }
+    }
+  }
+
+  // Replace media references (imagens) restantes
   front = replaceMediaReferences(front, mediaUrls);
   back = replaceMediaReferences(back, mediaUrls);
 
@@ -728,29 +801,56 @@ function convertNoteToCard(
     front,
     back,
     card_type: 'basic',
-    tags
+    tags,
+    audio_url: audioUrl,
   };
 }
 
 /**
- * Replace Anki media references with URLs
+ * Replace Anki media references (images) with URLs inside the text.
+ * Áudio é tratado separadamente por extractAudioFromText.
  */
 function replaceMediaReferences(text: string, mediaUrls: Record<string, string>): string {
+  if (!text) return text;
+
   let result = text;
 
-  // Replace [sound:filename.mp3] with link
-  result = result.replace(/\[sound:([^\]]+)\]/g, (match, filename) => {
-    const url = mediaUrls[filename];
-    return url ? `🔊 Áudio: ${url}` : match;
-  });
-
-  // Replace <img src="filename.png"> with link
-  result = result.replace(/<img\s+src=["']([^"']+)["'][^>]*>/gi, (match, filename) => {
+  // Replace <img src="filename.png"> with link/label using mapped URL
+  result = result.replace(/<img\s+[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, filename) => {
     const url = mediaUrls[filename];
     return url ? `🖼️ Imagem: ${url}` : match;
   });
 
   return result;
+}
+
+/**
+ * Extrai a primeira URL de áudio referenciada por [sound:...] e remove os marcadores do texto.
+ */
+function extractAudioFromText(
+  text: string,
+  mediaUrls: Record<string, string>
+): { text: string; audioUrl: string | null } {
+  if (!text) return { text, audioUrl: null };
+
+  const soundRegex = /\[sound:([^\]]+)\]/gi;
+  let audioUrl: string | null = null;
+  let match: RegExpExecArray | null;
+
+  // Procurar a primeira referência de áudio que tenha URL mapeada
+  const scanText = text;
+  while ((match = soundRegex.exec(scanText)) !== null) {
+    const filename = match[1];
+    if (!audioUrl && filename && mediaUrls[filename]) {
+      audioUrl = mediaUrls[filename];
+      break;
+    }
+  }
+
+  // Remover todos os marcadores [sound:...] do texto, mesmo que não haja URL
+  const cleanedText = text.replace(/\[sound:[^\]]+\]/gi, '').trim();
+
+  return { text: cleanedText, audioUrl };
 }
 
 function stripHtmlTags(text: string): string {

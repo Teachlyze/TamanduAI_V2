@@ -27,6 +27,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import { Badge } from '@/shared/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/ui/use-toast';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
@@ -55,6 +56,12 @@ const FlashcardsPage = () => {
   const [importingApkg, setImportingApkg] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const [importModal, setImportModal] = useState({
+    open: false,
+    title: '',
+    description: '',
+    isError: false,
+  });
   const fileInputRef = useRef(null);
   const apkgInputRef = useRef(null);
   const importMenuRef = useRef(null);
@@ -208,6 +215,13 @@ const FlashcardsPage = () => {
       });
       return;
     }
+
+    setImportModal({
+      open: true,
+      title: 'Importando deck JSON...',
+      description: `Estamos processando o arquivo "${file.name}". Isso pode levar alguns segundos.`,
+      isError: false,
+    });
 
     try {
       logger.debug('Import: Starting import process');
@@ -381,6 +395,12 @@ const FlashcardsPage = () => {
             description: 'O JSON deve ser um array de cards, conter { cards: [...] } ou um formato suportado de estudo (kanji/hiragana/katakana).',
             variant: 'destructive',
           });
+          setImportModal({
+            open: true,
+            title: 'Arquivo inválido',
+            description: 'O JSON deve ser um array de cards, conter { cards: [...] } ou um formato suportado de estudo (kanji/hiragana/katakana).',
+            isError: true,
+          });
           return;
         }
       }
@@ -391,6 +411,12 @@ const FlashcardsPage = () => {
           title: 'Arquivo inválido',
           description: 'Nenhum card encontrado no JSON.',
           variant: 'destructive',
+        });
+        setImportModal({
+          open: true,
+          title: 'Arquivo inválido',
+          description: 'Nenhum card encontrado no JSON.',
+          isError: true,
         });
         return;
       }
@@ -444,6 +470,13 @@ const FlashcardsPage = () => {
         description: `Deck "${deck.name}" criado com ${cardsArray.length} cards.`,
       });
 
+      setImportModal({
+        open: true,
+        title: 'Deck importado!',
+        description: `Deck "${deck.name}" criado com ${cardsArray.length} cards.`,
+        isError: false,
+      });
+
       logger.debug('Import: Navigation scheduled');
       // Small delay to ensure DevTools stays connected
       setTimeout(() => {
@@ -456,6 +489,12 @@ const FlashcardsPage = () => {
         title: 'Erro ao importar deck',
         description: 'Verifique o arquivo JSON e tente novamente.',
         variant: 'destructive',
+      });
+      setImportModal({
+        open: true,
+        title: 'Erro ao importar deck',
+        description: 'Verifique o arquivo JSON e tente novamente.',
+        isError: true,
       });
     } finally {
       logger.debug('Import: Finally block, resetting importing state');
@@ -496,12 +535,25 @@ const FlashcardsPage = () => {
           description: 'O arquivo deve ter no máximo 100MB.',
           variant: 'destructive',
         });
+        setImportModal({
+          open: true,
+          title: 'Arquivo muito grande',
+          description: 'O arquivo deve ter no máximo 100MB.',
+          isError: true,
+        });
         return;
       }
 
       toast({
         title: 'Enviando arquivo...',
         description: 'Aguarde enquanto o deck Anki é processado.',
+      });
+
+      setImportModal({
+        open: true,
+        title: 'Importando deck Anki (.apkg)...',
+        description: `Estamos enviando e processando o arquivo "${file.name}". Isso pode levar alguns minutos para decks grandes.`,
+        isError: false,
       });
 
       // Upload para Storage
@@ -561,6 +613,13 @@ const FlashcardsPage = () => {
         description: `${data.import_stats?.total_cards_created || 0} cards foram adicionados ao deck "${deckName}".`,
       });
 
+      setImportModal({
+        open: true,
+        title: 'Deck importado com sucesso!',
+        description: `${data.import_stats?.total_cards_created || 0} cards foram adicionados ao deck "${deckName}".`,
+        isError: false,
+      });
+
       // Navegar para o deck
       setTimeout(() => {
         navigate(`/students/flashcards/decks/${data.deck_id}`);
@@ -572,6 +631,12 @@ const FlashcardsPage = () => {
         title: 'Erro ao importar deck Anki',
         description: error.message || 'Verifique o arquivo e tente novamente.',
         variant: 'destructive',
+      });
+       setImportModal({
+        open: true,
+        title: 'Erro ao importar deck Anki',
+        description: error.message || 'Verifique o arquivo e tente novamente.',
+        isError: true,
       });
     } finally {
       logger.debug('Import APKG: Finally block');
@@ -636,42 +701,39 @@ const FlashcardsPage = () => {
                 }}
               >
                 <div className="py-2">
-                  <label
-                    className="flex items-center px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b-2 border-slate-200 dark:border-slate-600"
-                    onClick={() => setShowImportMenu(false)}
+                  <button
+                    type="button"
+                    className="flex w-full items-center px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b-2 border-slate-200 dark:border-slate-600 text-left"
+                    onClick={() => {
+                      setShowImportMenu(false);
+                      if (!importing && fileInputRef.current) {
+                        fileInputRef.current.click();
+                      }
+                    }}
                   >
-                    <input
-                      type="file"
-                      accept="application/json"
-                      onChange={handleFileChange}
-                      className="hidden"
-                      disabled={importing}
-                    />
                     <FileJson className="w-5 h-5 mr-3 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">Importar JSON</div>
                       <div className="text-xs text-slate-600 dark:text-slate-400">Formato customizado</div>
                     </div>
-                  </label>
+                  </button>
                   
-                  <label
-                    className="flex items-center px-4 py-3 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
-                    onClick={() => setShowImportMenu(false)}
+                  <button
+                    type="button"
+                    className="flex w-full items-center px-4 py-3 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer transition-colors text-left"
+                    onClick={() => {
+                      setShowImportMenu(false);
+                      if (!importingApkg && apkgInputRef.current) {
+                        apkgInputRef.current.click();
+                      }
+                    }}
                   >
-                    <input
-                      type="file"
-                      accept=".apkg"
-                      onChange={handleApkgImport}
-                      className="hidden"
-                      disabled={importingApkg}
-                      ref={apkgInputRef}
-                    />
                     <Package className="w-5 h-5 mr-3 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                     <div className="flex-1">
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">Importar Anki (.apkg)</div>
                       <div className="text-xs text-slate-600 dark:text-slate-400">Deck do Anki com mídia</div>
                     </div>
-                  </label>
+                  </button>
                 </div>
               </div>,
               document.body
@@ -684,6 +746,13 @@ const FlashcardsPage = () => {
               ref={fileInputRef}
               className="hidden"
               onChange={handleFileChange}
+            />
+            <input
+              type="file"
+              accept=".apkg"
+              ref={apkgInputRef}
+              className="hidden"
+              onChange={handleApkgImport}
             />
             <Button
               onClick={handleCreateDeck}
@@ -778,6 +847,36 @@ const FlashcardsPage = () => {
           action={handleCreateDeck}
         />
       )}
+
+      <Dialog
+        open={importModal.open}
+        onOpenChange={(open) => {
+          if (importing || importingApkg) return;
+          setImportModal((prev) => ({ ...prev, open }));
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className={importModal.isError ? 'text-red-600 dark:text-red-400' : ''}>
+              {importModal.title || 'Importação de deck'}
+            </DialogTitle>
+            {importModal.description && (
+              <DialogDescription>
+                {importModal.description}
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {(importing || importingApkg) && (
+            <div className="mt-4">
+              <LoadingSpinner
+                size="sm"
+                text="Processando, aguarde..."
+                center
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

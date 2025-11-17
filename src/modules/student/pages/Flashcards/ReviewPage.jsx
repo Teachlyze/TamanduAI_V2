@@ -376,11 +376,12 @@ const ReviewPage = () => {
                     <p className="text-2xl font-medium text-slate-900 dark:text-white leading-relaxed">
                       {currentCard.front}
                     </p>
-                    {currentCard.audio_url && settings?.auto_play_audio && (
-                      <audio 
-                        src={currentCard.audio_url} 
-                        autoPlay 
-                        className="mx-auto"
+                    {currentCard.audio_url && (
+                      <audio
+                        src={currentCard.audio_url}
+                        controls
+                        autoPlay={!!settings?.auto_play_audio}
+                        className="mx-auto mt-4"
                       />
                     )}
                   </div>
@@ -413,11 +414,11 @@ const ReviewPage = () => {
                                 <p key={idx}>{line}</p>
                               ))}
                           </div>
-                          {currentCard.back_audio_url && (
-                            <audio 
-                              src={currentCard.back_audio_url} 
-                              controls 
-                              className="mx-auto"
+                          {(currentCard.back_audio_url || currentCard.audio_url) && (
+                            <audio
+                              src={currentCard.back_audio_url || currentCard.audio_url}
+                              controls
+                              className="mx-auto mt-4"
                             />
                           )}
                         </div>
