@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 // src/hooks/useRedisCache.js
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useReducer } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
 import { metrics } from '@/shared/services/metrics';
 import redis from '@/shared/services/redis';
@@ -12,6 +12,46 @@ const STALE_TIME = 60 * 1000; // 1 minuto para considerar os dados obsoletos
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 segundo
 const REDIS_ENABLED = (import.meta?.env?.VITE_REDIS_ENABLED || '').toString().toLowerCase() === 'true';
+
+// Estado consolidado para evitar problemas do React
+const initialState = {
+  data: null,
+  loading: true,
+  error: null,
+  stale: false,
+  lastUpdated: null,
+  retryCount: 0,
+};
+
+function cacheReducer(state, action) {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_DATA':
+      return {
+        ...state,
+        data: action.payload.data,
+        loading: false,
+        error: null,
+        stale: action.payload.stale || false,
+        lastUpdated: action.payload.lastUpdated || new Date(),
+        retryCount: 0,
+      };
+    case 'SET_ERROR':
+      return {
+        ...state,
+        error: action.payload,
+        loading: false,
+        retryCount: state.retryCount + 1,
+      };
+    case 'SET_STALE':
+      return { ...state, stale: action.payload };
+    case 'RESET':
+      return initialState;
+    default:
+      return state;
+  }
+}
 
 // Estratégia de cache: Stale-while-Revalidate
 export const useRedisCache = (key, fetchFunction, options = {}) => {
@@ -25,19 +65,16 @@ export const useRedisCache = (key, fetchFunction, options = {}) => {
     onError,
   } = options;
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(!skipInitialFetch);
-  const [error, setError] = useState(null);
-  const [stale, setStale] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-
+  const [state, dispatch] = useReducer(cacheReducer, initialState);
   const isMounted = useRef(true);
   const fetchController = useRef(null);
   const isFetching = useRef(false);
   const cacheKey = typeof key === 'function' ? key() : key;
 
-  useEffect(() => () => { isMounted.current = false; fetchController.current?.abort(); }, []);
+  useEffect(() => () => { 
+    isMounted.current = false; 
+    fetchController.current?.abort(); 
+  }, []);
 
   const fetchData = useCallback(async (force = false) => {
     if ((!cacheKey && !force) || !enabled) return;
@@ -57,10 +94,15 @@ export const useRedisCache = (key, fetchFunction, options = {}) => {
           metrics.cacheHit();
           const isStale = !cachedData.timestamp || (Date.now() - new Date(cachedData.timestamp).getTime() > staleTime);
           if (isMounted.current) {
-            setData(cachedData.data);
-            setStale(isStale);
-            setLastUpdated(cachedData.timestamp ? new Date(cachedData.timestamp) : new Date());
-            setLoading(false);
+            dispatch({
+              type: 'SET_DATA',
+              payload: {
+                data: cachedData.data,
+                stale: isStale,
+                lastUpdated: cachedData.timestamp ? new Date(cachedData.timestamp) : new Date(),
+              },
+            });
+            dispatch({ type: 'SET_LOADING', payload: false });
             if (!force && !isStale) return cachedData.data;
           }
         } else {
@@ -69,8 +111,7 @@ export const useRedisCache = (key, fetchFunction, options = {}) => {
       }
 
       if (isMounted.current) {
-        setLoading(true);
-        setError(null);
+        dispatch({ type: 'SET_LOADING', payload: true });
       }
 
       const startTime = performance.now();
@@ -90,11 +131,14 @@ export const useRedisCache = (key, fetchFunction, options = {}) => {
       }
 
       if (isMounted.current) {
-        setData(response);
-        setStale(false);
-        setLastUpdated(new Date(dataToCache.timestamp));
-        setLoading(false);
-        setRetryCount(0);
+        dispatch({
+          type: 'SET_DATA',
+          payload: {
+            data: response,
+            stale: false,
+            lastUpdated: new Date(dataToCache.timestamp),
+          },
+        });
         onSuccess?.(response);
       }
       return response;
@@ -103,11 +147,14 @@ export const useRedisCache = (key, fetchFunction, options = {}) => {
       metrics.apiError();
       Logger.error('Error in useRedisCache', { key: cacheKey, error: err.message, stack: err.stack });
       if (isMounted.current) {
-        setError(err);
-        setLoading(false);
-        if (retryCount < MAX_RETRIES) {
-          const delay = RETRY_DELAY * Math.pow(2, retryCount);
-          setTimeout(() => { if (isMounted.current) { setRetryCount((c) => c + 1); fetchData(true); } }, delay);
+        dispatch({ type: 'SET_ERROR', payload: err });
+        if (state.retryCount < MAX_RETRIES) {
+          const delay = RETRY_DELAY * Math.pow(2, state.retryCount);
+          setTimeout(() => { 
+            if (isMounted.current) { 
+              fetchData(true); 
+            } 
+          }, delay);
         } else {
           onError?.(err);
         }
@@ -117,34 +164,66 @@ export const useRedisCache = (key, fetchFunction, options = {}) => {
       isFetching.current = false;
       fetchController.current = null;
     }
-  }, [cacheKey, fetchFunction, ttl, staleTime, enabled, retryCount, onSuccess, onError]);
+  }, [cacheKey, fetchFunction, ttl, staleTime, enabled, state.retryCount, onSuccess, onError]);
 
   useEffect(() => {
     if (skipInitialFetch) return;
-    fetchData().catch(() => {}, []); // TODO: Add dependencies
+    fetchData().catch(() => {});
     return () => fetchController.current?.abort();
   }, [cacheKey, skipInitialFetch, fetchData, ...dependencies]);
 
   const invalidateCache = useCallback(async () => {
     if (!cacheKey) return;
-    try { if (REDIS_ENABLED) await redis.del(cacheKey); metrics.cacheDelete?.(); }
-    catch (e) { Logger.warn('Redis DEL failed during invalidate', { key: cacheKey, error: e.message }); }
+    try { 
+      if (REDIS_ENABLED) await redis.del(cacheKey); 
+      metrics.cacheDelete?.(); 
+    }
+    catch (e) { 
+      Logger.warn('Redis DEL failed during invalidate', { key: cacheKey, error: e.message }); 
+    }
     return fetchData(true);
   }, [cacheKey, fetchData]);
 
   const updateCache = useCallback((updater) => {
     if (!cacheKey) return;
-    setData((prev) => {
-      const newData = typeof updater === 'function' ? updater(prev) : updater;
-      const dataToCache = { data: newData, timestamp: new Date().toISOString(), metadata: { ttl, staleTime } };
+    dispatch(state => {
+      const newData = typeof updater === 'function' ? updater(state.data) : updater;
+      const dataToCache = { 
+        data: newData, 
+        timestamp: new Date().toISOString(), 
+        metadata: { ttl, staleTime } 
+      };
       if (REDIS_ENABLED) {
-        (async () => { try { await redis.set(cacheKey, dataToCache, ttl); metrics.cacheSet?.(); } catch (e) { Logger.warn('Redis SET failed during updateCache', { key: cacheKey, error: e.message }); } })();
+        (async () => { 
+          try { 
+            await redis.set(cacheKey, dataToCache, ttl); 
+            metrics.cacheSet?.(); 
+          } catch (e) { 
+            Logger.warn('Redis SET failed during updateCache', { key: cacheKey, error: e.message }); 
+          } 
+        })();
       }
-      return newData;
+      return {
+        ...state,
+        data: newData,
+        lastUpdated: new Date(),
+      };
     });
   }, [cacheKey, ttl, staleTime]);
 
-  return { data, error, loading, stale, lastUpdated, refetch: () => fetchData(true), invalidate: invalidateCache, updateCache, isStale: stale, retryCount, cacheKey };
+  return { 
+    data: state.data, 
+    error: state.error, 
+    loading: state.loading, 
+    stale: state.stale, 
+    lastUpdated: state.lastUpdated, 
+    refetch: () => fetchData(true), 
+    invalidate: invalidateCache, 
+    updateCache, 
+    isStale: state.stale, 
+    retryCount: state.retryCount, 
+    cacheKey 
+  };
 };
 
 // Hook specifically for user permissions with Redis-style caching

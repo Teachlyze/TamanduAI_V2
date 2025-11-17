@@ -4,9 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import Seo from '@/shared/components/Seo';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
+import Footer from '@/shared/components/Footer';
 import {
   Check, X, Zap, Rocket, Building2, Sparkles, HelpCircle,
-  Users, Shield, Calendar, Award, TrendingUp, ArrowRight
+  Users, Shield, Calendar, Award, TrendingUp, ArrowRight, BookOpen
 } from 'lucide-react';
 
 export default function PricingPage() {
@@ -20,7 +21,7 @@ export default function PricingPage() {
       description: 'Programa Beta Exclusivo',
       icon: Sparkles,
       price: { monthly: 0, yearly: 0 },
-      badge: '3 meses grátis',
+      badge: '✨ 3 meses grátis',
       features: [
         'Acesso completo a TODAS funcionalidades',
         'Chatbot RAG ilimitado',
@@ -173,7 +174,7 @@ export default function PricingPage() {
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+                <BookOpen className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
                 TamanduAI
@@ -250,13 +251,13 @@ export default function PricingPage() {
                 transition={{ duration: 0.6, delay: idx * 0.1 }}
                 className={`relative ${plan.highlighted ? 'xl:col-span-1' : ''}`}
               >
-                <Card className={`h-full relative overflow-hidden ${
+                <Card className={`h-full relative overflow-hidden transition-all duration-300 hover:shadow-xl ${
                   plan.highlighted 
-                    ? 'border-2 border-blue-500 shadow-xl shadow-blue-500/20' 
-                    : 'border border-gray-200 dark:border-gray-700'
+                    ? 'border-4 border-amber-400 shadow-2xl shadow-amber-200/50' 
+                    : 'border border-blue-100/60 dark:border-blue-900/40 hover:border-blue-200'
                 }`}>
                   {plan.badge && (
-                    <div className="absolute top-0 right-0 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
+                    <div className="absolute top-0 right-0 bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 text-gray-900 text-xs font-bold px-3 py-1 rounded-bl-lg shadow-lg">
                       {plan.badge}
                     </div>
                   )}
@@ -428,6 +429,8 @@ export default function PricingPage() {
           </motion.div>
         </section>
       </main>
+
+      <Footer />
     </div>
   );
 }

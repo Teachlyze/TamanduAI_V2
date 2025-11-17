@@ -3,7 +3,8 @@
  * Shows user's decks, stats, and due cards
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -17,6 +18,10 @@ import {
   Zap,
   Settings,
   Search,
+  Upload,
+  ChevronDown,
+  FileJson,
+  Package,
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
@@ -28,13 +33,15 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { DashboardHeader, StatsCard, EmptyState, gradients } from '@/shared/design';
 import flashcardService from '@/shared/services/flashcardService';
 import { logger } from '@/shared/utils/logger';
+import { supabase } from '@/shared/services/supabaseClient';
 
 const FlashcardsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [decks, setDecks] = useState([]);
   const [stats, setStats] = useState({
     total_decks: 0,
@@ -44,6 +51,14 @@ const FlashcardsPage = () => {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [deckDueCounts, setDeckDueCounts] = useState({});
+  const [importing, setImporting] = useState(false);
+  const [importingApkg, setImportingApkg] = useState(false);
+  const [showImportMenu, setShowImportMenu] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+  const fileInputRef = useRef(null);
+  const apkgInputRef = useRef(null);
+  const importMenuRef = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -51,17 +66,39 @@ const FlashcardsPage = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (importMenuRef.current && !importMenuRef.current.contains(event.target) &&
+          buttonRef.current && !buttonRef.current.contains(event.target)) {
+        setShowImportMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleImportMenuToggle = () => {
+    if (!showImportMenu && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right
+      });
+    }
+    setShowImportMenu(!showImportMenu);
+  };
+
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      
+
       const { data: userStats, error } = await flashcardService.getUserStats(user.id);
-      
+
       if (error) throw error;
-      
+
       setStats(userStats);
       setDecks(userStats.decks || []);
-      
     } catch (error) {
       logger.error('Error loading flashcards dashboard:', error);
       toast({
@@ -71,10 +108,12 @@ const FlashcardsPage = () => {
       });
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
-  // Carregar contagem de cards devidos por deck usando o mesmo algoritmo da tela de revisão
   useEffect(() => {
     const loadDeckDueCounts = async () => {
       if (!user?.id || !decks || decks.length === 0) return;
@@ -139,22 +178,413 @@ const FlashcardsPage = () => {
     navigate('/students/flashcards/stats');
   };
 
+  const handleImportClick = () => {
+    console.log('Import button clicked');
+    console.log('fileInputRef.current:', fileInputRef.current);
+    if (fileInputRef.current) {
+      console.log('Triggering file input click');
+      fileInputRef.current.click();
+    } else {
+      console.error('fileInputRef.current is null');
+    }
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    
+    logger.debug('Import: File selected', { fileName: file?.name, size: file?.size });
+
+    if (!file) {
+      logger.debug('Import: No file selected');
+      return;
+    }
+    if (!user?.id) {
+      logger.debug('Import: User not authenticated');
+      toast({
+        title: 'Usuário não autenticado',
+        description: 'Faça login para importar decks.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      logger.debug('Import: Starting import process');
+      setImporting(true);
+      const text = await file.text();
+      logger.debug('Import: File read successfully', { textLength: text.length });
+      
+      const json = JSON.parse(text);
+      const baseName = (file.name || 'Deck importado').replace(/\.[^/.]+$/, '');
+
+      let rawCards = [];
+      let deckName = '';
+      let deckDescription = null;
+      let deckColor = '#3B82F6';
+
+      if (Array.isArray(json)) {
+        // Plain array de cards: [{ front, back, ... }]
+        rawCards = json;
+        deckName = baseName;
+        logger.debug('Import: Detected plain cards array JSON', { cardsCount: rawCards.length, deckName });
+      } else {
+        const hasKanji = Array.isArray(json.kanji);
+        const hasHiragana = Array.isArray(json.hiragana);
+        const hasKatakana = Array.isArray(json.katakana);
+
+        logger.debug('Import: JSON parsed successfully', { 
+          hasName: !!json.name, 
+          cardsCount: json.cards?.length,
+          hasCards: Array.isArray(json.cards),
+          hasKanji,
+          hasHiragana,
+          hasKatakana,
+        });
+
+        if (Array.isArray(json.cards)) {
+          // Formato tradicional { name, description?, color?, cards: [...] }
+          rawCards = json.cards;
+          deckName = String(json.name || baseName).trim();
+          deckDescription = json.description ? String(json.description).trim() : null;
+          deckColor = json.color || '#3B82F6';
+        } else if (hasKanji || hasHiragana || hasKatakana) {
+          // Formato especial para estudos de japonês: { metadata, kanji: [...], hiragana: [...], katakana: [...] }
+          logger.debug('Import: Detected structured Japanese JSON', { hasKanji, hasHiragana, hasKatakana });
+
+          const kanjiCards = (json.kanji || []).map((item) => {
+            const front = String(item.kanji ?? '').trim();
+
+            const parts = [];
+            if (item.significado) {
+              parts.push(`Significado: ${item.significado}`);
+            }
+            if (Array.isArray(item.onyomi) && item.onyomi.length > 0) {
+              parts.push(`Onyomi: ${item.onyomi.join(', ')}`);
+            }
+            if (Array.isArray(item.kunyomi) && item.kunyomi.length > 0) {
+              parts.push(`Kunyomi: ${item.kunyomi.join(', ')}`);
+            }
+
+            const palavra = Array.isArray(item.palavras_comuns) ? item.palavras_comuns[0] : null;
+            if (palavra) {
+              const linhaPalavra = [
+                'Palavra comum:',
+                palavra.jap || palavra.jp,
+                palavra.romaji ? `(${palavra.romaji})` : null,
+                palavra.pt ? `- ${palavra.pt}` : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              parts.push(linhaPalavra);
+            }
+
+            const exemplo = Array.isArray(item.exemplos) ? item.exemplos[0] : null;
+            if (exemplo) {
+              const linhaExemplo = [
+                'Exemplo:',
+                exemplo.jp,
+                exemplo.romaji ? `(${exemplo.romaji})` : null,
+                exemplo.pt ? `- ${exemplo.pt}` : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              parts.push(linhaExemplo);
+            }
+
+            const back = parts.join('\n').trim();
+
+            return {
+              front,
+              back,
+              card_type: 'basic',
+              tags: ['kanji'],
+            };
+          }).filter((c) => c.front && c.back);
+
+          const hiraganaCards = (json.hiragana || []).map((item) => {
+            const front = String(item.char ?? '').trim();
+            const ex = item.exemplo || {};
+
+            const parts = [];
+            if (item.romaji) {
+              parts.push(`Romaji: ${item.romaji}`);
+            }
+            if (ex.jap || ex.romaji || ex.pt) {
+              const linhaExemplo = [
+                'Exemplo:',
+                ex.jap,
+                ex.romaji ? `(${ex.romaji})` : null,
+                ex.pt ? `- ${ex.pt}` : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              parts.push(linhaExemplo);
+            }
+
+            const back = parts.join('\n').trim();
+
+            return {
+              front,
+              back,
+              card_type: 'basic',
+              tags: ['hiragana'],
+            };
+          }).filter((c) => c.front && c.back);
+
+          const katakanaCards = (json.katakana || []).map((item) => {
+            const front = String(item.char ?? '').trim();
+            const ex = item.exemplo || {};
+
+            const parts = [];
+            if (item.romaji) {
+              parts.push(`Romaji: ${item.romaji}`);
+            }
+            if (ex.jap || ex.romaji || ex.pt) {
+              const linhaExemplo = [
+                'Exemplo:',
+                ex.jap,
+                ex.romaji ? `(${ex.romaji})` : null,
+                ex.pt ? `- ${ex.pt}` : null,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              parts.push(linhaExemplo);
+            }
+
+            const back = parts.join('\n').trim();
+
+            return {
+              front,
+              back,
+              card_type: 'basic',
+              tags: ['katakana'],
+            };
+          }).filter((c) => c.front && c.back);
+
+          rawCards = [...kanjiCards, ...hiraganaCards, ...katakanaCards];
+          deckName = String(json.name || baseName).trim();
+          deckDescription = json.metadata?.descricao
+            ? String(json.metadata.descricao).trim()
+            : deckDescription;
+
+          logger.debug('Import: Japanese JSON converted to raw cards', {
+            totalKanji: kanjiCards.length,
+            totalHiragana: hiraganaCards.length,
+            totalKatakana: katakanaCards.length,
+            totalCards: rawCards.length,
+          });
+        } else {
+          logger.debug('Import: Validation failed (no cards array found)', { jsonKeys: Object.keys(json || {}) });
+          toast({
+            title: 'Arquivo inválido',
+            description: 'O JSON deve ser um array de cards, conter { cards: [...] } ou um formato suportado de estudo (kanji/hiragana/katakana).',
+            variant: 'destructive',
+          });
+          return;
+        }
+      }
+
+      if (!rawCards || rawCards.length === 0) {
+        logger.debug('Import: No cards found after parsing');
+        toast({
+          title: 'Arquivo inválido',
+          description: 'Nenhum card encontrado no JSON.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const deckData = {
+        user_id: user.id,
+        name: deckName,
+        description: deckDescription,
+        color: deckColor,
+        icon: 'BookOpen',
+      };
+      
+      logger.debug('Import: Creating deck', { deckName: deckData.name });
+      const { data: deck, error: deckError } = await flashcardService.createDeck(deckData);
+      
+      if (deckError) {
+        logger.error('Import: Deck creation failed', deckError);
+        throw deckError;
+      }
+      
+      logger.debug('Import: Deck created successfully', { deckId: deck.id, deckName: deck.name });
+
+      const cardsArray = (rawCards || [])
+        .map((card) => ({
+          deck_id: deck.id,
+          user_id: user.id,
+          front: String(card.front ?? '').trim(),
+          back: String(card.back ?? '').trim(),
+          card_type: card.card_type || 'basic',
+          tags: Array.isArray(card.tags) ? card.tags : [],
+        }))
+        .filter((c) => c.front && c.back);
+
+      logger.debug('Import: Processed cards', { 
+        totalCards: rawCards.length,
+        validCards: cardsArray.length 
+      });
+
+      if (cardsArray.length > 0) {
+        logger.debug('Import: Creating cards');
+        const { error: cardsError } = await flashcardService.createCards(cardsArray);
+        if (cardsError) {
+          logger.error('Import: Cards creation failed', cardsError);
+          throw cardsError;
+        }
+        logger.debug('Import: Cards created successfully');
+      }
+
+      toast({
+        title: 'Deck importado!',
+        description: `Deck "${deck.name}" criado com ${cardsArray.length} cards.`,
+      });
+
+      logger.debug('Import: Navigation scheduled');
+      // Small delay to ensure DevTools stays connected
+      setTimeout(() => {
+        logger.debug('Import: Navigating to deck');
+        navigate(`/students/flashcards/decks/${deck.id}`);
+      }, 100);
+    } catch (error) {
+      logger.error('Error importing deck JSON:', error);
+      toast({
+        title: 'Erro ao importar deck',
+        description: 'Verifique o arquivo JSON e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      logger.debug('Import: Finally block, resetting importing state');
+      setImporting(false);
+    }
+  };
+
+  const handleApkgImport = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    
+    logger.debug('Import APKG: File selected', { fileName: file?.name, size: file?.size });
+
+    if (!file) {
+      logger.debug('Import APKG: No file selected');
+      return;
+    }
+
+    if (!user?.id) {
+      logger.debug('Import APKG: User not authenticated');
+      toast({
+        title: 'Usuário não autenticado',
+        description: 'Faça login para importar decks.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      logger.debug('Import APKG: Starting import process');
+      setImportingApkg(true);
+
+      // Validar tamanho (max 100MB)
+      const maxSize = 100 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast({
+          title: 'Arquivo muito grande',
+          description: 'O arquivo deve ter no máximo 100MB.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      toast({
+        title: 'Enviando arquivo...',
+        description: 'Aguarde enquanto o deck Anki é processado.',
+      });
+
+      // Upload para Storage
+      const filePath = `${user.id}/${Date.now()}_${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('flashcards-imports')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        logger.error('Import APKG: Upload error', uploadError);
+        throw new Error('Falha ao enviar arquivo');
+      }
+
+      logger.debug('Import APKG: File uploaded', { path: filePath });
+
+      // Inferir nome do deck do arquivo
+      const deckName = file.name.replace(/\.apkg$/i, '');
+
+      // Obter token de sessão para chamar a Edge Function
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+
+      if (!session) {
+        throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
+      // Chamar Edge Function via fetch (mesmo padrão do generate-flashcards)
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-anki`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bucket: 'flashcards-imports',
+            file_path: filePath,
+            create_new_deck: true,
+            deck_name: deckName,
+            deck_description: 'Deck importado do Anki',
+          }),
+        }
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        logger.error('Import APKG: Function error', { status: response.status, data });
+        throw new Error(data?.error || 'Erro ao processar deck Anki');
+      }
+
+      logger.debug('Import APKG: Import successful', data);
+
+      toast({
+        title: 'Deck importado com sucesso!',
+        description: `${data.import_stats?.total_cards_created || 0} cards foram adicionados ao deck "${deckName}".`,
+      });
+
+      // Navegar para o deck
+      setTimeout(() => {
+        navigate(`/students/flashcards/decks/${data.deck_id}`);
+      }, 100);
+
+    } catch (error) {
+      logger.error('Import APKG: Error', error);
+      toast({
+        title: 'Erro ao importar deck Anki',
+        description: error.message || 'Verifique o arquivo e tente novamente.',
+        variant: 'destructive',
+      });
+    } finally {
+      logger.debug('Import APKG: Finally block');
+      setImportingApkg(false);
+    }
+  };
+
   const filteredDecks = decks.filter(deck =>
     deck.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     deck.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" text="Carregando flashcards..." />
-      </div>
-    );
-  }
-
   const aggregatedDueFromDecks = Object.keys(deckDueCounts).length
-    ? Object.values(deckDueCounts).reduce((sum, value) => sum + (value || 0), 0)
-    : stats.cards_due_today;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
@@ -163,7 +593,7 @@ const FlashcardsPage = () => {
         title="Flashcards"
         subtitle={`Sistema de repetição espaçada para memorização eficiente • Hoje: ${aggregatedDueFromDecks} cards para revisar`}
         actions={
-          <div className="flex gap-2">
+          <div className="flex gap-2 relative z-10">
             <Button
               variant="outline"
               size="sm"
@@ -180,6 +610,81 @@ const FlashcardsPage = () => {
               <Settings className="w-4 h-4 mr-2" />
               Configurações
             </Button>
+            {/* Botão de Importação com Menu Dropdown */}
+            <div ref={buttonRef}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImportMenuToggle}
+                disabled={importing || importingApkg}
+                className="bg-white text-slate-900 border-white/20 hover:bg-white/90 hover:text-slate-900"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {importing || importingApkg ? 'Importando...' : 'Importar Deck'}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+            {/* Menu Dropdown via Portal */}
+            {showImportMenu && !importing && !importingApkg && createPortal(
+              <div 
+                ref={importMenuRef}
+                className="fixed w-64 bg-white dark:bg-slate-800 rounded-lg shadow-2xl border-2 border-slate-300 dark:border-slate-600" 
+                style={{ 
+                  zIndex: 9999,
+                  top: `${menuPosition.top}px`,
+                  right: `${menuPosition.right}px`
+                }}
+              >
+                <div className="py-2">
+                  <label
+                    className="flex items-center px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer transition-colors border-b-2 border-slate-200 dark:border-slate-600"
+                    onClick={() => setShowImportMenu(false)}
+                  >
+                    <input
+                      type="file"
+                      accept="application/json"
+                      onChange={handleFileChange}
+                      className="hidden"
+                      disabled={importing}
+                    />
+                    <FileJson className="w-5 h-5 mr-3 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">Importar JSON</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Formato customizado</div>
+                    </div>
+                  </label>
+                  
+                  <label
+                    className="flex items-center px-4 py-3 hover:bg-purple-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                    onClick={() => setShowImportMenu(false)}
+                  >
+                    <input
+                      type="file"
+                      accept=".apkg"
+                      onChange={handleApkgImport}
+                      className="hidden"
+                      disabled={importingApkg}
+                      ref={apkgInputRef}
+                    />
+                    <Package className="w-5 h-5 mr-3 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                    <div className="flex-1">
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">Importar Anki (.apkg)</div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">Deck do Anki com mídia</div>
+                    </div>
+                  </label>
+                </div>
+              </div>,
+              document.body
+            )}
+            
+            {/* Hidden file inputs (mantidos para compatibilidade) */}
+            <input
+              type="file"
+              accept="application/json"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileChange}
+            />
             <Button
               onClick={handleCreateDeck}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
@@ -190,6 +695,7 @@ const FlashcardsPage = () => {
           </div>
         }
       />
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -367,10 +873,10 @@ const DeckCard = ({ deck, onStudy, onView, dueCount: dueCountOverride }) => {
           <Button
             onClick={(e) => {
               e.stopPropagation();
-              if (dueCount === 0) return;
+              if (totalCards === 0) return;
               onStudy();
             }}
-            disabled={dueCount === 0}
+            disabled={totalCards === 0}
             className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white disabled:opacity-50"
           >
             <Play className="w-4 h-4 mr-2" />

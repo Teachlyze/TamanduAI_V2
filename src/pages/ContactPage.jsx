@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import Seo from '@/shared/components/Seo';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
+import Footer from '@/shared/components/Footer';
 import {
   Mail, Phone, MapPin, Clock, Send, CheckCircle, Loader2,
-  MessageSquare, Users, Building2, Sparkles, Linkedin, Twitter, Instagram, X
+  MessageSquare, Users, Building2, Sparkles, Linkedin, Twitter, Instagram, X, BookOpen
 } from 'lucide-react';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -257,7 +258,7 @@ const ContactPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Seo 
         title="Contato - TamanduAI"
         description="Entre em contato conosco. Estamos prontos para ajudar você!"
@@ -269,7 +270,7 @@ const ContactPage = () => {
           <div className="flex items-center justify-between h-16">
             <Link to="/" className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 rounded-xl flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
+                <BookOpen className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
                 TamanduAI
@@ -321,7 +322,7 @@ const ContactPage = () => {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <Card className="p-8 shadow-2xl border-2 border-blue-100 dark:border-blue-900 bg-gradient-to-br from-white via-blue-50/30 to-cyan-50/30 dark:from-gray-900 dark:via-blue-900/10 dark:to-cyan-900/10">
+              <Card className="p-8 shadow-2xl border border-blue-100/60 dark:border-blue-900/40 bg-white dark:bg-gray-900 rounded-2xl">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg">
                     <Send className="w-6 h-6 text-white" />
@@ -360,7 +361,7 @@ const ContactPage = () => {
                       value={formData.fullName}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white transition-all duration-200 hover:border-blue-300"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200"
                       placeholder="Seu nome completo"
                     />
                   </div>
@@ -377,7 +378,7 @@ const ContactPage = () => {
                       value={formData.email}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200"
                       placeholder="seu@email.com"
                     />
                   </div>
@@ -394,7 +395,7 @@ const ContactPage = () => {
                       value={formData.phone}
                       onChange={handlePhoneChange}
                       maxLength="15"
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200"
                       placeholder="(11) 99999-9999"
                     />
                   </div>
@@ -410,7 +411,7 @@ const ContactPage = () => {
                       value={formData.userType}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200"
                     >
                       <option value="">Selecione...</option>
                       {userTypes.map(type => (
@@ -430,7 +431,7 @@ const ContactPage = () => {
                       value={formData.subject}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200"
                     >
                       <option value="">Selecione...</option>
                       {subjects.map(subj => (
@@ -450,7 +451,7 @@ const ContactPage = () => {
                       name="company"
                       value={formData.company}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200"
                       placeholder="Nome da sua instituição"
                     />
                   </div>
@@ -468,7 +469,7 @@ const ContactPage = () => {
                       required
                       rows="6"
                       maxLength="1000"
-                      className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none transition-all duration-200 hover:border-blue-300"
+                      className="w-full px-4 py-3 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 hover:border-blue-400 transition-all duration-200 resize-none"
                       placeholder="Como podemos ajudar você? (mínimo 20 caracteres)"
                     />
                     <div className="flex items-center justify-between mt-2">
@@ -491,8 +492,7 @@ const ContactPage = () => {
                   {/* Submit Button */}
                   <Button
                     type="submit"
-                    variant="gradient"
-                    className="w-full h-14 text-lg font-bold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02]"
+                    className="w-full h-14 text-lg font-bold relative bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 hover:from-amber-500 hover:via-amber-600 hover:to-amber-500 text-gray-900 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 overflow-hidden group"
                     disabled={loading || submitted}
                   >
                     {loading ? (
@@ -536,7 +536,7 @@ const ContactPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: idx * 0.1 }}
                   >
-                    <Card className="p-6 hover:shadow-lg transition-shadow">
+                    <Card className="p-6 rounded-2xl border border-blue-100/60 dark:border-blue-900/40 hover:shadow-xl transition-all duration-300">
                       <div className="flex items-center gap-4">
                         <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${info.color} flex items-center justify-center flex-shrink-0`}>
                           <info.icon className="w-6 h-6 text-white" />
@@ -565,7 +565,7 @@ const ContactPage = () => {
               </div>
 
               {/* Response Time */}
-              <Card className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border-2 border-blue-200 dark:border-blue-800">
+              <Card className="p-6 rounded-2xl bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50/30 dark:from-blue-900/20 dark:to-cyan-900/20 border border-amber-200 dark:border-amber-800/40">
                 <div className="flex items-start gap-4">
                   <MessageSquare className="w-8 h-8 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   <div>
@@ -580,7 +580,7 @@ const ContactPage = () => {
               </Card>
 
               {/* Social Links */}
-              <Card className="p-6">
+              <Card className="p-6 rounded-2xl border border-blue-100/60 dark:border-blue-900/40">
                 <h3 className="font-bold text-gray-900 dark:text-white mb-4">
                   Siga-nos nas Redes Sociais
                 </h3>
@@ -691,6 +691,8 @@ const ContactPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <Footer />
     </div>
   );
 };

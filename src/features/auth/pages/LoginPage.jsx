@@ -1,7 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   GraduationCap, 
   Mail, 
@@ -12,7 +12,8 @@ import {
   BarChart3,
   Eye,
   EyeOff,
-  AlertCircle
+  AlertCircle,
+  BookOpen
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Input } from '@/shared/components/ui/input';
@@ -33,6 +34,7 @@ const LoginPage = () => {
   
   const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Redirect if already logged in
   useEffect(() => {
@@ -137,7 +139,7 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Form */}
-      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-background">
+      <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -147,7 +149,7 @@ const LoginPage = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center justify-center gap-3 mb-8">
             <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-cyan-600 via-blue-600 to-blue-800">
-              <Sparkles className="w-7 h-7 text-white" />
+              <BookOpen className="w-7 h-7 text-white" />
             </div>
             <span className="text-3xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
               TamanduAI
@@ -292,6 +294,7 @@ const LoginPage = () => {
             Não tem uma conta?{' '}
             <Link
               to="/register"
+              state={location.state?.redirectTo ? { redirectTo: location.state.redirectTo } : undefined}
               className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
             >
               Cadastre-se grátis

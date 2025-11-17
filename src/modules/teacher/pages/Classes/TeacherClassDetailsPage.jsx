@@ -54,6 +54,7 @@ const TeacherClassDetailsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [classData, setClassData] = useState(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [studentCount, setStudentCount] = useState(0);
@@ -134,6 +135,9 @@ const TeacherClassDetailsPage = () => {
       navigate('/dashboard/classes');
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -172,7 +176,7 @@ const TeacherClassDetailsPage = () => {
    */
   const handleCopyInviteLink = async () => {
     if (classData?.invite_code) {
-      const link = `${window.location.origin}/join/class/${classData.invite_code}`;
+      const link = `${window.location.origin}/join/${classData.invite_code}`;
       try {
         await navigator.clipboard.writeText(link);
         toast({
@@ -245,7 +249,7 @@ const TeacherClassDetailsPage = () => {
     }
   ];
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
         <div className="text-center">

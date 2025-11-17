@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Cookie, CheckCircle, Info, Settings, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Footer from '@/shared/components/Footer';
 
 export default function CookiePolicyPage() {
   return (
@@ -291,27 +292,7 @@ export default function CookiePolicyPage() {
           </motion.div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-md py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                © 2025 TamanduAI. Todos os direitos reservados.
-              </p>
-              <div className="flex gap-6">
-                <Link to="/privacy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Política de Privacidade
-                </Link>
-                <Link to="/terms" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Termos de Uso
-                </Link>
-                <Link to="/contact" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Contato
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );

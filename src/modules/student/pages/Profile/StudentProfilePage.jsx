@@ -35,6 +35,7 @@ const StudentProfilePage = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -120,6 +121,9 @@ const StudentProfilePage = () => {
       });
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -170,7 +174,7 @@ const StudentProfilePage = () => {
     { id: 'security', label: 'Segurança', icon: Shield }
   ];
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Carregando..." />

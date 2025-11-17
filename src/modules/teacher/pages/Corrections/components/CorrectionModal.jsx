@@ -236,9 +236,23 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
   };
 
   const handleCheckPlagiarism = async () => {
-    const text = typeof submission.content === 'string' 
-      ? submission.content 
-      : submission.content?.text || '';
+    const content = submission.content;
+    let text = '';
+
+    if (typeof content === 'string') {
+      text = content;
+    } else if (content) {
+      if (typeof content.answer === 'string' && content.answer.trim()) {
+        text = content.answer;
+      } else if (typeof content.text === 'string' && content.text.trim()) {
+        text = content.text;
+      } else if (typeof content === 'object') {
+        const values = Object.values(content).filter(v => typeof v === 'string' && v.trim());
+        if (values.length > 0) {
+          text = values.join('\n\n');
+        }
+      }
+    }
 
     if (!text) {
       toast({
@@ -364,7 +378,18 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
                 <Card className="p-6">
                   <h3 className="font-semibold text-lg mb-4">Comentários no Texto</h3>
                   <InlineComments
-                    text={typeof submission.content === 'string' ? submission.content : submission.content?.text}
+                    text={(function () {
+                      const content = submission.content;
+                      if (typeof content === 'string') return content;
+                      if (!content) return '';
+                      if (typeof content.answer === 'string' && content.answer.trim()) return content.answer;
+                      if (typeof content.text === 'string' && content.text.trim()) return content.text;
+                      if (typeof content === 'object') {
+                        const values = Object.values(content).filter(v => typeof v === 'string' && v.trim());
+                        if (values.length > 0) return values.join('\n\n');
+                      }
+                      return '';
+                    })()}
                     comments={inlineComments}
                     onAddComment={(comment) => setInlineComments(prev => [...prev, comment])}
                     onDeleteComment={(id) => setInlineComments(prev => prev.filter(c => c.id !== id))}

@@ -46,3 +46,13 @@ export {
   getAuthenticatedUser,
   acceptTerms
 } from './authEdge';
+
+// Public Ideas
+export {
+  listIdeas,
+  createIdea,
+  toggleIdeaVote,
+  getUserVotedIdeas,
+  getOrCreateVisitorId,
+  useIdeas
+} from './ideasEdge';

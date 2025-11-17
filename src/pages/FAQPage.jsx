@@ -6,6 +6,7 @@ import {
   Zap, Users, BookOpen, CreditCard, Settings, ArrowLeft
 } from 'lucide-react';
 import { SEO, StructuredData } from '@/shared/components/seo/StructuredData';
+import Footer from '@/shared/components/Footer';
 
 const FAQPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -173,7 +174,7 @@ const FAQPage = () => {
         data={{ questions: structuredDataQuestions }} 
       />
 
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-slate-50 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900">
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         {/* Header */}
         <header className="border-b bg-white/80 dark:bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -205,11 +206,11 @@ const FAQPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 mb-6">
                 <HelpCircle className="w-4 h-4" />
                 <span className="text-sm font-semibold">Central de Ajuda</span>
               </div>
-              <h1 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
                 Perguntas Frequentes
               </h1>
               <p className="text-xl text-slate-600 dark:text-slate-400 mb-8">
@@ -224,7 +225,7 @@ const FAQPage = () => {
                   placeholder="Buscar perguntas... (ex: como funciona plágio)"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all"
+                  className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-blue-200 dark:border-blue-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all"
                 />
               </div>
             </motion.div>
@@ -242,10 +243,10 @@ const FAQPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                   onClick={() => setActiveCategory(cat.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all ${
                     activeCategory === cat.id
-                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg scale-105'
-                      : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+                      ? 'bg-gradient-to-r from-amber-400 to-amber-500 text-gray-900 shadow-lg scale-105'
+                      : 'bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-400 border border-blue-100/60 dark:border-blue-900/40 hover:border-blue-200'
                   }`}
                 >
                   <cat.icon className="w-4 h-4" />
@@ -279,7 +280,7 @@ const FAQPage = () => {
                       onClick={() => setOpenQuestion(openQuestion === index ? null : index)}
                       className="w-full"
                     >
-                      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm hover:shadow-md transition-all border-2 border-transparent hover:border-indigo-500">
+                      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-blue-100/60 dark:border-blue-900/40 hover:border-blue-200">
                         <div className="flex items-start justify-between gap-4">
                           <h3 className="text-lg font-semibold text-left text-slate-900 dark:text-white">
                             {faq.question}
@@ -370,27 +371,7 @@ const FAQPage = () => {
           </div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-md py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                © 2025 TamanduAI. Todos os direitos reservados.
-              </p>
-              <div className="flex gap-6">
-                <Link to="/privacy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Política de Privacidade
-                </Link>
-                <Link to="/terms" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Termos de Uso
-                </Link>
-                <Link to="/contact" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Contato
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );

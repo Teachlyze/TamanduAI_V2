@@ -1,4 +1,3 @@
-import { logger } from '@/shared/utils/logger';
 // Logging Service for TamanduAI
 // Centralized logging system that saves to Supabase and handles console output
 
@@ -106,13 +105,13 @@ const saveLogToDatabase = async (logEntry) => {
       // If table is missing, disable further DB logging for this session
       if (code === 'PGRST205' || msg.includes("could not find the table 'public.application_logs'")) {
         dbLoggingDisabled = true;
-        logger.warn('[Logger] application_logs table not found. Disabling DB logging for this session.')
+        logEntry('WARN', '[Logger] application_logs table not found. Disabling DB logging for this session.')
         return;
       }
-      logger.error('[Logger] Failed to save log to database:', error)
+      logEntry('ERROR', '[Logger] Failed to save log to database:', error)
     }
   } catch (error) {
-    logger.error('[Logger] Error saving log:', error)
+    logEntry('ERROR', '[Logger] Error saving log:', error)
   }
 };
 
@@ -131,18 +130,18 @@ const consoleOutput = (level, message, data = null) => {
   // Only show ERROR and CRITICAL in console for better performance
   if (level === 'ERROR' || level === 'CRITICAL') {
     if (data) {
-      logger.debug(`%c[${timestamp}] ${level}: ${message}`, styles[level], data)
+      console.debug(`%c[${timestamp}] ${level}: ${message}`, styles[level], data)
     } else {
-      logger.debug(`%c[${timestamp}] ${level}: ${message}`, styles[level])
+      console.debug(`%c[${timestamp}] ${level}: ${message}`, styles[level])
     }
   }
 };
 
 // Main logger function
-const logger = async (level, message, data = null) => {
+const logEntry = async (level, message, data = null) => {
   if (!shouldLog(LOG_LEVELS[level])) return;
 
-  const logEntry = formatLogMessage(level, message, data);
+  const logData = formatLogMessage(level, message, data);
 
   // Console output (only in development or for ERROR+ logs)
   const shouldShowInConsole = import.meta.env.DEV
@@ -154,23 +153,23 @@ const logger = async (level, message, data = null) => {
   }
 
   // Save to database
-  await saveLogToDatabase(logEntry);
+  await saveLogToDatabase(logData);
 
   // For critical errors, also send to error tracking service if available
   if (level === 'CRITICAL' && window.Sentry) {
     window.Sentry.captureException(new Error(message), {
-      extra: { data, logEntry }
+      extra: { data, logData }
     });
   }
 };
 
 // Logger API
 export const Logger = {
-  debug: (message, data) => logger('DEBUG', message, data),
-  info: (message, data) => logger('INFO', message, data),
-  warn: (message, data) => logger('WARN', message, data),
-  error: (message, data) => logger('ERROR', message, data),
-  critical: (message, data) => logger('CRITICAL', message, data),
+  debug: (message, data) => logEntry('DEBUG', message, data),
+  info: (message, data) => logEntry('INFO', message, data),
+  warn: (message, data) => logEntry('WARN', message, data),
+  error: (message, data) => logEntry('ERROR', message, data),
+  critical: (message, data) => logEntry('CRITICAL', message, data),
 
   // Utility methods
   setUserContext: (userId, userEmail) => {
@@ -180,7 +179,7 @@ export const Logger = {
         sessionStorage.setItem('user_email', userEmail);
       }
     } catch (error) {
-      logger.error('[Logger] Error setting user context:', error)
+      logEntry('ERROR', '[Logger] Error setting user context:', error)
     }
   },
 
@@ -191,7 +190,7 @@ export const Logger = {
         sessionStorage.removeItem('user_email');
       }
     } catch (error) {
-      logger.error('[Logger] Error clearing user context:', error)
+      logEntry('ERROR', '[Logger] Error clearing user context:', error)
     }
   },
 };

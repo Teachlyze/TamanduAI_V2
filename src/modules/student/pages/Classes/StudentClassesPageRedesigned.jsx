@@ -16,6 +16,7 @@ const StudentClassesPageRedesigned = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [classes, setClasses] = useState([]);
   const [filteredClasses, setFilteredClasses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -142,6 +143,9 @@ const StudentClassesPageRedesigned = () => {
       logger.error('Erro ao carregar turmas:', error);
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -179,7 +183,7 @@ const StudentClassesPageRedesigned = () => {
     setFilteredClasses(filtered);
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

@@ -8,31 +8,166 @@ const SubmissionView = ({ submission }) => {
   const questions = submission.activity?.content?.questions || [];
   const answers = submission.answers || [];
 
+  const buildAnswersMap = () => {
+    const map = {};
+
+    // Tentar extrair respostas estruturadas do content (selectedAnswers/answers)
+    if (content) {
+      let parsed = content;
+
+      if (typeof content === 'string') {
+        try {
+          parsed = JSON.parse(content);
+        } catch (e) {
+          parsed = null;
+        }
+      }
+
+      if (parsed && typeof parsed === 'object') {
+        // Para quizzes novos: selectedAnswers/answers
+        // Para quizzes antigos: próprio objeto já é o mapa { questionId: value }
+        const fromContent =
+          parsed.selectedAnswers ||
+          parsed.answers ||
+          (Array.isArray(questions) && questions.length > 0 ? parsed : null);
+
+        if (fromContent && typeof fromContent === 'object') {
+          Object.entries(fromContent).forEach(([key, value]) => {
+            map[key] = value;
+          });
+        }
+      }
+    }
+
+    // Fallback legado: tabela answers
+    if (answers && Array.isArray(answers) && answers.length > 0) {
+      answers.forEach((answer) => {
+        if (!answer) return;
+        const questionId = answer.question_id;
+        const answerJson = answer.answer_json;
+        let value = null;
+
+        if (answerJson && typeof answerJson === 'object') {
+          value = answerJson.answer ?? answerJson.selected ?? null;
+        } else if (typeof answerJson === 'string') {
+          value = answerJson;
+        }
+
+        if (questionId != null && value != null && map[questionId] === undefined) {
+          map[questionId] = value;
+        }
+      });
+    }
+
+    return map;
+  };
+
+  const structuredAnswers = buildAnswersMap();
+
+  const getStudentAnswerLabel = (question, value) => {
+    if (value === undefined || value === null || value === '') return null;
+
+    if (question.alternatives && question.alternatives.length > 0) {
+      const normalized = String(value);
+
+      const byId = question.alternatives.find((alt) => String(alt.id) === normalized);
+      if (byId) return byId.text || normalized;
+
+      const byLetter = question.alternatives.find((alt) => String(alt.letter) === normalized);
+      if (byLetter) return byLetter.text || normalized;
+
+      const byText = question.alternatives.find((alt) => alt.text === value);
+      if (byText) return byText.text;
+    }
+
+    return typeof value === 'string' ? value : JSON.stringify(value);
+  };
+
+  const getCorrectAnswerLabel = (question) => {
+    if (question.alternatives && question.alternatives.length > 0) {
+      const correctAlts = question.alternatives.filter((alt) => alt.isCorrect);
+      if (correctAlts.length > 0) {
+        return correctAlts.map((alt) => alt.text).join(', ');
+      }
+    }
+
+    return question.correctAnswer || question.correct_answer || question.answer || null;
+  };
+
+  const isStudentAnswerCorrect = (question, value) => {
+    if (value === undefined || value === null || value === '') return null;
+
+    if (question.alternatives && question.alternatives.length > 0) {
+      const correctAlts = question.alternatives.filter((alt) => alt.isCorrect);
+      if (correctAlts.length === 0) return null;
+
+      const normalized = String(value);
+      const matches = (alt) =>
+        String(alt.id) === normalized ||
+        String(alt.letter) === normalized ||
+        alt.text === value;
+
+      return correctAlts.some(matches);
+    }
+
+    return null;
+  };
+
   // Se tem questões estruturadas, mostrar como quiz independente do tipo
-  if (questions.length > 0 && answers.length > 0) {
+  if (questions.length > 0 && Object.keys(structuredAnswers).length > 0) {
     return (
       <div className="space-y-4">
         {questions.map((question, idx) => {
-          const answer = answers.find(a => 
-            a.question_id === question.id || 
-            a.question_id === `question_${idx}` ||
-            a.question_id === idx.toString()
-          );
-          
-          const studentAnswer = answer?.answer_json?.answer || 
-                               answer?.answer_json?.selected || 
-                               (typeof answer?.answer_json === 'string' ? answer.answer_json : null);
-          
-          const isCorrect = (answer?.points_earned || 0) > 0;
-          const correctAnswer = question.correctAnswer || question.correct_answer || question.answer;
+          const questionKey = question.id ?? idx;
+          const rawStudentValue =
+            structuredAnswers[questionKey] ??
+            structuredAnswers[String(questionKey)] ??
+            structuredAnswers[`question_${idx}`];
+
+          const studentAnswer = getStudentAnswerLabel(question, rawStudentValue);
+          const correctAnswer = getCorrectAnswerLabel(question);
+          const correctness = isStudentAnswerCorrect(question, rawStudentValue);
+
+          const hasCorrectInfo = !!correctAnswer;
+          const hasStudentAnswer = !!studentAnswer;
+
+          const isCorrect = correctness === true;
+          const isIncorrect = correctness === false;
+
+          const borderColor = hasCorrectInfo
+            ? isCorrect
+              ? '#22c55e'
+              : isIncorrect
+                ? '#ef4444'
+                : '#0f172a'
+            : '#0f172a';
+
+          const badgeVariant = hasCorrectInfo
+            ? isCorrect
+              ? 'success'
+              : isIncorrect
+                ? 'destructive'
+                : 'outline'
+            : 'outline';
+
+          const badgeLabel = hasCorrectInfo
+            ? isCorrect
+              ? '✓ Correta'
+              : isIncorrect
+                ? '✗ Incorreta'
+                : hasStudentAnswer
+                  ? 'Respondida'
+                  : 'Sem resposta'
+            : hasStudentAnswer
+              ? 'Respondida'
+              : 'Sem resposta';
 
           return (
-            <Card key={idx} className="p-4 border-l-4" style={{ borderLeftColor: isCorrect ? '#22c55e' : '#ef4444' }}>
+            <Card key={idx} className="p-4 border-l-4" style={{ borderLeftColor: borderColor }}>
               <div className="flex justify-between items-start mb-3">
                 <h4 className="font-semibold text-lg">Questão {idx + 1}</h4>
-                <Badge variant={isCorrect ? "success" : "destructive"}>
-                  {isCorrect ? '✓ Correta' : '✗ Incorreta'}
-                  {answer?.points_earned !== undefined && ` (${answer.points_earned} pts)`}
+                <Badge variant={badgeVariant}>
+                  {badgeLabel}
                 </Badge>
               </div>
               
@@ -204,107 +339,6 @@ const SubmissionView = ({ submission }) => {
             </ul>
           </div>
         )}
-      </div>
-    );
-  }
-
-  if (submission.activity?.type === 'quiz') {
-    // Atividade Fechada (Objetiva)
-    const questions = submission.activity?.content?.questions || [];
-    const answers = submission.answers || [];
-
-    return (
-      <div className="space-y-4">
-        {questions.map((question, idx) => {
-          const answer = answers.find(a => 
-            a.question_id === question.id || 
-            a.question_id === `question_${idx}` ||
-            a.question_id === idx.toString()
-          );
-          
-          // Extrair resposta do aluno do answer_json
-          const studentAnswer = answer?.answer_json?.answer || 
-                               answer?.answer_json?.selected || 
-                               (typeof answer?.answer_json === 'string' ? answer.answer_json : null);
-          
-          const isCorrect = (answer?.points_earned || 0) > 0;
-          const correctAnswer = question.correctAnswer || question.correct_answer || question.answer;
-
-          return (
-            <Card key={idx} className="p-4 border-l-4" style={{ borderLeftColor: isCorrect ? '#22c55e' : '#ef4444' }}>
-              <div className="flex justify-between items-start mb-3">
-                <h4 className="font-semibold text-lg">Questão {idx + 1}</h4>
-                <Badge variant={isCorrect ? "success" : "destructive"}>
-                  {isCorrect ? '✓ Correta' : '✗ Incorreta'}
-                  {answer?.points_earned !== undefined && ` (${answer.points_earned} pts)`}
-                </Badge>
-              </div>
-              
-              {/* Enunciado da Questão */}
-              <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
-                <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">📝 ENUNCIADO:</p>
-                <TextWithLineBreaks 
-                  text={question.text || question.question || question.prompt}
-                  className="font-medium leading-relaxed"
-                />
-                {question.maxScore && (
-                  <p className="text-xs text-gray-500 mt-2">Valor: {question.maxScore} pontos</p>
-                )}
-              </div>
-              
-              {/* Resposta do Aluno */}
-              <div className="space-y-3 mb-3">
-                <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border-l-4 border-blue-500 rounded">
-                  <p className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-2">👤 RESPOSTA DO ALUNO:</p>
-                  <TextWithLineBreaks 
-                    text={studentAnswer || 'Não respondeu'}
-                    className="font-medium"
-                  />
-                </div>
-                
-                {correctAnswer && (
-                  <div className="p-4 bg-green-50 dark:bg-green-950/20 border-l-4 border-green-500 rounded">
-                    <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">✓ RESPOSTA CORRETA:</p>
-                    <TextWithLineBreaks 
-                      text={correctAnswer}
-                      className="font-medium"
-                    />
-                  </div>
-                )}
-              </div>
-              
-              {question.options && question.options.length > 0 && (
-                <div className="space-y-1">
-                  <p className="text-xs text-gray-600 mb-2">Opções:</p>
-                  {question.options.map((opt, optIdx) => (
-                    <div
-                      key={optIdx}
-                      className={`p-2 rounded text-sm ${
-                        opt === correctAnswer ? 'bg-green-100 dark:bg-green-950/30 border border-green-500' :
-                        opt === studentAnswer ? 'bg-red-100 dark:bg-red-950/30 border border-red-500' :
-                        'bg-gray-50 dark:bg-gray-800'
-                      }`}
-                    >
-                      <TextWithLineBreaks text={opt} />
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              {question.explanation && (
-                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded text-sm">
-                  <div className="space-y-1">
-                    <strong>Explicação:</strong>
-                    <TextWithLineBreaks 
-                      text={question.explanation}
-                      className="block mt-1"
-                    />
-                  </div>
-                </div>
-              )}
-            </Card>
-          );
-        })}
       </div>
     );
   }

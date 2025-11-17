@@ -1,33 +1,51 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2, Users, BookOpen } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
+import ClassInviteService from '@/shared/services/classInviteService';
+import ClassService from '@/shared/services/classService';
 
 const JoinClassPage = () => {
   const { invitationCode } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const location = useLocation();
+  const { user, profile, loading: authLoading } = useAuth();
   
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [classData, setClassData] = useState(null);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [inviteMeta, setInviteMeta] = useState(null);
 
   useEffect(() => {
-    if (user && profile) {
-      loadClassData();
+    // Esperar carregamento do estado de autenticação
+    if (authLoading) return;
+
+    // Se não estiver autenticado, redirecionar para login preservando a URL do convite
+    if (!user || !profile) {
+      navigate('/login', {
+        replace: true,
+        state: {
+          redirectTo: location.pathname + location.search,
+        },
+      });
+      return;
     }
-  }, [invitationCode, user, profile]);
+
+    // Autenticado: carregar dados da turma
+    loadClassData();
+  }, [authLoading, user, profile, invitationCode, navigate, location]);
 
   const loadClassData = async () => {
     try {
       setLoading(true);
       setError(null);
+      setInviteMeta(null);
 
       // Normalizar código
       const code = invitationCode?.replace(/\s/g, '').trim().toUpperCase();
@@ -36,52 +54,84 @@ const JoinClassPage = () => {
         setError('Código de convite inválido');
         return;
       }
+      let loadedClass = null;
+      let loadedInvite = null;
 
-      // Buscar turma pelo código
-      const { data: classInfo, error: classError } = await supabase
-        .from('classes')
-        .select(`
-          id,
-          name,
-          subject,
-          description,
-          color,
-          banner_color,
-          invite_code,
-          created_by,
-          profiles:created_by(full_name)
-        `)
-        .eq('invite_code', code)
-        .eq('is_active', true)
-        .single();
+      // 1) Tentar tratar como código de convite da tabela class_invitations
+      try {
+        const invite = await ClassInviteService.getInviteDetails(code);
 
-      if (classError || !classInfo) {
+        if (invite?.class) {
+          loadedInvite = invite;
+          loadedClass = {
+            ...invite.class,
+            invite_code: code,
+            profiles: invite.class.teacher
+              ? { full_name: invite.class.teacher.full_name }
+              : undefined,
+          };
+        }
+      } catch (inviteErr) {
+        // Se o convite existir mas estiver expirado/inativo/sem vagas, tratamos com mensagem específica
+        if (
+          inviteErr?.message === 'Invitation is no longer active' ||
+          inviteErr?.message === 'Invitation has expired' ||
+          inviteErr?.message === 'Invitation has reached maximum uses'
+        ) {
+          setError('Este convite não está mais válido. Peça um novo link ao professor.');
+          return;
+        }
+
+        // Para códigos que não existem em class_invitations, seguimos para o fallback em classes.invite_code
+        logger.warn('Código não encontrado em class_invitations, tentando classes.invite_code', inviteErr);
+      }
+
+      // 2) Fallback: tratar como código direto da turma (classes.invite_code)
+      if (!loadedClass) {
+        try {
+          const classInfo = await ClassService.getClassByInviteCode(code);
+
+          loadedClass = {
+            ...classInfo,
+            profiles: classInfo.teacher
+              ? { full_name: classInfo.teacher.full_name }
+              : classInfo.profiles,
+          };
+        } catch (classErr) {
+          logger.error('Erro ao buscar turma por código:', classErr);
+          setError('Turma não encontrada ou código inválido');
+          return;
+        }
+      }
+
+      if (!loadedClass) {
         setError('Turma não encontrada ou código inválido');
         return;
       }
+
+      setInviteMeta(loadedInvite);
+      setClassData(loadedClass);
 
       // Verificar se já é membro
       const { data: membership } = await supabase
         .from('class_members')
         .select('id')
-        .eq('class_id', classInfo.id)
+        .eq('class_id', loadedClass.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (membership) {
         setError('Você já é membro desta turma');
         // Redirecionar para a turma após 2 segundos
         setTimeout(() => {
           if (profile.role === 'student') {
-            navigate(`/student/classes/${classInfo.id}`);
+            navigate(`/students/classes/${loadedClass.id}`);
           } else {
-            navigate(`/dashboard/classes/${classInfo.id}`);
+            navigate(`/dashboard/classes/${loadedClass.id}`);
           }
         }, 2000);
         return;
       }
-
-      setClassData(classInfo);
     } catch (err) {
       logger.error('Erro ao carregar turma:', err)
       setError('Erro ao processar convite');
@@ -96,30 +146,52 @@ const JoinClassPage = () => {
     try {
       setJoining(true);
       setError(null);
+      const normalizedCode = invitationCode?.replace(/\s/g, '').trim().toUpperCase();
 
-      // Adicionar como membro
-      const { error: joinError } = await supabase
-        .from('class_members')
-        .insert({
-          class_id: classData.id,
-          user_id: user.id,
-          role: profile.role === 'teacher' ? 'teacher' : 'student',
-          joined_at: new Date().toISOString()
-        });
+      if (inviteMeta) {
+        // Fluxo via ClassInviteService (convite dedicado na tabela class_invitations)
+        try {
+          const result = await ClassInviteService.acceptInvite(normalizedCode, user.id);
 
-      if (joinError) throw joinError;
+          setSuccess(true);
 
-      setSuccess(true);
+          const targetClassId = result.classId || inviteMeta.class_id || classData.id;
 
-      // Redirecionar após 1.5 segundos
-      setTimeout(() => {
-        if (profile.role === 'student') {
-          navigate(`/student/classes/${classData.id}`);
-        } else {
-          navigate(`/dashboard/classes/${classData.id}`);
+          setTimeout(() => {
+            if (profile.role === 'student') {
+              navigate(`/students/classes/${targetClassId}`);
+            } else {
+              navigate(`/dashboard/classes/${targetClassId}`);
+            }
+          }, 1500);
+        } catch (inviteErr) {
+          logger.error('Erro ao aceitar convite:', inviteErr);
+          setError(inviteErr.message || 'Erro ao entrar na turma. Tente novamente.');
         }
-      }, 1500);
+      } else {
+        // Fluxo por código direto da turma (classes.invite_code)
+        const { error: joinError } = await supabase
+          .from('class_members')
+          .insert({
+            class_id: classData.id,
+            user_id: user.id,
+            role: profile.role === 'teacher' ? 'teacher' : 'student',
+            joined_at: new Date().toISOString()
+          });
 
+        if (joinError) throw joinError;
+
+        setSuccess(true);
+
+        // Redirecionar após 1.5 segundos
+        setTimeout(() => {
+          if (profile.role === 'student') {
+            navigate(`/students/classes/${classData.id}`);
+          } else {
+            navigate(`/dashboard/classes/${classData.id}`);
+          }
+        }, 1500);
+      }
     } catch (err) {
       logger.error('Erro ao entrar na turma:', err)
       setError('Erro ao entrar na turma. Tente novamente.');

@@ -33,6 +33,7 @@ const teacherNavigation = [
   { name: 'Submissões', href: '/dashboard/corrections', icon: FileText },
   { name: 'Alunos', href: '/dashboard/students', icon: GraduationCap },
   { name: 'Agenda', href: '/dashboard/calendar', icon: Calendar },
+  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Chatbot', href: '/dashboard/chatbot', icon: MessageCircle },
 ];
@@ -281,7 +282,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
                               ? 'bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-700 dark:to-cyan-600 text-white shadow-md'
                               : userRole === 'student'
                               ? 'text-slate-700 dark:text-slate-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/30'
-                              : 'text-muted-foreground hover:bg-muted'
+                              : 'text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-950/30'
                           )}
                           aria-current={active ? 'page' : undefined}
                           aria-label={item.name}
@@ -320,7 +321,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
                       ? 'bg-gradient-to-r from-blue-600 to-cyan-500 dark:from-blue-700 dark:to-cyan-600 text-white shadow-md focus:ring-blue-400'
                       : userRole === 'student'
                       ? 'text-slate-700 dark:text-slate-300 hover:bg-cyan-50 hover:text-cyan-700 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-400 focus:ring-cyan-400'
-                      : 'text-muted-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30 dark:hover:text-blue-400 focus:ring-blue-400'
+                      : 'text-muted-foreground hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-950/30 dark:hover:text-amber-400 focus:ring-amber-400'
                   )}
                   aria-current={active ? 'page' : undefined}
                 >
@@ -331,7 +332,7 @@ export const SidebarPremium = React.memo(({ isOpen, onClose }) => {
                         ? 'text-white' 
                         : userRole === 'student'
                         ? 'text-slate-500 dark:text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-400'
-                        : 'text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400'
+                        : 'text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400'
                     )}
                     aria-hidden="true"
                   />

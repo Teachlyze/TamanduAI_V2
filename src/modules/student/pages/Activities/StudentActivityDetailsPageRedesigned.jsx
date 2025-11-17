@@ -6,7 +6,7 @@ import { logger } from '@/shared/utils/logger';
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Award, FileText, Upload, Save, Send, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Award, FileText, Upload, Save, Send, Download, AlertCircle, CheckCircle, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Textarea } from '@/shared/components/ui/textarea';
@@ -39,6 +39,7 @@ const StudentActivityDetailsPageRedesigned = () => {
   const [selectedAnswers, setSelectedAnswers] = useState({});
   const [classStats, setClassStats] = useState(null);
   const [submissionAttempts, setSubmissionAttempts] = useState(0);
+  const [isNewAttempt, setIsNewAttempt] = useState(false);
 
   useEffect(() => {
     loadActivityAndSubmission();
@@ -77,22 +78,40 @@ const StudentActivityDetailsPageRedesigned = () => {
         classData = cls;
       }
 
-      // Buscar submissão existente
-      const { data: submissionData } = await supabase
+      // Buscar dados do professor que criou a atividade
+      let teacherData = null;
+      if (activityData?.created_by) {
+        const { data: teacher } = await supabase
+          .from('profiles')
+          .select('id, full_name, name, email')
+          .eq('id', activityData.created_by)
+          .maybeSingle();
+
+        teacherData = teacher;
+      }
+
+      // Buscar submissão existente (há UNIQUE em activity_id + student_id, então só pode haver uma linha)
+      const { data: submissionsData, error: submissionsError } = await supabase
         .from('submissions')
         .select('*')
         .eq('activity_id', activityId)
         .eq('student_id', user.user.id)
-        .maybeSingle();
+        .order('submitted_at', { ascending: false })
+        .limit(1);
 
-      // Contar tentativas anteriores
-      const { count: attemptsCount } = await supabase
-        .from('submissions')
-        .select('*', { count: 'exact', head: true })
-        .eq('activity_id', activityId)
-        .eq('student_id', user.user.id);
-      
-      setSubmissionAttempts(attemptsCount || 0);
+      if (submissionsError) throw submissionsError;
+
+      const submissionData = submissionsData?.[0] || null;
+
+      // Contar tentativas anteriores usando campo attemptNumber salvo no content
+      // Se não existir (submissões antigas), considerar pelo menos 1 tentativa
+      const attemptsCount = submissionData
+        ? (typeof submissionData.content?.attemptNumber === 'number'
+            ? submissionData.content.attemptNumber
+            : 1)
+        : 0;
+
+      setSubmissionAttempts(attemptsCount);
 
       // Buscar estatísticas da turma (se corrigida)
       if (submissionData?.status === 'graded') {
@@ -121,12 +140,15 @@ const StudentActivityDetailsPageRedesigned = () => {
         ...activityData,
         class_name: classData?.name,
         class_color: classData?.color,
-        class_id: classData?.id
+        class_id: classData?.id,
+        teacher_name: teacherData?.full_name || teacherData?.name || teacherData?.email || null,
       };
 
       setActivity(activityWithClass);
       setSubmission(submissionData);
       setAnswer(submissionData?.content?.answer || '');
+      setSelectedAnswers(submissionData?.content?.selectedAnswers || {});
+      setIsNewAttempt(false);
     } catch (error) {
       logger.error('Erro ao carregar atividade:', error)
       toast({
@@ -237,7 +259,20 @@ const StudentActivityDetailsPageRedesigned = () => {
       if (activity?.type === 'quiz' || activity?.type === 'multiple_choice' || activity?.type === 'closed') {
         submissionContent.selectedAnswers = selectedAnswers;
       }
-      
+
+      // Calcular número da tentativa atual
+      // Usamos um campo attemptNumber dentro de content para registrar o histórico
+      let attemptNumber = 1;
+      if (submission) {
+        const previousAttempt = submission.content?.attemptNumber;
+        if (typeof previousAttempt === 'number' && previousAttempt > 0) {
+          attemptNumber = previousAttempt + 1;
+        } else {
+          attemptNumber = 2; // havia uma submissão sem attemptNumber, então esta é a segunda tentativa
+        }
+      }
+      submissionContent.attemptNumber = attemptNumber;
+
       const { data: user } = await supabase.auth.getUser();
 
       // Verificar se pode corrigir automaticamente
@@ -302,27 +337,23 @@ const StudentActivityDetailsPageRedesigned = () => {
 
       logger.debug('[confirmSubmit] Dados finais para envio:', submissionData);
 
-      // Verificar se permite múltiplas tentativas
-      const maxAttempts = activity?.content?.advanced_settings?.maxAttempts || 1;
-      const allowsMultipleAttempts = maxAttempts > 1;
-      
-      if (submission && !allowsMultipleAttempts) {
-        // Atualizar submissão existente (apenas uma tentativa)
+      // Sempre manter apenas um registro por (activity_id, student_id)
+      // Se já existe submissão, atualizamos; se não, inserimos
+      if (submission) {
         const { error: updateError } = await supabase
           .from('submissions')
           .update(submissionData)
           .eq('id', submission.id);
         
         if (updateError) throw updateError;
-        logger.debug('[confirmSubmit] Submissão atualizada');
+        logger.debug('[confirmSubmit] Submissão atualizada (tentativa múltipla)');
       } else {
-        // Criar nova submissão (primeira ou nova tentativa)
         const { error: insertError } = await supabase
           .from('submissions')
           .insert(submissionData);
         
         if (insertError) throw insertError;
-        logger.debug('[confirmSubmit] Nova submissão criada');
+        logger.debug('[confirmSubmit] Nova submissão criada (primeira tentativa)');
       }
 
       if (autoGrade !== null) {
@@ -370,6 +401,12 @@ const StudentActivityDetailsPageRedesigned = () => {
   const dueDate = activity?.due_date ? new Date(activity.due_date) : null;
   const isUrgent = dueDate && differenceInHours(dueDate, new Date()) < 24 && activityStatus === 'pending';
 
+  const isObjectiveActivity = activity?.type === 'quiz' || activity?.type === 'multiple_choice' || activity?.type === 'closed';
+  const maxAttempts = activity?.content?.advanced_settings?.maxAttempts || 1;
+  const allowsMultipleAttempts = maxAttempts > 1;
+  const hasRemainingAttempts = allowsMultipleAttempts && submissionAttempts < maxAttempts;
+  const isReadOnlyAnswers = !isNewAttempt && (activityStatus === 'submitted' || activityStatus === 'graded');
+
   // Debug log
   logger.debug('[StudentActivityDetails] Estado atual:', {
     activityStatus,
@@ -394,12 +431,12 @@ const StudentActivityDetailsPageRedesigned = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       {/* Header com Status */}
-      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 p-8 shadow-xl">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 shadow-md">
         <div className="container mx-auto">
           <Button
             variant="ghost"
             onClick={() => navigate(-1)}
-            className="text-white hover:bg-white/20 mb-4"
+            className="text-white hover:bg-white/15 mb-4"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar à Turma
@@ -407,14 +444,33 @@ const StudentActivityDetailsPageRedesigned = () => {
 
           <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">
                 {activity?.title}
               </h1>
+
+              {(activity?.class_name || activity?.teacher_name) && (
+                <div className="flex flex-wrap items-center gap-2 mb-3 text-xs sm:text-sm text-white/90">
+                  {activity?.class_name && (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10">
+                      <Calendar className="w-3 h-3" />
+                      <span>{activity.class_name}</span>
+                    </span>
+                  )}
+                  {activity?.teacher_name && (
+                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10">
+                      <User className="w-3 h-3" />
+                      <span>Professor(a) {activity.teacher_name}</span>
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="flex items-center gap-3 flex-wrap">
                 <StatusBadge 
                   status={activityStatus} 
                   size="lg" 
                   score={submission?.grade}
+                  maxScore={activity?.max_score || 10}
                 />
                 {dueDate && (
                   <div className="flex items-center gap-2 text-white/90">
@@ -429,8 +485,9 @@ const StudentActivityDetailsPageRedesigned = () => {
           </div>
 
           {isUrgent && (
-            <div className="mt-4 bg-red-500 text-white px-4 py-2 rounded-lg animate-pulse">
-              ATENÇÃO: Menos de 24 horas para o prazo!
+            <div className="mt-4 inline-flex items-center gap-2 max-w-xl px-4 py-3 rounded-lg border border-red-200 bg-red-50/90 text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-200 text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>ATENÇÃO: menos de 24 horas para o prazo desta atividade.</span>
             </div>
           )}
         </div>
@@ -467,7 +524,7 @@ const StudentActivityDetailsPageRedesigned = () => {
             )}
 
             {/* Perguntas/Opções (para atividades objetivas) */}
-            {(activity?.type === 'quiz' || activity?.type === 'multiple_choice' || activity?.type === 'closed') && activity?.content?.questions && activityStatus !== 'graded' && (
+            {isObjectiveActivity && activity?.content?.questions && (activityStatus !== 'graded' || isNewAttempt) && (
               <Card className="p-4 sm:p-6">
                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <FileText className="w-5 h-5 text-blue-600" />
@@ -491,7 +548,7 @@ const StudentActivityDetailsPageRedesigned = () => {
                               key={alt.id} 
                               className="flex items-start space-x-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                               onClick={() => {
-                                if (activityStatus !== 'submitted' && activityStatus !== 'graded') {
+                                if (!isReadOnlyAnswers) {
                                   logger.debug('[Alternativa] Clicada:', { questionId, altId: alt.id, letter: alt.letter });
                                   setSelectedAnswers({ ...selectedAnswers, [questionId]: String(alt.id) });
                                 }
@@ -505,9 +562,11 @@ const StudentActivityDetailsPageRedesigned = () => {
                                 checked={String(selectedAnswers[questionId]) === String(alt.id)}
                                 onChange={(e) => {
                                   logger.debug('[Radio] Changed:', { questionId, value: e.target.value });
-                                  setSelectedAnswers({ ...selectedAnswers, [questionId]: e.target.value });
+                                  if (!isReadOnlyAnswers) {
+                                    setSelectedAnswers({ ...selectedAnswers, [questionId]: e.target.value });
+                                  }
                                 }}
-                                disabled={activityStatus === 'submitted' || activityStatus === 'graded'}
+                                disabled={isReadOnlyAnswers}
                                 className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2 cursor-pointer"
                               />
                               <Label htmlFor={`q${questionId}-${alt.id}`} className="flex-1 cursor-pointer">
@@ -523,11 +582,15 @@ const StudentActivityDetailsPageRedesigned = () => {
                       {!question.alternatives && question.options && question.options.length > 0 && (
                         <RadioGroup
                           value={selectedAnswers[questionId]}
-                          onValueChange={(value) => setSelectedAnswers({ ...selectedAnswers, [questionId]: value })}
+                          onValueChange={(value) => {
+                            if (!isReadOnlyAnswers) {
+                              setSelectedAnswers({ ...selectedAnswers, [questionId]: value });
+                            }
+                          }}
                         >
                           {question.options.map((option, optIndex) => (
                             <div key={optIndex} className="flex items-center space-x-2 mb-2">
-                              <RadioGroupItem value={option} id={`q${questionId}-${optIndex}`} />
+                              <RadioGroupItem value={option} id={`q${questionId}-${optIndex}`} disabled={isReadOnlyAnswers} />
                               <Label htmlFor={`q${questionId}-${optIndex}`}>{option}</Label>
                             </div>
                           ))}
@@ -540,14 +603,14 @@ const StudentActivityDetailsPageRedesigned = () => {
             )}
 
             {/* Seção de Submissão */}
-            {activityStatus !== 'graded' && (
+            {(activityStatus !== 'graded' || isNewAttempt) && (
               <Card className="p-4 sm:p-6">
                 <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                   <Send className="w-5 h-5 text-green-600" />
-                  {activityStatus === 'submitted' ? 'Status da Submissão' : 'Enviar Atividade'}
+                  {activityStatus === 'submitted' && !isNewAttempt ? 'Status da Submissão' : 'Enviar Atividade'}
                 </h3>
 
-                {activityStatus === 'submitted' ? (
+                {activityStatus === 'submitted' && !isNewAttempt ? (
                   <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
                     <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
                       Atividade enviada em {format(new Date(submission.submitted_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -627,7 +690,7 @@ const StudentActivityDetailsPageRedesigned = () => {
                   <GradeChart
                     studentGrade={submission.grade}
                     classAverage={classStats.average}
-                    maxGrade={activity.max_score || 100}
+                    maxGrade={activity.max_score || 10}
                     className="mb-6"
                   />
                 )}
@@ -644,13 +707,65 @@ const StudentActivityDetailsPageRedesigned = () => {
                   </div>
                 )}
 
-                {/* Sua Resposta */}
-                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
-                  <h4 className="font-bold mb-2 text-slate-900 dark:text-white">Sua Resposta</h4>
-                  <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
-                    {answer}
-                  </p>
-                </div>
+                {isObjectiveActivity && activity?.content?.questions && (
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <h4 className="font-bold mb-2 text-slate-900 dark:text-white">Suas Respostas</h4>
+                    <div className="space-y-3">
+                      {activity.content.questions.map((question, index) => {
+                        const questionId = question.id || index;
+                        const studentAnswerId = selectedAnswers[questionId];
+                        let answerLabel = '';
+
+                        if (question.alternatives && studentAnswerId !== undefined && studentAnswerId !== null) {
+                          const matched = question.alternatives.find((alt) => String(alt.id) === String(studentAnswerId));
+                          if (matched) {
+                            answerLabel = `${matched.letter}) ${matched.text}`;
+                          }
+                        } else if (question.options && studentAnswerId !== undefined && studentAnswerId !== null) {
+                          answerLabel = String(studentAnswerId);
+                        }
+
+                        return (
+                          <div key={questionId} className="p-3 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700">
+                            <p className="text-sm font-semibold mb-1">
+                              {index + 1}. {question.text || question.question}
+                            </p>
+                            <p className="text-sm text-slate-700 dark:text-slate-300">
+                              {answerLabel || 'Não respondida'}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {!isObjectiveActivity && (
+                  <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <h4 className="font-bold mb-2 text-slate-900 dark:text-white">Sua Resposta</h4>
+                    <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap">
+                      {answer}
+                    </p>
+                  </div>
+                )}
+
+                {hasRemainingAttempts && !isNewAttempt && (
+                  <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200 mb-2">
+                      {`Esta atividade permite múltiplas tentativas (${submissionAttempts}/${maxAttempts} já realizadas).`}
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsNewAttempt(true);
+                        setAnswer('');
+                        setSelectedAnswers({});
+                      }}
+                    >
+                      Nova tentativa
+                    </Button>
+                  </div>
+                )}
               </Card>
             )}
           </div>
@@ -680,14 +795,14 @@ const StudentActivityDetailsPageRedesigned = () => {
                 <div>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-1">Nota Máxima</p>
                   <p className="font-semibold text-2xl text-blue-600">
-                    {activity?.max_score || 100} pontos
+                    {activity?.max_score || 10} pontos
                   </p>
                 </div>
 
                 {/* Status */}
                 <div>
                   <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">Status Atual</p>
-                  <StatusBadge status={activityStatus} size="md" score={submission?.grade} />
+                  <StatusBadge status={activityStatus} size="md" score={submission?.grade} maxScore={activity?.max_score || 10} />
                 </div>
 
                 {/* Turma */}

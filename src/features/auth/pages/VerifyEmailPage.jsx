@@ -2,7 +2,7 @@ import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Mail, GraduationCap, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
+import { Mail, GraduationCap, CheckCircle2, Loader2, RefreshCw, BookOpen } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { supabase } from '@/shared/services/supabaseClient';
@@ -48,7 +48,7 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[size:20px_20px]" />
       
@@ -60,8 +60,8 @@ const VerifyEmailPage = () => {
       >
         {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-            <GraduationCap className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 via-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
+            <BookOpen className="w-7 h-7 text-white" />
           </div>
           <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
             TamanduAI

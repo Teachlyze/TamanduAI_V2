@@ -1,368 +1,148 @@
-import { logger } from '@/shared/utils/logger';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PostActivityModal from '@/modules/teacher/components/PostActivityModal';
 import EventDetailsModal from '@/modules/teacher/pages/Calendar/components/EventDetailsModal';
 import {
-  BookOpen,
-  Users,
-  FileText,
-  Clock,
-  Plus,
-  BarChart3,
-  ChevronRight,
-  Calendar,
-  CheckCircle2,
-  AlertCircle,
-  AlertTriangle,
-  TrendingUp,
-  Bell,
-  Video,
-  MapPin,
-  Target
+  BookOpen, Users, FileText, Clock, BarChart3, ChevronRight,
+  Calendar, CheckCircle2, AlertTriangle, TrendingUp, Video, MapPin,
+  Target, Sparkles, Brain, Shield, MessageSquare, Plus, Activity, Send
 } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
-import { 
-  StatsCard, 
-  DashboardHeader, 
-  EmptyState,
-  gradients,
-  valueOrEmpty,
-  formatNumber
-} from '@/shared/design';
-import { ClassService } from '@/shared/services/classService';
-import { supabase } from '@/shared/services/supabaseClient';
+import { StatsCard, EmptyState } from '@/shared/design';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { format, formatDistanceToNow, addDays, isToday, isSameDay } from 'date-fns';
+import { format, isToday, isTomorrow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// Hooks granulares (cada um com cache Redis independente)
+import { useDashboardStats } from '@/modules/teacher/hooks/useDashboardStats';
+import { useDashboardEvents } from '@/modules/teacher/hooks/useDashboardEvents';
+import { useDashboardSubmissions } from '@/modules/teacher/hooks/useDashboardSubmissions';
+import { useDashboardAlerts } from '@/modules/teacher/hooks/useDashboardAlerts';
+import { useDashboardRecentData } from '@/modules/teacher/hooks/useDashboardRecentData';
+
+// Componente memoizado para ações prioritárias (não re-renderiza se stats não mudar)
+const PriorityActions = memo(({ stats }) => {
+  const actions = [
+    {
+      label: 'Corrigir atividades pendentes',
+      subtitle: `${stats?.pendingGrading || 0} submissões aguardando`,
+      icon: FileText,
+      href: '/dashboard/corrections',
+      gradient: 'from-amber-500 to-orange-500',
+      show: true,
+    },
+    {
+      label: 'Planejar próxima aula',
+      subtitle: 'Ver calendário e eventos',
+      icon: Calendar,
+      href: '/dashboard/calendar',
+      gradient: 'from-blue-600 to-cyan-600',
+      show: true,
+    },
+    {
+      label: 'Criar nova atividade',
+      subtitle: 'Gere conteúdo automaticamente',
+      icon: Sparkles,
+      href: '/dashboard/activities/create',
+      gradient: 'from-purple-600 to-pink-600',
+      show: true,
+    },
+  ].filter(a => a.show);
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {actions.map((action, index) => (
+        <motion.div key={action.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+          <Link to={action.href}>
+            <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border-2 hover:border-blue-300 dark:hover:border-blue-700 group">
+              <div className="flex items-start gap-4">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${action.gradient} shadow-lg group-hover:scale-110 transition-transform`}>
+                  <action.icon className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-1">{action.label}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{action.subtitle}</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+              </div>
+            </Card>
+          </Link>
+        </motion.div>
+      ))}
+    </div>
+  );
+});
+PriorityActions.displayName = 'PriorityActions';
+
 const TeacherDashboard = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [eventFilter, setEventFilter] = useState(7); // dias: 1, 3, 7
-  const [activityFilter, setActivityFilter] = useState('all'); // 'all', 'open', 'closed', 'archived'
-  const [stats, setStats] = useState({
-    totalClasses: 0,
-    totalStudents: 0,
-    totalActivities: 0,
-    pendingGrading: 0,
-    avgGrade: 0,
-    todayCorrections: 0
-  });
-  const [recentClasses, setRecentClasses] = useState([]);
-  const [recentActivities, setRecentActivities] = useState([]);
-  const [pendingSubmissions, setPendingSubmissions] = useState([]);
-  const [allEvents, setAllEvents] = useState([]);
-  const [alertStudents, setAlertStudents] = useState([]);
-  const [scheduledActivities, setScheduledActivities] = useState([]);
+  const [eventFilter, setEventFilter] = useState(7);
   const [showPostModal, setShowPostModal] = useState(false);
   const [activityToPost, setActivityToPost] = useState(null);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [upcomingEventsPage, setUpcomingEventsPage] = useState(1);
+  const EVENTS_PER_PAGE = 6; // 3 linhas x 2 colunas
 
-  useEffect(() => {
-    loadDashboardData();
+  // Callbacks para evitar re-renders desnecessários
+  const handleEventFilterChange = useCallback((filter) => {
+    setEventFilter(filter);
+    setUpcomingEventsPage(1);
   }, []);
 
-  const loadDashboardData = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+  const handleEventClick = useCallback((event) => {
+    setSelectedEvent(event);
+    setShowEventDetailsModal(true);
+  }, []);
 
-    try {
-      setLoading(true);
-      setError(null);
+  const handleStudentClick = useCallback((studentId) => {
+    navigate(`/dashboard/students/${studentId}`);
+  }, [navigate]);
 
-      // 1. Buscar turmas do professor
-      const { data: classes, error: classesError } = await supabase
-        .from('classes')
-        .select(`
-          *,
-          class_members(count)
-        `)
-        .eq('created_by', user.id)
-        .eq('is_active', true);
+  // Hooks granulares - cache Redis independente por seção
+  const { data: stats, loading: statsLoading, refetch: refetchStats } = useDashboardStats();
+  const { data: eventsData, loading: eventsLoading, refetch: refetchEvents } = useDashboardEvents(eventFilter);
+  const { data: submissions, loading: submissionsLoading, refetch: refetchSubmissions } = useDashboardSubmissions();
+  const { data: alertStudents, loading: alertsLoading } = useDashboardAlerts();
+  const { data: recentData, loading: recentLoading } = useDashboardRecentData();
 
-      if (classesError) throw classesError;
+  // Callbacks que dependem dos hooks devem vir depois da declaração
+  const handlePostActivitySuccess = useCallback(() => {
+    refetchEvents();
+    refetchSubmissions();
+  }, [refetchEvents, refetchSubmissions]);
 
-      const classesWithCount = classes?.map(cls => ({
-        ...cls,
-        student_count: cls.class_members?.[0]?.count || 0
-      })) || [];
+  const handleEventDelete = useCallback(() => {
+    refetchEvents();
+  }, [refetchEvents]);
 
-      // 2. Buscar atividades do professor
-      const { data: activities, error: activitiesError } = await supabase
-        .from('activities')
-        .select(`
-          *,
-          activity_class_assignments(class:classes(name))
-        `)
-        .eq('created_by', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
+  // Paginação dos eventos da semana
+  const paginatedUpcomingEvents = eventsData?.upcoming?.slice(
+    (upcomingEventsPage - 1) * EVENTS_PER_PAGE,
+    upcomingEventsPage * EVENTS_PER_PAGE
+  );
+  const totalPages = Math.ceil(eventsData?.upcoming?.length / EVENTS_PER_PAGE);
 
-      if (activitiesError) throw activitiesError;
+  const handlePageChange = useCallback((page) => {
+    setUpcomingEventsPage(page);
+  }, []);
 
-      const activitiesWithClass = activities?.map(act => ({
-        ...act,
-        class_name: act.activity_class_assignments?.[0]?.class?.name || 'Sem turma'
-      })) || [];
+  const { today: todayEvents = [], upcoming: upcomingEvents = [] } = eventsData || {};
+  const { classes: recentClasses = [], activities: recentActivities = [] } = recentData || {};
 
-      // 3. Buscar submissões pendentes
-      const activityIds = activities?.map(a => a.id) || [];
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('submissions')
-        .select(`
-          *,
-          activity:activities(title),
-          student:profiles!student_id(full_name)
-        `)
-        .in('activity_id', activityIds)
-        .eq('status', 'submitted')
-        .order('submitted_at', { ascending: true })
-        .limit(10);
+  const pendingSubmissions = submissions?.submissions || [];
+  const weeklySubmissions = submissions?.weeklySubmissions || [];
+  const weeklyTotal = submissions?.weeklyTotal || 0;
 
-      if (submissionsError) throw submissionsError;
+  // Loading inicial apenas se TODOS os hooks estão carregando
+  const isInitialLoading = statsLoading && eventsLoading && submissionsLoading && recentLoading;
 
-      const submissionsFormatted = submissions?.map(sub => ({
-        ...sub,
-        student_name: sub.student?.full_name || 'Aluno',
-        activity_title: sub.activity?.title || 'Atividade'
-      })) || [];
-
-      // 4. Calcular média geral
-      const { data: allGrades, error: gradesError } = await supabase
-        .from('submissions')
-        .select('grade')
-        .in('activity_id', activityIds)
-        .not('grade', 'is', null);
-
-      if (gradesError) throw gradesError;
-
-      const avgGrade = allGrades?.length > 0
-        ? allGrades.reduce((sum, s) => sum + s.grade, 0) / allGrades.length
-        : 0;
-
-      // 5. Correções do dia
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-
-      const { data: todayGraded, error: todayError } = await supabase
-        .from('submissions')
-        .select('id')
-        .in('activity_id', activityIds)
-        .gte('graded_at', today.toISOString())
-        .lt('graded_at', tomorrow.toISOString());
-
-      if (todayError) throw todayError;
-
-      // 6. Buscar todos os eventos dos próximos 30 dias (uma vez só)
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const eventEndDate = addDays(new Date(), 30); // Carregar 30 dias de eventos
-
-      // Buscar todos os eventos próximos com informação de atividade e classe
-      const { data: events, error: eventsError } = await supabase
-        .from('calendar_events')
-        .select(`
-          *,
-          activity:activities(
-            id,
-            title,
-            assignments:activity_class_assignments(
-              id,
-              class_id,
-              assigned_at
-            )
-          ),
-          class:classes(
-            id,
-            name
-          )
-        `)
-        .eq('created_by', user.id)
-        .gte('start_time', todayStart.toISOString())
-        .lte('start_time', eventEndDate.toISOString())
-        .order('start_time', { ascending: true });
-
-      if (!eventsError && events) {
-        setAllEvents(events);
-      } else if (eventsError) {
-        logger.error('[Dashboard] Erro ao buscar eventos:', eventsError);
-      }
-
-      // 8. Identificar alunos em alerta
-      const { data: studentGrades, error: studentGradesError } = await supabase
-        .from('submissions')
-        .select(`
-          student_id,
-          grade,
-          student:profiles!student_id(full_name)
-        `)
-        .in('activity_id', activityIds)
-        .not('grade', 'is', null);
-
-      if (!studentGradesError && studentGrades) {
-        const studentAvgs = {};
-        studentGrades.forEach(sub => {
-          if (!studentAvgs[sub.student_id]) {
-            studentAvgs[sub.student_id] = {
-              grades: [],
-              name: sub.student?.full_name || 'Aluno'
-            };
-          }
-          studentAvgs[sub.student_id].grades.push(sub.grade);
-        });
-
-        const alerts = Object.entries(studentAvgs)
-          .map(([id, data]) => ({
-            id,
-            name: data.name,
-            avgGrade: data.grades.reduce((s, g) => s + g, 0) / data.grades.length,
-            totalActivities: data.grades.length
-          }))
-          .filter(s => s.avgGrade < 6)
-          .sort((a, b) => a.avgGrade - b.avgGrade)
-          .slice(0, 10);
-
-        setAlertStudents(alerts);
-      }
-
-      // 9. Atividades agendadas para hoje (eventos com atividade linkada)
-      const todayActivities = allEvents?.filter(e => 
-        e.activity_id && 
-        new Date(e.start_time) >= todayStart && 
-        new Date(e.start_time) <= todayEnd
-      ) || [];
-      
-      const { data: scheduled, error: scheduledError } = await supabase
-        .from('activities')
-        .select(`
-          *,
-          activity_assignments:activity_class_assignments(
-            id,
-            class_id,
-            assigned_at
-          )
-        `)
-        .eq('created_by', user.id)
-        .gte('created_at', today.toISOString())
-        .lt('created_at', tomorrow.toISOString());
-
-      if (!scheduledError) {
-        setScheduledActivities(scheduled || []);
-      }
-
-      // Calcular estatísticas totais
-      const totalStudents = classesWithCount.reduce((sum, cls) => sum + (cls.student_count || 0), 0);
-
-      setStats({
-        totalClasses: classesWithCount.length,
-        totalStudents,
-        totalActivities: activities?.length || 0,
-        pendingGrading: submissions?.length || 0,
-        avgGrade: Number(avgGrade.toFixed(1)),
-        todayCorrections: todayGraded?.length || 0
-      });
-
-      setRecentClasses(classesWithCount.slice(0, 5));
-      setRecentActivities(activitiesWithClass.slice(0, 5));
-      setPendingSubmissions(submissionsFormatted);
-    } catch (error) {
-      logger.error('Erro ao carregar dashboard:', error)
-      setError('Erro ao carregar dados do dashboard. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Filtrar eventos baseado no eventFilter sem recarregar (otimização de performance)
-  const { todayEvents, upcomingEvents } = useMemo(() => {
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const filterEndDate = addDays(new Date(), eventFilter);
-
-    // Filtrar eventos de hoje
-    const today = allEvents.filter(e => {
-      const eventDate = new Date(e.start_time);
-      return eventDate >= todayStart && eventDate <= todayEnd;
-    });
-
-    // Filtrar eventos até a data do filtro
-    const upcoming = allEvents.filter(e => {
-      const eventDate = new Date(e.start_time);
-      return eventDate >= todayStart && eventDate <= filterEndDate;
-    }).slice(0, 4);
-
-    return { todayEvents: today, upcomingEvents: upcoming };
-  }, [allEvents, eventFilter]);
-
-  const statsCards = [
-    {
-      title: 'Total de Turmas',
-      value: stats.totalClasses,
-      icon: BookOpen,
-      gradient: 'from-blue-600 to-cyan-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
-      change: `${stats.totalStudents} alunos`
-    },
-    {
-      title: 'Total de Alunos',
-      value: stats.totalStudents,
-      icon: Users,
-      gradient: 'from-cyan-500 to-blue-600',
-      bgColor: 'bg-cyan-50 dark:bg-cyan-950/30'
-    },
-    {
-      title: 'Média Geral',
-      value: stats.avgGrade,
-      icon: TrendingUp,
-      gradient: 'from-emerald-500 to-teal-500',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
-      change: stats.avgGrade >= 7 ? 'Excelente' : 'Pode melhorar'
-    },
-    {
-      title: 'Aguardando Correção',
-      value: stats.pendingGrading,
-      icon: Clock,
-      gradient: 'from-amber-500 to-orange-500',
-      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
-      change: `${stats.todayCorrections} hoje`
-    }
-  ];
-
-  const quickActions = [
-    {
-      label: 'Nova Turma',
-      icon: Plus,
-      href: '/dashboard/classes/new',
-      gradient: 'from-blue-600 to-indigo-600'
-    },
-    {
-      label: 'Nova Atividade',
-      icon: Plus,
-      href: '/dashboard/activities/new',
-      gradient: 'from-blue-600 to-cyan-600'
-    },
-    {
-      label: 'Ver Analytics',
-      icon: BarChart3,
-      href: '/dashboard/analytics',
-      gradient: 'from-emerald-600 to-teal-600'
-    }
-  ];
-
-  if (loading) {
+  if (isInitialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Carregando dashboard..." />
@@ -370,16 +150,81 @@ const TeacherDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
-      {/* Header usando Design System */}
-      <DashboardHeader
-        title="Dashboard do Professor"
-        subtitle="Bem-vindo de volta! Aqui está um resumo das suas turmas e atividades."
-        role="teacher"
-      />
+  const firstName = profile?.full_name?.split(' ')[0] || 'Professor';
 
-      {/* Stats Cards usando Design System */}
+  const statsCards = [
+    {
+      title: 'Total de Turmas',
+      value: stats?.totalClasses || 0,
+      icon: BookOpen,
+      gradient: 'from-blue-600 to-cyan-600',
+      bgColor: 'bg-blue-50 dark:bg-blue-950/30',
+      change: `${stats?.totalStudents || 0} alunos`
+    },
+    {
+      title: 'Total de Alunos',
+      value: stats?.totalStudents || 0,
+      icon: Users,
+      gradient: 'from-cyan-500 to-blue-600',
+      bgColor: 'bg-cyan-50 dark:bg-cyan-950/30'
+    },
+    {
+      title: 'Média Geral',
+      value: stats?.avgGrade || 0,
+      icon: TrendingUp,
+      gradient: 'from-emerald-500 to-teal-500',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950/30',
+      change: (stats?.avgGrade || 0) >= 7 ? 'Excelente' : 'Pode melhorar'
+    },
+    {
+      title: 'Aguardando Correção',
+      value: stats?.pendingGrading || 0,
+      icon: Clock,
+      gradient: 'from-amber-500 to-orange-500',
+      bgColor: 'bg-amber-50 dark:bg-amber-950/30',
+      change: `${stats?.todayCorrections || 0} hoje`
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
+      {/* Header personalizado com nova identidade visual */}
+      <div className="mb-8">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl p-6 text-white shadow-xl"
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 rounded-xl bg-white/20 backdrop-blur-sm">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Olá, {firstName}</h1>
+              <p className="text-blue-100 mt-1">Vamos reduzir seu trabalho extraclasse hoje</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span>{stats?.totalClasses || 0} turmas</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span>{stats?.totalStudents || 0} alunos</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>{stats?.pendingGrading || 0} correções</span>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Ações prioritárias */}
+      <PriorityActions stats={stats} />
+
+      {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {statsCards.map((stat, index) => (
           <StatsCard
@@ -395,564 +240,705 @@ const TeacherDashboard = () => {
         ))}
       </div>
 
-      {/* Agenda e Eventos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Próximos Eventos */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                Próximos Eventos
-              </h2>
+      {/* Seção "HOJE" - Agenda + Submissões pendentes */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500">
+            <Target className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Hoje</h2>
+          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            {format(new Date(), "EEEE, d MMMM", { locale: ptBR })}
+          </Badge>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Agenda de Hoje */}
+          <Card className="p-6 border-2 border-blue-100 dark:border-blue-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Agenda de Hoje</h3>
+              </div>
+              <Link to="/dashboard/calendar">
+                <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+                  Ver Calendário
+                </Button>
+              </Link>
             </div>
-            <Link to="/dashboard/calendar">
-              <Button variant="ghost" size="sm" className="whitespace-nowrap inline-flex items-center gap-2">
-                <span>Ver Todos</span>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-          <div className="flex gap-2 mb-4">
-            <Button
-              size="sm"
-              variant={eventFilter === 1 ? 'default' : 'outline'}
-              onClick={() => setEventFilter(1)}
-            >
-              Hoje
-            </Button>
-            <Button
-              size="sm"
-              variant={eventFilter === 3 ? 'default' : 'outline'}
-              onClick={() => setEventFilter(3)}
-            >
-              3 dias
-            </Button>
-            <Button
-              size="sm"
-              variant={eventFilter === 7 ? 'default' : 'outline'}
-              onClick={() => setEventFilter(7)}
-            >
-              7 dias
-            </Button>
-          </div>
-          <div className="space-y-3">
-            {upcomingEvents.length > 0 ? (
-              upcomingEvents.map((event, index) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
-                >
-                  <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-500 rounded-lg flex flex-col items-center justify-center text-white">
-                    <div className="text-2xl font-bold">
-                      {format(new Date(event.start_time), 'd')}
-                    </div>
-                    <div className="text-xs uppercase">
-                      {format(new Date(event.start_time), 'MMM', { locale: ptBR })}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 dark:text-white truncate">
-                      {event.title}
-                    </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {format(new Date(event.start_time), "HH:mm")}
-                    </p>
-                    <Badge className={`mt-1 ${
-                      event.type === 'meeting' ? 'bg-purple-100 text-purple-700' :
-                      event.type === 'activity' ? 'bg-orange-100 text-orange-700' :
-                      event.type === 'deadline' ? 'bg-red-100 text-red-700' :
-                      'bg-blue-100 text-blue-700'
-                    }`}>
-                      {event.type === 'event' ? 'Aula' :
-                       event.type === 'activity' ? 'Atividade' :
-                       event.type === 'meeting' ? 'Reunião' :
-                       event.type === 'deadline' ? 'Prazo' : 'Evento'}
-                    </Badge>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <EmptyState
-                icon={Calendar}
-                title="Nenhum evento próximo"
-                description="Seus próximos eventos aparecerão aqui."
-              />
-            )}
-          </div>
-        </Card>
+            <div className="space-y-3">
+              {todayEvents.length > 0 ? (
+                todayEvents.map((event, index) => {
+                  const isMeeting = event.type === 'meeting';
+                  const isActivity = event.type === 'activity';
+                  const isDeadline = event.type === 'deadline';
+                  const EventIcon = isMeeting ? Video : isActivity ? FileText : isDeadline ? AlertTriangle : Calendar;
 
-        {/* Eventos de Hoje + Atividades Agendadas */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <div className="flex items-center gap-2 mb-6">
-            <Target className="w-5 h-5 text-blue-600" />
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Agenda de Hoje
-            </h2>
-          </div>
-          <div className="space-y-4">
-            {todayEvents.length > 0 ? (
-              <div className="space-y-3">
-                {todayEvents.map((event, index) => {
-                  const isMeeting = event.type === 'meeting' || event.type === 'reunião';
-                  const isActivity = event.type === 'activity' || event.type === 'atividade';
-                  const isOnline = event.modality === 'online';
-                  const isPresential = event.modality === 'presential';
-                  
-                  const eventIcon = isMeeting ? Video : isActivity ? FileText : Calendar;
-                  const EventIcon = eventIcon;
-                  
+                  // Cores da borda esquerda por tipo
+                  const borderColors = {
+                    meeting: 'border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20',
+                    activity: 'border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20',
+                    deadline: 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20',
+                    event: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+                  };
+
                   return (
                     <motion.div
                       key={event.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      onClick={() => {
-                        setSelectedEvent(event);
-                        setShowEventDetailsModal(true);
-                      }}
-                      className="p-4 rounded-lg border-2 border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-600 cursor-pointer transition-all bg-white dark:bg-slate-800 hover:shadow-md"
+                      onClick={() => handleEventClick(event)}
+                      className={`p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-blue-400 cursor-pointer transition-all border-l-4 ${borderColors[event.type] || borderColors.event}`}
                     >
-                      <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg ${
-                          isMeeting ? 'bg-purple-100 dark:bg-purple-900/30' :
-                          isActivity ? 'bg-orange-100 dark:bg-orange-900/30' :
-                          'bg-blue-100 dark:bg-blue-900/30'
-                        }`}>
-                          <EventIcon className={`w-5 h-5 ${
-                            isMeeting ? 'text-purple-600' :
-                            isActivity ? 'text-orange-600' :
-                            'text-blue-600'
-                          }`} />
+                      {/* Header Principal - CONTEXTO */}
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className={`p-3 rounded-lg ${isMeeting ? 'bg-purple-100' : isActivity ? 'bg-orange-100' : isDeadline ? 'bg-red-100' : 'bg-blue-100'}`}>
+                          <EventIcon className={`w-6 h-6 ${isMeeting ? 'text-purple-600' : isActivity ? 'text-orange-600' : isDeadline ? 'text-red-600' : 'text-blue-600'}`} />
                         </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <h4 className="font-semibold text-slate-900 dark:text-white">
-                              {event.title}
-                            </h4>
-                            <Badge className={`whitespace-nowrap ${
-                              isMeeting ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' :
-                              isActivity ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' :
-                              'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                            }`}>
-                              {isMeeting ? '📹 Reunião' : isActivity ? '📝 Atividade' : '📅 Evento'}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400 mb-2">
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              {format(new Date(event.start_time), "HH:mm")}
-                            </span>
-                            
-                            {isMeeting && isOnline && event.meeting_link && (
-                              <a
-                                href={event.meeting_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="flex items-center gap-1 text-blue-600 hover:text-blue-700 hover:underline"
-                              >
-                                <Video className="w-4 h-4" />
-                                Entrar na reunião
-                              </a>
-                            )}
-                            
-                            {isMeeting && isPresential && event.location && (
-                              <span className="flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                {event.location}
-                              </span>
-                            )}
-                          </div>
-                          
-                          {event.description && (
-                            <p className="text-xs text-slate-500 dark:text-slate-500 line-clamp-1">
-                              {event.description}
-                            </p>
+                        <div className="flex-1">
+                          {/* TÍTULO PRINCIPAL - CONTEXTO DA TURMA/ATIVIDADE */}
+                          {event.class_name ? (
+                            <div className="mb-2">
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <BookOpen className="w-5 h-5 text-blue-600" />
+                                {event.class_name}
+                                {event.class_subject && (
+                                  <span className="text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded font-medium">
+                                    {event.class_subject}
+                                  </span>
+                                )}
+                              </h3>
+                            </div>
+                          ) : (
+                            <div className="mb-2">
+                              <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-gray-600" />
+                                Evento Geral
+                              </h3>
+                            </div>
+                          )}
+
+                          {/* SUBTÍTULO - O QUE É */}
+                          <h4 className="font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                            {event.title}
+                          </h4>
+
+                          {/* CONTEXTO DA ATIVIDADE (SE HOUVER) */}
+                          {event.activity_title && (
+                            <div className="flex items-center gap-2 text-sm bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700 mb-2">
+                              <FileText className="w-4 h-4 text-orange-600" />
+                              <span className="font-medium text-gray-700 dark:text-gray-300">{event.activity_title}</span>
+                              {event.activity_type && (
+                                <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-1 rounded font-medium">
+                                  {event.activity_type}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
-                        
-                        {isActivity && event.activity_id && (
-                          <Button 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!event.activity_assignments || event.activity_assignments.length === 0) {
-                                setActivityToPost({ id: event.activity_id, title: event.title });
-                                setShowPostModal(true);
-                              }
-                            }}
-                            disabled={event.activity_assignments && event.activity_assignments.length > 0}
-                            className={`shadow-md ${
-                              event.activity_assignments && event.activity_assignments.length > 0
-                                ? 'bg-slate-400 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700'
-                            } text-white`}
-                          >
-                            {event.activity_assignments && event.activity_assignments.length > 0 ? 'Postado' : 'Postar'}
-                          </Button>
-                        )}
+                      </div>
+
+                      {/* Footer - DATA E HORA */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                          <Clock className="w-4 h-4" />
+                          <span>{format(new Date(event.start_time), "HH:mm")}</span>
+                          {event.end_time && (
+                            <span>- {format(new Date(event.end_time), "HH:mm")}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {format(new Date(event.start_time), "dd/MM", { locale: ptBR })}
+                          </Badge>
+                        </div>
                       </div>
                     </motion.div>
                   );
-                })}
-              </div>
-            ) : (
-              <EmptyState
-                icon={Calendar}
-                title="Nenhum evento hoje"
-                description="Sua agenda está livre hoje."
-              />
-            )}
-
-            {scheduledActivities.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                  Atividades para Postar
-                </h3>
-                {scheduledActivities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mb-2"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900 dark:text-white text-sm">
-                        {activity.title}
-                      </p>
-                      {activity.activity_assignments && activity.activity_assignments.length > 0 && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          Postado em {activity.activity_assignments.length} turma{activity.activity_assignments.length > 1 ? 's' : ''}
-                        </p>
-                      )}
-                    </div>
-                    <Button 
-                      size="sm" 
-                      disabled={activity.activity_assignments && activity.activity_assignments.length > 0}
-                      className={
-                        activity.activity_assignments && activity.activity_assignments.length > 0
-                          ? 'bg-slate-400 cursor-not-allowed'
-                          : 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700'
-                      }
-                      onClick={() => {
-                        if (!activity.activity_assignments || activity.activity_assignments.length === 0) {
-                          setActivityToPost(activity);
-                          setShowPostModal(true);
-                        }
-                      }}
-                    >
-                      {activity.activity_assignments && activity.activity_assignments.length > 0 ? 'Postado' : 'Postar'}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Turmas Recentes */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <BookOpen className="w-5 h-5" />
-              Turmas Recentes
-            </h2>
-            <Link to="/dashboard/classes">
-              <Button variant="ghost" size="sm" className="whitespace-nowrap inline-flex items-center gap-2">
-                <span>Ver Todas</span>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {recentClasses.length > 0 ? (
-              recentClasses.map((cls, index) => (
-                <motion.div
-                  key={cls.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                >
-                  <Link to={`/dashboard/classes/${cls.id}`}>
-                    <Card className="p-4 hover:shadow-md transition-all border-2 hover:border-blue-200 dark:hover:border-blue-800 bg-white dark:bg-slate-800">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${cls.color || 'from-blue-500 to-indigo-500'} flex items-center justify-center text-white font-bold`}>
-                            {cls.name?.[0] || 'T'}
-                          </div>
-                          <div>
-                            <h3 className="font-semibold text-slate-900 dark:text-white">
-                              {cls.name}
-                            </h3>
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                              {cls.subject || 'Sem matéria'} • {cls.student_count || 0} alunos
-                            </p>
-                          </div>
-                        </div>
-                        <Button size="sm" variant="ghost" className="whitespace-nowrap">
-                          Ver Turma
-                        </Button>
-                      </div>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))
-            ) : (
-              <EmptyState
-                icon={BookOpen}
-                title="Nenhuma turma encontrada"
-                description="Crie sua primeira turma para começar a gerenciar suas aulas e atividades."
-                actionLabel="Criar Primeira Turma"
-                actionIcon={Plus}
-                action={() => window.location.href = '/dashboard/classes/new'}
-              />
-            )}
-          </div>
-        </Card>
-
-        {/* Atividades Recentes */}
-        <Card className="p-6 bg-white dark:bg-slate-900">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Atividades Recentes
-            </h2>
-            <Link to="/dashboard/activities">
-              <Button variant="ghost" size="sm" className="whitespace-nowrap inline-flex items-center gap-2">
-                <span>Ver Todas</span>
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="space-y-3">
-            {recentActivities.length > 0 ? (
-              recentActivities.map((activity, index) => (
-                <motion.div
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-blue-700 transition-all bg-white dark:bg-slate-800"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
-                        {activity.title}
-                      </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                        {activity.class_name}
-                      </p>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
-                          {new Date(activity.due_date).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    </div>
-                    <Badge
-                      variant={
-                        activity.status === 'archived' ? 'secondary' :
-                        new Date(activity.due_date) < new Date() ? 'destructive' : 'default'
-                      }
-                      className="whitespace-nowrap"
-                    >
-                      {activity.status === 'archived' ? 'Arquivada' :
-                       new Date(activity.due_date) < new Date() ? 'Encerrada' : 'Aberta'}
-                    </Badge>
-                  </div>
-                </motion.div>
-              ))
-            ) : (
-              <EmptyState
-                icon={FileText}
-                title="Nenhuma atividade encontrada"
-                description="Suas atividades recentes aparecerão aqui."
-              />
-            )}
-          </div>
-        </Card>
-      </div>
-
-      {/* Alunos em Alerta */}
-      {alertStudents.length > 0 && (
-        <Card className="p-6 mb-8 bg-white dark:bg-slate-900 border border-yellow-200 dark:border-yellow-800">
-          <div className="flex items-center gap-4 mb-6 pb-4 border-b border-yellow-200 dark:border-yellow-800">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 shadow-lg">
-              <AlertTriangle className="w-6 h-6 text-white" />
+                })
+              ) : (
+                <EmptyState icon={Calendar} title="Nenhum evento hoje" description="Sua agenda está livre hoje." />
+              )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                Alunos que Precisam de Atenção
-                <Badge className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300">
-                  {alertStudents.length}
-                </Badge>
-              </h2>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                Desempenho abaixo de 6.0 - requerem acompanhamento especial
-              </p>
-            </div>
-          </div>
+          </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {alertStudents.map((student, index) => (
-              <motion.div
-                key={student.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="group flex items-center gap-4 p-4 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
-              >
-                <div className="flex-shrink-0 w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-xl shadow-md">
-                  {student.name?.[0]?.toUpperCase() || 'A'}
+          {/* Submissões Pendentes */}
+          <Card className="p-6 border-2 border-amber-100 dark:border-amber-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30">
+                  <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-slate-900 dark:text-white truncate text-lg">
-                    {student.name}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 text-xs font-semibold">
-                      Média: {student.avgGrade.toFixed(1)}
-                    </Badge>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                      {student.totalActivities} atividade{student.totalActivities > 1 ? 's' : ''}
-                    </span>
-                  </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Correções Pendentes</h3>
+                {pendingSubmissions.length > 0 && (
+                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                    {pendingSubmissions.length}
+                  </Badge>
+                )}
+              </div>
+              <Link to="/dashboard/corrections">
+                <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700">
+                  Ver Todas
+                </Button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {pendingSubmissions.length > 0 ? (
+                pendingSubmissions.slice(0, 5).map((sub, index) => (
+                  <motion.div
+                    key={sub.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold">
+                        {sub.student_name?.[0] || 'A'}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">{sub.student_name}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{sub.activity_title}</p>
+                      </div>
+                    </div>
+                    <Link to={`/dashboard/grading/${sub.id}`}>
+                      <Button size="sm" className="bg-gradient-to-r from-amber-600 to-orange-600">Corrigir</Button>
+                    </Link>
+                  </motion.div>
+                ))
+              ) : (
+                <EmptyState icon={CheckCircle2} title="Nenhuma correção pendente!" description="Parabéns! Você está em dia " />
+              )}
+            </div>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Seção "ESTA SEMANA" - Próximos eventos */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500">
+            <Calendar className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Esta Semana</h2>
+        </div>
+        <Card className="p-6 border-2 border-indigo-100 dark:border-indigo-800/30 shadow-lg">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Próximos Eventos</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant={eventFilter === 1 ? 'default' : 'outline'} onClick={() => handleEventFilterChange(1)}>Hoje</Button>
+              <Button size="sm" variant={eventFilter === 3 ? 'default' : 'outline'} onClick={() => handleEventFilterChange(3)}>3 dias</Button>
+              <Button size="sm" variant={eventFilter === 7 ? 'default' : 'outline'} onClick={() => handleEventFilterChange(7)}>7 dias</Button>
+              <Button size="sm" variant="ghost" onClick={() => navigate('/dashboard/calendar')}>
+                Ver Todos
+              </Button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {paginatedUpcomingEvents?.length > 0 ? (
+              paginatedUpcomingEvents.map((event, index) => {
+                const isMeeting = event.type === 'meeting';
+                const isActivity = event.type === 'activity';
+                const isDeadline = event.type === 'deadline';
+                const EventIcon = isMeeting ? Video : isActivity ? FileText : isDeadline ? AlertTriangle : Calendar;
+
+                // Cores da borda esquerda por tipo
+                const borderColors = {
+                  meeting: 'border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20',
+                  activity: 'border-l-orange-500 bg-orange-50/50 dark:bg-orange-950/20',
+                  deadline: 'border-l-red-500 bg-red-50/50 dark:bg-red-950/20',
+                  event: 'border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
+                };
+
+                return (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    onClick={() => handleEventClick(event)}
+                    className={`p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-400 cursor-pointer transition-all border-l-4 ${borderColors[event.type] || borderColors.event}`}
+                  >
+                    {/* Header Compacto - CONTEXTO */}
+                    <div className="flex items-start gap-2 mb-2">
+                      <div className={`p-2 rounded-lg ${isMeeting ? 'bg-purple-100' : isActivity ? 'bg-orange-100' : isDeadline ? 'bg-red-100' : 'bg-blue-100'}`}>
+                        <EventIcon className={`w-4 h-4 ${isMeeting ? 'text-purple-600' : isActivity ? 'text-orange-600' : isDeadline ? 'text-red-600' : 'text-blue-600'}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        {/* TÍTULO PRINCIPAL - CONTEXTO DA TURMA */}
+                        {event.class_name ? (
+                          <div className="mb-1">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1 truncate">
+                              <BookOpen className="w-3 h-3 text-blue-600 flex-shrink-0" />
+                              <span className="truncate">{event.class_name}</span>
+                              {event.class_subject && (
+                                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 py-0.5 rounded font-medium flex-shrink-0">
+                                  {event.class_subject}
+                                </span>
+                              )}
+                            </h3>
+                          </div>
+                        ) : (
+                          <div className="mb-1">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-gray-600" />
+                              Evento Geral
+                            </h3>
+                          </div>
+                        )}
+
+                        {/* SUBTÍTULO - O QUE É */}
+                        <h4 className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-1 truncate">
+                          {event.title}
+                        </h4>
+
+                        {/* CONTEXTO DA ATIVIDADE (SE HOUVER) */}
+                        {event.activity_title && (
+                          <div className="flex items-center gap-1 text-xs bg-white dark:bg-gray-800 p-1 rounded border border-gray-200 dark:border-gray-700 mb-1">
+                            <FileText className="w-3 h-3 text-orange-600 flex-shrink-0" />
+                            <span className="font-medium text-gray-700 dark:text-gray-300 truncate">{event.activity_title}</span>
+                            {event.activity_type && (
+                              <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-1 py-0.5 rounded font-medium flex-shrink-0">
+                                {event.activity_type}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer Compacto - DATA E HORA */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center gap-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <Clock className="w-3 h-3" />
+                        <span>{format(new Date(event.start_time), "HH:mm")}</span>
+                        {event.end_time && (
+                          <span>- {format(new Date(event.end_time), "HH:mm")}</span>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-xs px-1 py-0.5">
+                        {format(new Date(event.start_time), "dd/MM", { locale: ptBR })}
+                      </Badge>
+                    </div>
+                  </motion.div>
+                );
+              })
+            ) : (
+              <div className="col-span-2">
+                <EmptyState icon={Calendar} title="Nenhum evento próximo" description="Seus próximos eventos aparecerão aqui." />
+              </div>
+            )}
+          </div>
+
+          {/* Paginação */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Mostrando {((upcomingEventsPage - 1) * EVENTS_PER_PAGE) + 1}-{Math.min(upcomingEventsPage * EVENTS_PER_PAGE, upcomingEvents?.length || 0)} de {upcomingEvents?.length || 0} eventos
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handlePageChange(upcomingEventsPage - 1)}
+                  disabled={upcomingEventsPage === 1}
+                >
+                  Anterior
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <Button
+                      key={page}
+                      size="sm"
+                      variant={upcomingEventsPage === page ? 'default' : 'outline'}
+                      onClick={() => handlePageChange(page)}
+                      className="w-8 h-8 p-0"
+                    >
+                      {page}
+                    </Button>
+                  ))}
                 </div>
                 <Button
                   size="sm"
-                  className="whitespace-nowrap bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-md"
-                  onClick={() => navigate(`/dashboard/students/${student.id}`)}
+                  variant="outline"
+                  onClick={() => handlePageChange(upcomingEventsPage + 1)}
+                  disabled={upcomingEventsPage === totalPages}
                 >
-                  Ver Detalhes
+                  Próxima
                 </Button>
-              </motion.div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Submissões Pendentes */}
-      <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-white dark:bg-slate-900">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-          <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Submissões Pendentes de Correção
-          </h2>
-          <Link to="/dashboard/grading">
-            <Button variant="ghost" size="sm" className="whitespace-nowrap inline-flex items-center gap-2">
-              <span>Ver Todas</span>
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </Link>
-        </div>
-
-        <div className="space-y-3">
-          {pendingSubmissions.length > 0 ? (
-            pendingSubmissions.map((submission, index) => (
-              <motion.div
-                key={submission.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-700 transition-all bg-white dark:bg-slate-800"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold">
-                    {submission.student_name?.[0] || 'A'}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
-                      {submission.student_name}
-                    </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {submission.activity_title}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-500">
-                      Enviado em {new Date(submission.submitted_at).toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                </div>
-                <Link to={`/dashboard/grading/${submission.id}`}>
-                  <Button size="sm" className="whitespace-nowrap bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white">
-                    Corrigir Agora
-                  </Button>
-                </Link>
-              </motion.div>
-            ))
-          ) : (
-            <EmptyState
-              icon={CheckCircle2}
-              title="Nenhuma correção pendente!"
-              description="Parabéns! Você está em dia com as correções. 🎉"
-            />
+              </div>
+            </div>
           )}
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
 
-      {/* Botões de Ação Rápida */}
-      <div className="flex justify-center">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl w-full">
-          {quickActions.map((action, index) => (
-            <motion.div
-              key={action.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <Link to={action.href}>
-                <Button
-                  size="lg"
-                  className={`w-full whitespace-nowrap inline-flex items-center justify-center gap-2 bg-gradient-to-r ${action.gradient} hover:opacity-90 text-white h-16 text-lg shadow-lg hover:shadow-xl transition-all`}
-                >
-                  <action.icon className="w-6 h-6" />
-                  <span>{action.label}</span>
+      {/* Alunos em Risco */}
+      {alertStudents && alertStudents.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-lg bg-gradient-to-br from-red-500 to-orange-500">
+              <AlertTriangle className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Alunos em Risco</h2>
+            <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">
+              {alertStudents.length} alunos
+            </Badge>
+          </div>
+          <Card className="p-6 border-2 border-red-100 dark:border-red-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                  <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Alunos que Precisam de Atenção</h3>
+              </div>
+              <Link to="/dashboard/students">
+                <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                  Ver Todos
                 </Button>
               </Link>
-            </motion.div>
-          ))}
-        </div>
-      </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {alertStudents.map((student, index) => (
+                <motion.div
+                  key={student.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                >
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-xl">
+                    {student.name?.[0] || 'A'}
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white">{student.name}</h4>
+                    <Badge className="bg-red-100 text-red-700 text-xs mt-1">Média: {student.avgGrade.toFixed(1)}</Badge>
+                  </div>
+                  <Button size="sm" onClick={() => handleStudentClick(student.id)}>Ver Detalhes</Button>
+                </motion.div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
+      )}
 
-      {/* Modal para Postar Atividade */}
+      {/* Turmas e Atividades Recentes - Layout 3 colunas */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mb-4"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-green-500 to-emerald-500">
+            <BarChart3 className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Visão Geral</h2>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Turmas Recentes */}
+          <Card className="p-6 border-2 border-green-100 dark:border-green-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <BookOpen className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Turmas Recentes</h3>
+              </div>
+              <Link to="/dashboard/classes">
+                <Button variant="ghost" size="sm">Ver Todas</Button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {recentClasses.length > 0 ? (
+                recentClasses.slice(0, 3).map((cls, index) => (
+                  <Link key={cls.id} to={`/dashboard/classes/${cls.id}`}>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="p-4 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-green-300 dark:hover:border-green-700 transition-all cursor-pointer"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${cls.color || 'from-blue-500 to-indigo-500'} flex items-center justify-center text-white font-bold`}>
+                          {cls.name?.[0] || 'T'}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">{cls.name}</h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{cls.subject} • {cls.student_count} alunos</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </Link>
+                ))
+              ) : (
+                <EmptyState icon={BookOpen} title="Nenhuma turma encontrada" description="Crie sua primeira turma para começar." />
+              )}
+            </div>
+          </Card>
+
+          {/* Atividades Recentes */}
+          <Card className="p-6 border-2 border-purple-100 dark:border-purple-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                  <FileText className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Atividades Recentes</h3>
+              </div>
+              <Link to="/dashboard/activities">
+                <Button variant="ghost" size="sm">Ver Todas</Button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {recentActivities.length > 0 ? (
+                recentActivities.slice(0, 3).map((activity, index) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-gray-900 dark:text-white flex-1">{activity.title}</h4>
+                      <Badge variant={activity.is_published ? 'default' : 'secondary'} className="ml-2">
+                        {activity.is_published ? 'Postada' : 'Rascunho'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{activity.class_name}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={new Date(activity.due_date) < new Date() ? 'destructive' : 'default'} className="text-xs">
+                          {new Date(activity.due_date) < new Date() ? 'Encerrada' : 'Aberta'}
+                        </Badge>
+                        {activity.submission_count !== undefined && (
+                          <span className="text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                            {activity.submission_count} {activity.submission_count === 1 ? 'submissão' : 'submissões'}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {format(new Date(activity.due_date), 'dd/MM', { locale: ptBR })}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              ) : (
+                <EmptyState icon={FileText} title="Nenhuma atividade" description="Suas atividades aparecerão aqui." />
+              )}
+            </div>
+          </Card>
+
+          {/* Atividades para Postar */}
+          <Card className="p-6 border-2 border-orange-100 dark:border-orange-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                  <Clock className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Para Postar</h3>
+              </div>
+              <Link to="/dashboard/activities?filter=drafts">
+                <Button variant="ghost" size="sm">Ver Todas</Button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {recentActivities.filter(a => !a.is_published).length > 0 ? (
+                recentActivities.filter(a => !a.is_published).slice(0, 3).map((activity, index) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-orange-300 dark:hover:border-orange-700 transition-all"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-gray-900 dark:text-white flex-1">{activity.title}</h4>
+                      <Badge variant="secondary" className="ml-2">
+                        Rascunho
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{activity.class_name}</p>
+                    <Button 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => {
+                        setActivityToPost(activity);
+                        setShowPostModal(true);
+                      }}
+                    >
+                      <Send className="w-4 h-4 mr-2" />
+                      Postar Agora
+                    </Button>
+                  </motion.div>
+                ))
+              ) : (
+                <EmptyState icon={Clock} title="Nenhum rascunho" description="Atividades não postadas aparecerão aqui." />
+              )}
+            </div>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Performance Insights - Novo conteúdo abaixo do layout 3 colunas */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="mb-2"
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500">
+            <BarChart3 className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Performance Insights</h2>
+          <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+            Últimos 7 dias
+          </Badge>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Gráfico de Atividade Semanal */}
+          <Card className="p-6 border-2 border-emerald-100 dark:border-emerald-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                  <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Atividade da Semana</h3>
+              </div>
+              <Link to="/dashboard/analytics">
+                <Button variant="ghost" size="sm" className="text-emerald-600 hover:text-emerald-700">
+                  Ver Analytics
+                </Button>
+              </Link>
+            </div>
+            <div className="space-y-4">
+              {/* Gráfico Simples de Barras */}
+              <div className="space-y-3">
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((day, index) => {
+                  // Dados reais de submissões por dia da semana
+                  const values = weeklySubmissions.length === 7 ? weeklySubmissions : [0, 0, 0, 0, 0, 0, 0];
+                  const maxValue = Math.max(...values, 1);
+                  const percentage = (values[index] / maxValue) * 100;
+                  
+                  return (
+                    <div key={day} className="flex items-center gap-3">
+                      <div className="w-8 text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {day}
+                      </div>
+                      <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-6 relative overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ delay: 0.8 + index * 0.1, duration: 0.6 }}
+                          className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-end pr-2"
+                        >
+                          <span className="text-xs text-white font-medium">{values[index]}</span>
+                        </motion.div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600 dark:text-gray-400">Total de submissões</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {weeklyTotal || 0} {weeklyTotal === 1 ? 'submissão' : 'submissões'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Top Turmas */}
+          <Card className="p-6 border-2 border-purple-100 dark:border-purple-800/30 shadow-lg">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                  <TrendingUp className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Turmas em Destaque</h3>
+              </div>
+              <Link to="/dashboard/classes">
+                <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700">
+                  Ver Todas
+                </Button>
+              </Link>
+            </div>
+            <div className="space-y-3">
+              {(recentClasses?.slice(0, 4) || []).length > 0 ? (
+                recentClasses.slice(0, 4).map((turma, index) => (
+                  <motion.div
+                    key={turma.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 + index * 0.1 }}
+                    className="flex items-center gap-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${turma.color || 'from-purple-500 to-pink-500'} flex items-center justify-center text-white font-bold`}>
+                      {turma.name?.[0] || 'T'}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 dark:text-white">{turma.name}</h4>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge className="bg-purple-100 text-purple-700 text-xs">
+                          {turma.student_count} {turma.student_count === 1 ? 'aluno' : 'alunos'}
+                        </Badge>
+                        <span className="text-xs text-gray-500">
+                          {turma.subject}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                  </motion.div>
+                ))
+              ) : (
+                <EmptyState icon={TrendingUp} title="Nenhuma turma" description="Crie turmas para ver estatísticas." />
+              )}
+            </div>
+          </Card>
+        </div>
+      </motion.div>
+
+      {/* Modais */}
       <PostActivityModal
         open={showPostModal}
-        onClose={() => {
-          setShowPostModal(false);
-          setActivityToPost(null);
-        }}
+        onClose={() => { setShowPostModal(false); setActivityToPost(null); }}
         activity={activityToPost}
-        onSuccess={(assignment) => {
-          console.log('✅ Atividade postada:', assignment);
-          loadDashboardData(); // Recarregar dados
-        }}
+        onSuccess={handlePostActivitySuccess}
       />
 
-      {/* Modal de Detalhes do Evento */}
       {showEventDetailsModal && selectedEvent && (
         <EventDetailsModal
           isOpen={showEventDetailsModal}
-          onClose={() => {
-            setShowEventDetailsModal(false);
-            setSelectedEvent(null);
-          }}
+          onClose={() => { setShowEventDetailsModal(false); setSelectedEvent(null); }}
           event={selectedEvent}
-          onEdit={() => {
-            // Navegar para editar evento
-            navigate('/dashboard/calendar');
-          }}
-          onDelete={() => {
-            // Recarregar dados após deletar evento (o delete já é feito no modal)
-            loadDashboardData();
-          }}
+          onEdit={() => navigate('/dashboard/calendar')}
+          onDelete={handleEventDelete}
         />
       )}
     </div>

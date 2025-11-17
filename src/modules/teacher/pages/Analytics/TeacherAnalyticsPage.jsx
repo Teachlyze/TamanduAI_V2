@@ -10,6 +10,7 @@ import {
 import { Card } from '@/shared/components/ui/card';
 import { Button } from '@/shared/components/ui/button';
 import { Badge } from '@/shared/components/ui/badge';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/shared/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
@@ -26,6 +27,7 @@ import {
 import { supabase } from '@/shared/services/supabaseClient';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { exportTeacherAnalyticsDashboardToPDF } from '@/shared/services/exportService';
 
 const TeacherAnalyticsPage = () => {
   const { user } = useAuth();
@@ -34,6 +36,7 @@ const TeacherAnalyticsPage = () => {
 
   // Estados
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [period, setPeriod] = useState('30'); // dias
   const [selectedClasses, setSelectedClasses] = useState([]);
   const [activityTypes, setActivityTypes] = useState(['all']);
@@ -56,6 +59,7 @@ const TeacherAnalyticsPage = () => {
   const [gradeDistribution, setGradeDistribution] = useState([]);
   const [weeklyTrends, setWeeklyTrends] = useState([]);
   const [topStudents, setTopStudents] = useState([]);
+  const [bottomStudents, setBottomStudents] = useState([]);
   const [plagiarismStats, setPlagiarismStats] = useState(null);
   const [engagementStats, setEngagementStats] = useState(null);
 
@@ -149,21 +153,35 @@ const TeacherAnalyticsPage = () => {
       });
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
   const loadClasses = async () => {
-    const { data, error } = await supabase
-      .from('classes')
-      .select('id, name, subject, color')
-      .eq('created_by', user.id)
-      .eq('is_active', true);
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name, subject, color')
+        .eq('created_by', user.id)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
 
-    if (!error && data) {
-      setClasses(data);
-      if (selectedClasses.length === 0) {
-        setSelectedClasses(data.map(c => c.id));
+      if (error) throw error;
+      
+      const classesData = data || [];
+      setClasses(classesData);
+      
+      // Inicializar selectedClasses com todas as turmas após carregar
+      if (selectedClasses.length === 0 && classesData.length > 0) {
+        setSelectedClasses(classesData.map(c => c.id));
       }
+      
+      logger.debug('[TeacherAnalytics] Classes carregadas:', classesData.length);
+    } catch (error) {
+      logger.error('Erro ao carregar turmas:', error);
+      setClasses([]);
     }
   };
 
@@ -303,18 +321,50 @@ const TeacherAnalyticsPage = () => {
       return;
     }
 
-    // UMA query para todas as turmas
-    const { data: allGrades } = await supabase
+    // Buscar tudo em uma query com eager loading
+    const { data: allData } = await supabase
       .from('submissions')
-      .select('grade, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
+      .select(`
+        grade, 
+        activity_id, 
+        activities!inner(
+          activity_class_assignments!inner(class_id)
+        )
+      `)
       .not('grade', 'is', null)
       .in('activities.activity_class_assignments.class_id', selectedClasses);
 
+    // Buscar contagens de alunos por turma
+    const { data: membersData } = await supabase
+      .from('class_members')
+      .select('class_id, user_id')
+      .in('class_id', selectedClasses)
+      .eq('role', 'student');
+
+    // Buscar contagens de atividades por turma
+    const { data: activitiesData } = await supabase
+      .from('activity_class_assignments')
+      .select('class_id, activity_id')
+      .in('class_id', selectedClasses);
+
+    // Processar dados
     const comparison = [];
+    
+    // Criar mapa de contagens
+    const studentCountMap = {};
+    const activityCountMap = {};
+    
+    membersData?.forEach(m => {
+      studentCountMap[m.class_id] = (studentCountMap[m.class_id] || 0) + 1;
+    });
+    
+    activitiesData?.forEach(a => {
+      activityCountMap[a.class_id] = (activityCountMap[a.class_id] || 0) + 1;
+    });
 
     for (const classItem of classes.filter(c => selectedClasses.includes(c.id))) {
       // Filtrar grades desta turma
-      const grades = allGrades?.filter(g => 
+      const grades = allData?.filter(g => 
         g.activities?.activity_class_assignments?.some(aca => aca.class_id === classItem.id)
       ) || [];
 
@@ -322,15 +372,11 @@ const TeacherAnalyticsPage = () => {
         ? grades.reduce((sum, s) => sum + s.grade, 0) / grades.length
         : 0;
 
-      // Pegar dados que já temos em cache
-      const students = 0; // Será preenchido pela edge function
-      const activities = 0; // Será preenchido pela edge function
-
       comparison.push({
         name: classItem.name,
         media: parseFloat(avgGrade.toFixed(2)),
-        alunos: students,
-        atividades: activities,
+        alunos: studentCountMap[classItem.id] || 0,
+        atividades: activityCountMap[classItem.id] || 0,
         color: classItem.color || '#3B82F6'
       });
     }
@@ -344,12 +390,18 @@ const TeacherAnalyticsPage = () => {
       return;
     }
 
-    const { data: grades } = await supabase
+    const { data: grades, error } = await supabase
       .from('submissions')
-      .select('grade, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
+      .select('grade, activity_id, activities!inner(max_score, activity_class_assignments!inner(class_id))')
       .not('grade', 'is', null)
       .in('activities.activity_class_assignments.class_id', selectedClasses)
-      .limit(1000); // Limitar
+      .limit(1000);
+
+    if (error) {
+      logger.error('Erro ao carregar distribuição de notas:', error);
+      setGradeDistribution([]);
+      return;
+    }
 
     const distribution = [
       { range: '0-2', count: 0, color: '#EF4444' },
@@ -359,11 +411,24 @@ const TeacherAnalyticsPage = () => {
       { range: '8-10', count: 0, color: '#10B981' }
     ];
 
-    grades?.forEach(({ grade }) => {
-      if (grade < 2) distribution[0].count++;
-      else if (grade < 4) distribution[1].count++;
-      else if (grade < 6) distribution[2].count++;
-      else if (grade < 8) distribution[3].count++;
+    grades?.forEach(({ grade, activities }) => {
+      const rawGrade = parseFloat(grade);
+      const maxScore = parseFloat(activities?.max_score || 10);
+
+      if (isNaN(rawGrade)) return;
+
+      let normalized = rawGrade;
+      if (maxScore > 0 && maxScore !== 10) {
+        normalized = (rawGrade / maxScore) * 10;
+      }
+
+      // Garantir que está sempre entre 0 e 10
+      normalized = Math.max(0, Math.min(10, normalized));
+
+      if (normalized < 2) distribution[0].count++;
+      else if (normalized < 4) distribution[1].count++;
+      else if (normalized < 6) distribution[2].count++;
+      else if (normalized < 8) distribution[3].count++;
       else distribution[4].count++;
     });
 
@@ -379,13 +444,19 @@ const TeacherAnalyticsPage = () => {
     // UMA query para todas as semanas
     const startDate = format(subDays(new Date(), 84), 'yyyy-MM-dd'); // 12 semanas atrás
 
-    const { data: allSubmissions } = await supabase
+    const { data: allSubmissions, error } = await supabase
       .from('submissions')
-      .select('submitted_at, activity_id, activities!inner(due_date, activity_class_assignments!inner(class_id))')
-      .eq('status', 'submitted')
+      .select('submitted_at, status, activity_id, activities!inner(due_date, activity_class_assignments!inner(class_id))')
+      .in('status', ['submitted', 'graded'])
       .in('activities.activity_class_assignments.class_id', selectedClasses)
       .gte('submitted_at', startDate)
       .limit(1000);
+
+    if (error) {
+      logger.error('Erro ao carregar tendência semanal de entregas:', error);
+      setWeeklyTrends([]);
+      return;
+    }
 
     const weeks = [];
     for (let i = 0; i < 12; i++) {
@@ -413,28 +484,48 @@ const TeacherAnalyticsPage = () => {
       });
     }
 
+    logger.debug('[TeacherAnalytics] Weekly trends calculadas:', {
+      totalSubmissions: allSubmissions?.length || 0,
+      weeksCount: weeks.length
+    });
+
     setWeeklyTrends(weeks);
   };
 
   const loadTopStudents = async () => {
     if (selectedClasses.length === 0) {
       setTopStudents([]);
+      setBottomStudents([]);
       return;
     }
 
     // LIMITAR a query com .limit()
-    const { data: submissions } = await supabase
+    const { data: submissions, error } = await supabase
       .from('submissions')
       .select(`
         grade,
+        status,
+        submitted_at,
         student_id,
         student:profiles!submissions_student_id_fkey(id, full_name, avatar_url),
         activity_id,
-        activities!inner(activity_class_assignments!inner(class_id))
+        activities!inner(max_score, due_date, activity_class_assignments!inner(class_id))
       `)
       .not('grade', 'is', null)
       .in('activities.activity_class_assignments.class_id', selectedClasses)
       .limit(500); // IMPORTANTE: limitar!
+
+    if (error) {
+      logger.error('Erro ao carregar top/bottom students:', error);
+      setTopStudents([]);
+      setBottomStudents([]);
+      return;
+    }
+
+    const classesMap = classes.reduce((acc, cls) => {
+      acc[cls.id] = cls;
+      return acc;
+    }, {});
 
     const studentGrades = {};
     submissions?.forEach(s => {
@@ -442,25 +533,64 @@ const TeacherAnalyticsPage = () => {
         studentGrades[s.student_id] = {
           student: s.student,
           grades: [],
-          total: 0
+          total: 0,
+          onTime: 0,
+          classes: new Set()
         };
       }
-      studentGrades[s.student_id].grades.push(s.grade);
-      studentGrades[s.student_id].total++;
+
+      const container = studentGrades[s.student_id];
+
+      const gradeValue = parseFloat(s.grade) || 0;
+      container.grades.push(gradeValue);
+      container.total++;
+
+      const submittedAt = s.submitted_at ? new Date(s.submitted_at) : null;
+      const dueDate = s.activities?.due_date ? new Date(s.activities.due_date) : null;
+      if (submittedAt && dueDate && submittedAt <= dueDate) {
+        container.onTime++;
+      }
+
+      const assignments = s.activities?.activity_class_assignments || [];
+      assignments.forEach(aca => {
+        const cls = classesMap[aca.class_id];
+        if (cls) {
+          container.classes.add(cls.name);
+        }
+      });
     });
 
-    const ranked = Object.entries(studentGrades)
-      .map(([id, data]) => ({
-        id,
-        name: data.student?.full_name || 'Sem nome',
-        avatar: data.student?.avatar_url,
-        avgGrade: data.grades.reduce((sum, g) => sum + g, 0) / data.grades.length,
-        activities: data.total
-      }))
-      .sort((a, b) => b.avgGrade - a.avgGrade)
-      .slice(0, 10);
+    const rankedAll = Object.entries(studentGrades)
+      .map(([id, data]) => {
+        const avgGrade = data.grades.length > 0
+          ? data.grades.reduce((sum, g) => sum + g, 0) / data.grades.length
+          : 0;
 
-    setTopStudents(ranked);
+        const onTimeRate = data.total > 0
+          ? Math.round((data.onTime / data.total) * 100)
+          : 0;
+
+        return {
+          id,
+          name: data.student?.full_name || 'Sem nome',
+          avatar: data.student?.avatar_url,
+          avgGrade,
+          activities: data.total,
+          onTimeRate,
+          classes: Array.from(data.classes).slice(0, 3)
+        };
+      })
+      .sort((a, b) => b.avgGrade - a.avgGrade);
+
+    const top = rankedAll.slice(0, 10);
+
+    const bottom = rankedAll
+      .filter(s => s.activities >= 3)
+      .slice(-10)
+      .sort((a, b) => a.avgGrade - b.avgGrade);
+
+    setTopStudents(top);
+    setBottomStudents(bottom);
   };
 
   const loadPlagiarismStats = async () => {
@@ -506,7 +636,7 @@ const TeacherAnalyticsPage = () => {
     });
   };
 
-  const handleExportDashboard = async () => {
+  const handleExportDashboardCSV = async () => {
     try {
       // Criar conteúdo CSV
       const csvRows = [];
@@ -529,9 +659,9 @@ const TeacherAnalyticsPage = () => {
       
       // Evolução de Notas
       csvRows.push('Evolução de Notas');
-      csvRows.push('Período,Média');
+      csvRows.push('Dia,Média');
       gradeEvolution.forEach(row => {
-        csvRows.push(`${row.period},${row.avg}`);
+        csvRows.push(`${row.date},${row.media}`);
       });
       csvRows.push('');
       
@@ -539,15 +669,16 @@ const TeacherAnalyticsPage = () => {
       csvRows.push('Comparação de Turmas');
       csvRows.push('Turma,Média');
       classComparison.forEach(row => {
-        csvRows.push(`${row.name},${row.avg}`);
+        csvRows.push(`${row.name},${row.media}`);
       });
       csvRows.push('');
       
       // Top Alunos
       csvRows.push('Top 10 Alunos');
-      csvRows.push('Posição,Nome,Média,Atividades');
+      csvRows.push('Posição,Nome,Média,Atividades,Entregas no Prazo (%),Turmas');
       topStudents.forEach((student, idx) => {
-        csvRows.push(`${idx + 1},${student.name},${student.avg},${student.count}`);
+        const classesNames = (student.classes || []).join(' | ');
+        csvRows.push(`${idx + 1},${student.name},${student.avgGrade.toFixed(2)},${student.activities},${student.onTimeRate},${classesNames}`);
       });
       
       // Criar arquivo CSV
@@ -571,6 +702,33 @@ const TeacherAnalyticsPage = () => {
       logger.error('Erro ao exportar:', error)
       toast({
         title: '❌ Erro ao exportar',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleExportDashboardPDF = async () => {
+    try {
+      await exportTeacherAnalyticsDashboardToPDF({
+        period,
+        kpis,
+        gradeEvolution,
+        classComparison,
+        gradeDistribution,
+        weeklyTrends,
+        topStudents,
+        bottomStudents,
+      });
+
+      toast({
+        title: '✅ Dashboard exportado!',
+        description: 'PDF gerado com sucesso'
+      });
+    } catch (error) {
+      logger.error('Erro ao exportar PDF:', error)
+      toast({
+        title: '❌ Erro ao exportar PDF',
         description: error.message,
         variant: 'destructive'
       });
@@ -637,7 +795,7 @@ const TeacherAnalyticsPage = () => {
     toast({ title: 'Filtros limpos' });
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
@@ -658,10 +816,22 @@ const TeacherAnalyticsPage = () => {
               <Bell className="w-4 h-4 mr-2" />
               Configurar Alertas
             </Button>
-            <Button variant="outline" onClick={handleExportDashboard}>
-              <Download className="w-4 h-4 mr-2" />
-              Exportar Dashboard
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="w-4 h-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportDashboardCSV}>
+                  Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportDashboardPDF}>
+                  Exportar PDF
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />
@@ -690,6 +860,79 @@ const TeacherAnalyticsPage = () => {
             </Select>
           </div>
 
+          <div className="flex-1 min-w-[250px]">
+            <label className="block text-sm font-medium mb-2">
+              <Users className="w-4 h-4 inline mr-2" />
+              Turmas
+            </label>
+            <div className="relative">
+              <Select 
+                value={selectedClasses.length === classes.length ? "all" : "custom"}
+                onValueChange={(value) => {
+                  if (value === "all") {
+                    setSelectedClasses(classes.map(c => c.id));
+                  } else {
+                    // Keep current selection when switching to custom
+                    if (selectedClasses.length === classes.length) {
+                      setSelectedClasses([]);
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue>
+                    {selectedClasses.length === classes.length 
+                      ? "Todas as turmas" 
+                      : selectedClasses.length === 0 
+                      ? "Selecione turmas"
+                      : `${selectedClasses.length} turma(s)`
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    <div className="flex items-center">
+                      <Users className="w-4 h-4 mr-2" />
+                      Todas as turmas
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="custom">
+                    <div className="flex items-center">
+                      <Filter className="w-4 h-4 mr-2" />
+                      Selecionar turmas específicas
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Multi-select dropdown for custom selection */}
+              {selectedClasses.length < classes.length && selectedClasses.length > 0 && (
+                <div className="absolute top-full mt-1 w-full z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-2">
+                  <div className="max-h-40 overflow-y-auto">
+                    {classes.map(cls => (
+                      <div key={cls.id} className="flex items-center p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded">
+                        <Checkbox
+                          id={`class-${cls.id}`}
+                          checked={selectedClasses.includes(cls.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedClasses([...selectedClasses, cls.id]);
+                            } else {
+                              setSelectedClasses(selectedClasses.filter(id => id !== cls.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`class-${cls.id}`} className="ml-2 text-sm cursor-pointer flex-1">
+                          {cls.name} {cls.subject && `- ${cls.subject}`}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex gap-2">
             <Button onClick={applyFilters}>
               <Filter className="w-4 h-4 mr-2" />
@@ -712,10 +955,23 @@ const TeacherAnalyticsPage = () => {
           </div>
         </div>
 
-        {selectedClasses.length < classes.length && (
-          <Badge className="mt-3">
-            {selectedClasses.length} de {classes.length} turmas selecionadas
-          </Badge>
+        {selectedClasses.length > 0 && selectedClasses.length < classes.length && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {selectedClasses.map(classId => {
+              const cls = classes.find(c => c.id === classId);
+              return cls ? (
+                <Badge key={classId} variant="secondary" className="text-xs">
+                  {cls.name}
+                  <button
+                    onClick={() => setSelectedClasses(selectedClasses.filter(id => id !== classId))}
+                    className="ml-1 hover:text-red-500"
+                  >
+                    ×
+                  </button>
+                </Badge>
+              ) : null;
+            })}
+          </div>
         )}
       </Card>
 
@@ -767,8 +1023,324 @@ const TeacherAnalyticsPage = () => {
 
       {/* Continue com os outros componentes... */}
       
-      <div className="text-center py-12 text-slate-500">
-        <p className="text-sm">Demais seções em implementação...</p>
+      {/* Linha 1: Evolução das notas e tendências semanais */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+                <LineChart className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Evolução das notas</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Média por dia de correção no período selecionado</p>
+              </div>
+            </div>
+          </div>
+          {gradeEvolution.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={gradeEvolution} margin={{ left: -20, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-800" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
+                  <Tooltip
+                    labelFormatter={(label) => `Dia ${label}`}
+                    formatter={(value) => [`Média ${value.toFixed(2)}`, 'Nota']}
+                  />
+                  <Area type="monotone" dataKey="media" stroke="#2563EB" fillOpacity={0.15} fill="#60A5FA" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Ainda não há notas suficientes para calcular a evolução.</p>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                <BarChart3 className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Tendência semanal de entregas</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Entregues no prazo x atrasadas (últimas 12 semanas)</p>
+              </div>
+            </div>
+          </div>
+          {weeklyTrends.length > 0 ? (
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyTrends} margin={{ left: -20, right: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-800" />
+                  <XAxis dataKey="week" tick={{ fontSize: 10 }} />
+                  <YAxis tick={{ fontSize: 10 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="noPrazo" name="No prazo" stackId="a" fill="#22C55E" />
+                  <Bar dataKey="atrasadas" name="Atrasadas" stackId="a" fill="#F97316" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Nenhuma entrega registrada neste período.</p>
+          )}
+        </Card>
+      </div>
+
+      {/* Linha 2: Distribuição de notas, comparação entre turmas e originalidade */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+                <PieChart className="w-5 h-5 text-indigo-600 dark:text-indigo-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Distribuição de notas</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Faixas de desempenho das avaliações</p>
+              </div>
+            </div>
+          </div>
+          {gradeDistribution.length > 0 ? (
+            <>
+              <div className="h-56">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={gradeDistribution}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-800" />
+                    <XAxis dataKey="range" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip />
+                    <Bar dataKey="count">
+                      {gradeDistribution.map((item, idx) => (
+                        <Cell key={idx} fill={item.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <Badge variant="outline" className="text-[10px]">
+                  ✓ Notas normalizadas para escala 0-10
+                </Badge>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                  As notas são exibidas em faixas de 0 a 10 apenas para visualização.
+                </p>
+              </div>
+            </>
+          ) : (
+            <p className="text-xs text-slate-500">Nenhuma nota registrada ainda para montar a distribuição.</p>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/40">
+                <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Comparação entre turmas</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Média geral por turma</p>
+              </div>
+            </div>
+          </div>
+          {classComparison.length > 0 ? (
+            <div className="h-56 overflow-x-auto">
+              <div className={classComparison.length > 6 ? 'min-w-[640px]' : 'min-w-full'}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={classComparison}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-slate-200 dark:stroke-slate-800" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
+                    <Tooltip />
+                    <Bar dataKey="media" name="Média">
+                      {classComparison.map((cls, idx) => (
+                        <Cell key={idx} fill={cls.color || '#3B82F6'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Selecione pelo menos uma turma para ver a comparação.</p>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40">
+                <Shield className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Originalidade e plágio</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Resumo das verificações de plágio</p>
+              </div>
+            </div>
+          </div>
+          {plagiarismStats ? (
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-1 text-xs">
+                  <span className="text-slate-500 dark:text-slate-400">Originalidade média</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-300">{plagiarismStats.avgOriginality}%</span>
+                </div>
+                <Progress value={plagiarismStats.avgOriginality} className="h-2" />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60">
+                  <p className="text-slate-500 dark:text-slate-400">Verificações realizadas</p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-slate-50">{plagiarismStats.totalChecks}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/40">
+                  <p className="text-slate-500 dark:text-slate-400">Casos críticos</p>
+                  <p className="text-lg font-semibold text-amber-700 dark:text-amber-300">{plagiarismStats.casesDetected}</p>
+                </div>
+                <div className="p-2 rounded-lg bg-purple-50 dark:bg-purple-900/40">
+                  <p className="text-slate-500 dark:text-slate-400">Possível IA</p>
+                  <p className="text-lg font-semibold text-purple-700 dark:text-purple-300">{plagiarismStats.aiDetected}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Nenhuma verificação de plágio registrada neste período.</p>
+          )}
+        </Card>
+      </div>
+
+      {/* Linha 3: Top alunos e engajamento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/40">
+                <Award className="w-5 h-5 text-blue-600 dark:text-blue-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Top alunos</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Desempenho médio dos alunos mais ativos</p>
+              </div>
+            </div>
+          </div>
+          {topStudents.length > 0 ? (
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {topStudents.map((student, index) => (
+                <div key={student.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                      {(student.name || '?').charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">{index + 1}. {student.name}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {student.activities} atividades • {student.onTimeRate}% no prazo
+                      </p>
+                      {student.classes && student.classes.length > 0 && (
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                          Turmas: {student.classes.join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-300">{student.avgGrade.toFixed(1)}</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">nota média</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">Ainda não há dados suficientes para ranquear os alunos.</p>
+          )}
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50 flex items-center gap-1">
+                <TrendingDown className="w-4 h-4 text-amber-500" />
+                Alunos que precisam de atenção
+              </h3>
+            </div>
+            {bottomStudents.length > 0 ? (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {bottomStudents.map((student, index) => (
+                  <div key={student.id} className="flex items-center justify-between p-2 rounded-lg bg-amber-50/60 dark:bg-amber-900/20">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center text-white text-[11px] font-bold">
+                        {(student.name || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-slate-900 dark:text-slate-50">{index + 1}. {student.name}</p>
+                        <p className="text-[10px] text-slate-600 dark:text-slate-400">
+                          {student.activities} atividades • {student.onTimeRate}% no prazo
+                        </p>
+                        {student.classes && student.classes.length > 0 && (
+                          <p className="text-[10px] text-slate-500 dark:text-slate-500 mt-0.5">
+                            Turmas: {student.classes.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">{student.avgGrade.toFixed(1)}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">nota média</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-1 text-xs h-6 px-2"
+                        onClick={() => {
+                          // Navegar para detalhes do aluno
+                          window.location.href = `/dashboard/students/${student.id}`;
+                        }}
+                      >
+                        Ver Detalhes
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">Nenhum aluno em destaque negativo neste período.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-sky-100 dark:bg-sky-900/40">
+                <Zap className="w-5 h-5 text-sky-600 dark:text-sky-300" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Engajamento (beta)</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Visão geral do engajamento dos alunos</p>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4 text-xs text-slate-500 dark:text-slate-400">
+            <p>Estes indicadores serão enriquecidos com dados de uso da plataforma (acessos, tempo de sessão, interações). Por enquanto, use as demais métricas para monitorar participação e desempenho.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60">
+                <p>Acessos únicos (em breve)</p>
+                <p className="mt-1 text-lg font-semibold text-slate-400 dark:text-slate-500">—</p>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60">
+                <p>Tempo médio de estudo</p>
+                <p className="mt-1 text-lg font-semibold text-slate-400 dark:text-slate-500">—</p>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60">
+                <p>Taxa de retorno</p>
+                <p className="mt-1 text-lg font-semibold text-slate-400 dark:text-slate-500">—</p>
+              </div>
+              <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-900/60">
+                <p>Interações na plataforma</p>
+                <p className="mt-1 text-lg font-semibold text-slate-400 dark:text-slate-500">—</p>
+              </div>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );

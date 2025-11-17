@@ -22,6 +22,7 @@ const StudentPerformancePageRedesigned = () => {
   const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState(null);
   const [dailyAIUsageCount, setDailyAIUsageCount] = useState(0);
@@ -88,6 +89,9 @@ const StudentPerformancePageRedesigned = () => {
       logger.error('Erro ao carregar dados de desempenho:', error);
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -780,7 +784,7 @@ const StudentPerformancePageRedesigned = () => {
     }));
   }, [radarData, selectedClass, selectedPeriod]);
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

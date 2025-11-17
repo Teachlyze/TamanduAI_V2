@@ -18,11 +18,13 @@ const StudentCalendarPageRedesigned = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [events, setEvents] = useState([]);
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -53,7 +55,7 @@ const StudentCalendarPageRedesigned = () => {
       // Buscar eventos da turma
       const { data: classEvents } = await supabase
         .from('calendar_events')
-        .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, class_id')
+        .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, class_id, activity_id')
         .in('class_id', classIds)
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString())
@@ -64,7 +66,7 @@ const StudentCalendarPageRedesigned = () => {
 
       const { data: attendeeEvents, error: attendeeError } = await supabase
         .from('calendar_events')
-        .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, attendees, class_id, created_by')
+        .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, attendees, class_id, created_by, activity_id')
         .contains('attendees', [user.id])
         .gte('start_time', start.toISOString())
         .lte('start_time', end.toISOString())
@@ -142,6 +144,9 @@ const StudentCalendarPageRedesigned = () => {
       logger.error('Erro ao carregar eventos:', error);
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -165,6 +170,10 @@ const StudentCalendarPageRedesigned = () => {
       const eventDate = new Date(event.start_time);
       return eventDate >= dayStart && eventDate <= dayEnd;
     });
+  };
+
+  const handleEventClick = (event) => {
+    setSelectedEvent(event);
   };
 
   const handlePrevMonth = () => {
@@ -191,7 +200,16 @@ const StudentCalendarPageRedesigned = () => {
 
   const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-  if (loading) {
+  const getEventTypeLabel = (event) => {
+    if (!event) return 'Evento';
+    if (event.activity_id || event.type === 'activity') return 'Atividade';
+    if (event.event_type === 'activity_deadline' || event.type === 'deadline') return 'Prazo de atividade';
+    if (event.event_type === 'meeting' || event.type === 'meeting') return 'Reunião';
+    if (event.event_type === 'class_event') return 'Evento da turma';
+    return 'Evento';
+  };
+
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
@@ -333,13 +351,7 @@ const StudentCalendarPageRedesigned = () => {
                 <EventCard
                   key={event.id}
                   event={event}
-                  onClick={() => {
-                    if (event.event_type === 'activity_deadline') {
-                      navigate(`/students/activities/${event.activity_id}`);
-                    } else {
-                      navigate('/students/calendar');
-                    }
-                  }}
+                  onClick={() => handleEventClick(event)}
                   index={index}
                 />
               ))}
@@ -369,11 +381,7 @@ const StudentCalendarPageRedesigned = () => {
                 <EventCard
                   key={event.id}
                   event={event}
-                  onClick={() => {
-                    if (event.event_type === 'activity_deadline') {
-                      navigate(`/students/activities/${event.activity_id}`);
-                    }
-                  }}
+                  onClick={() => handleEventClick(event)}
                   index={index}
                 />
               ))}
@@ -386,6 +394,109 @@ const StudentCalendarPageRedesigned = () => {
           />
         )}
       </Card>
+      {selectedEvent && (
+        <div
+          className='fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4'
+          onClick={() => setSelectedEvent(null)}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Card className='p-6 sm:p-8 max-w-xl sm:max-w-2xl w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-2xl'>
+              <div className='flex flex-col gap-6'>
+                <div className='flex items-start justify-between gap-4'>
+                  <div className='space-y-2'>
+                    <Badge>
+                      {getEventTypeLabel(selectedEvent)}
+                    </Badge>
+                    <h3 className='text-xl sm:text-2xl font-bold text-slate-900 dark:text-white'>
+                      {selectedEvent.title}
+                    </h3>
+                    <p className='text-xs sm:text-sm text-slate-500 dark:text-slate-400'>
+                      {format(new Date(selectedEvent.start_time), `EEEE, d 'de' MMMM 'às' HH:mm`, { locale: ptBR })}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedEvent(null)}
+                    className='text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  >
+                    Fechar
+                  </button>
+                </div>
+
+                {selectedEvent.description && (
+                  <p className='text-sm sm:text-base text-slate-600 dark:text-slate-300'>
+                    {selectedEvent.description}
+                  </p>
+                )}
+
+                <div className='grid gap-4 sm:grid-cols-2 text-sm sm:text-base'>
+                  <div className='space-y-2'>
+                    <div className='flex items-center gap-2 text-slate-700 dark:text-slate-300'>
+                      <Clock className='w-4 h-4' />
+                      {format(new Date(selectedEvent.start_time), `d 'de' MMMM 'às' HH:mm`, { locale: ptBR })}
+                    </div>
+                    {selectedEvent.class_name && (
+                      <div className='flex items-center gap-2 text-slate-700 dark:text-slate-300'>
+                        <FileText className='w-4 h-4' />
+                        {selectedEvent.class_name}
+                      </div>
+                    )}
+                    {selectedEvent.location && (
+                      <div className='flex items-center gap-2 text-slate-700 dark:text-slate-300'>
+                        <MapPin className='w-4 h-4' />
+                        {selectedEvent.location}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className='space-y-2'>
+                    {selectedEvent.meeting_link && (
+                      <a
+                        href={selectedEvent.meeting_link}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                        className='inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base'
+                      >
+                        <Video className='w-4 h-4' />
+                        Entrar na reunião
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className='mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-wrap gap-3 justify-end'>
+                  {selectedEvent.activity_id && (
+                    <Button
+                      onClick={() => {
+                        setSelectedEvent(null);
+                        navigate(`/students/activities/${selectedEvent.activity_id}`);
+                      }}
+                      className='bg-emerald-600 hover:bg-emerald-700 text-white'
+                    >
+                      <FileText className='w-4 h-4 mr-2' />
+                      Ir para atividade
+                    </Button>
+                  )}
+                  {selectedEvent.meeting_link && !selectedEvent.activity_id && (
+                    <a
+                      href={selectedEvent.meeting_link}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      className='inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-sm sm:text-base hover:bg-slate-50 dark:hover:bg-slate-800'
+                    >
+                      <Video className='w-4 h-4' />
+                      Abrir reunião
+                    </a>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

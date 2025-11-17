@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import SkipLinks from '@/shared/components/SkipLinks';
 import CookieBanner from '@/shared/components/CookieBanner';
+import Footer from '@/shared/components/Footer';
 import {
   BookOpen, Users, Sparkles, TrendingUp, Brain,
   Clock, Lightbulb, Target, Rocket, Calendar, Shield,
@@ -159,6 +160,7 @@ export default function LandingPage() {
               </motion.span>
               <nav className="hidden md:flex space-x-6 ml-6">
                 <a href="#features" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Recursos</a>
+                <Link to="/professores" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Para Professores</Link>
                 <Link to="/roadmap" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Roadmap</Link>
                 <Link to="/pricing" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Preços</Link>
                 <a href="#technology" className="text-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:underline underline-offset-4 font-medium transition-colors">Tecnologia</a>
@@ -820,39 +822,7 @@ export default function LandingPage() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer id="footer" className="w-full bg-background text-foreground py-12 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 rounded-xl flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">TamanduAI</span>
-              </div>
-              <p className="text-muted-foreground max-w-md">Revolucionando a educação através da inteligência artificial.</p>
-            </div>
-            <div>
-              <h3 className="font-bold mb-4">Produto</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Recursos</a></li>
-                <li><Link to="/docs" className="hover:text-foreground transition-colors">Documentação</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-bold mb-4">Suporte</h3>
-              <ul className="space-y-2 text-muted-foreground">
-                <li><Link to="/contact" className="hover:text-foreground transition-colors">Contato</Link></li>
-                <li><Link to="/privacy" className="hover:text-foreground transition-colors">Privacidade</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-border pt-8 text-center text-muted-foreground">
-            <p>© 2025 TamanduAI. Todos os direitos reservados.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
       
       {/* Cookie Banner */}
       <CookieBanner />

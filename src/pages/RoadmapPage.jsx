@@ -9,6 +9,7 @@ import { RoadmapTimeline } from '@/components/roadmap/RoadmapTimeline';
 import { RoadmapCTA } from '@/components/roadmap/RoadmapCTA';
 import SkipLinks from '@/shared/components/SkipLinks';
 import CookieBanner from '@/shared/components/CookieBanner';
+import Footer from '@/shared/components/Footer';
 import { roadmapPhases } from '@/data/roadmapData';
 import { supabase } from '@/shared/services/supabaseClient';
 
@@ -192,65 +193,7 @@ export default function RoadmapPage() {
         <RoadmapCTA />
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-20 w-full bg-white/90 backdrop-blur-xl text-slate-900 py-12 border-t border-slate-200/60 shadow-inner">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <motion.div 
-              className="col-span-1 md:col-span-2"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <div className="flex items-center space-x-3 mb-4">
-                <motion.div 
-                  className="w-10 h-10 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 rounded-xl flex items-center justify-center shadow-md"
-                  whileHover={{ rotate: 360, scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
-                >
-                  <BookOpen className="w-6 h-6 text-white" />
-                </motion.div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent">TamanduAI</span>
-              </div>
-              <p className="text-slate-600 max-w-md">Revolucionando a educação através da inteligência artificial.</p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-            >
-              <h3 className="font-bold mb-4 text-slate-900">Produto</h3>
-              <ul className="space-y-2 text-slate-600">
-                <li><Link to="/" className="hover:text-blue-600 transition-colors">Recursos</Link></li>
-                <li><Link to="/roadmap" className="hover:text-blue-600 transition-colors font-semibold">Roadmap 2026</Link></li>
-                <li><Link to="/docs" className="hover:text-blue-600 transition-colors">Documentação</Link></li>
-              </ul>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              <h3 className="font-bold mb-4 text-slate-900">Suporte</h3>
-              <ul className="space-y-2 text-slate-600">
-                <li><Link to="/contact" className="hover:text-blue-600 transition-colors">Contato</Link></li>
-                <li><Link to="/privacy" className="hover:text-blue-600 transition-colors">Privacidade</Link></li>
-              </ul>
-            </motion.div>
-          </div>
-          <motion.div 
-            className="border-t border-slate-200 pt-8 text-center text-slate-500"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.3 }}
-          >
-            <p>© 2025 TamanduAI. Todos os direitos reservados. | Lançamento: 11/11/2025</p>
-          </motion.div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Scroll to top button */}
       <motion.button

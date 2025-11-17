@@ -15,6 +15,136 @@ const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [similarityScore, setSimilarityScore] = useState(null);
 
+  const extractSubmissionText = (submission) => {
+    if (!submission) return '';
+
+    const content = submission.content;
+    const activity = submission.activity;
+
+    if (!content) return '';
+
+    if (typeof content === 'string') {
+      try {
+        const parsed = JSON.parse(content);
+        if (parsed && typeof parsed === 'object') {
+          if (typeof parsed.answer === 'string' && parsed.answer.trim()) {
+            return parsed.answer;
+          }
+
+          if (typeof parsed.text === 'string' && parsed.text.trim()) {
+            return parsed.text;
+          }
+
+          const questions = activity?.content?.questions || [];
+          const fromContent =
+            parsed.selectedAnswers ||
+            parsed.answers ||
+            (questions.length > 0 ? parsed : null);
+
+          if (fromContent && typeof fromContent === 'object' && questions.length > 0) {
+            const parts = [];
+
+            questions.forEach((question, index) => {
+              const questionKey = question.id ?? index;
+              const rawValue =
+                fromContent[questionKey] ??
+                fromContent[String(questionKey)] ??
+                fromContent[`question_${index}`];
+
+              if (rawValue === undefined || rawValue === null || rawValue === '') return;
+
+              let label = null;
+
+              if (question.alternatives && question.alternatives.length > 0) {
+                const normalized = String(rawValue);
+
+                const byId = question.alternatives.find((alt) => String(alt.id) === normalized);
+                const byLetter = question.alternatives.find((alt) => String(alt.letter) === normalized);
+                const byText = question.alternatives.find((alt) => alt.text === rawValue);
+
+                const match = byId || byLetter || byText;
+                label = match?.text || normalized;
+              } else {
+                label = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue);
+              }
+
+              const title = question.text || question.question || `Questão ${index + 1}`;
+              parts.push(`${title}: ${label}`);
+            });
+
+            if (parts.length > 0) {
+              return parts.join('\n');
+            }
+          }
+        }
+
+        return content;
+      } catch (e) {
+        return content;
+      }
+    }
+
+    if (typeof content === 'object') {
+      if (typeof content.answer === 'string' && content.answer.trim()) {
+        return content.answer;
+      }
+
+      if (typeof content.text === 'string' && content.text.trim()) {
+        return content.text;
+      }
+
+      const questions = activity?.content?.questions || [];
+      const fromContent =
+        content.selectedAnswers ||
+        content.answers ||
+        (questions.length > 0 ? content : null);
+
+      if (fromContent && typeof fromContent === 'object' && questions.length > 0) {
+        const parts = [];
+
+        questions.forEach((question, index) => {
+          const questionKey = question.id ?? index;
+          const rawValue =
+            fromContent[questionKey] ??
+            fromContent[String(questionKey)] ??
+            fromContent[`question_${index}`];
+
+          if (rawValue === undefined || rawValue === null || rawValue === '') return;
+
+          let label = null;
+
+          if (question.alternatives && question.alternatives.length > 0) {
+            const normalized = String(rawValue);
+
+            const byId = question.alternatives.find((alt) => String(alt.id) === normalized);
+            const byLetter = question.alternatives.find((alt) => String(alt.letter) === normalized);
+            const byText = question.alternatives.find((alt) => alt.text === rawValue);
+
+            const match = byId || byLetter || byText;
+            label = match?.text || normalized;
+          } else {
+            label = typeof rawValue === 'string' ? rawValue : JSON.stringify(rawValue);
+          }
+
+          const title = question.text || question.question || `Questão ${index + 1}`;
+          parts.push(`${title}: ${label}`);
+        });
+
+        if (parts.length > 0) {
+          return parts.join('\n');
+        }
+      }
+
+      try {
+        return JSON.stringify(content);
+      } catch (e) {
+        return '';
+      }
+    }
+
+    return '';
+  };
+
   useEffect(() => {
     loadSubmissions();
   }, [submissionIds]);
@@ -29,7 +159,7 @@ const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
       
       // Calcular similaridade simples (em produção usar algoritmo real)
       if (subs.length === 2) {
-        const similarity = calculateSimilarity(subs[0].content, subs[1].content);
+        const similarity = calculateSimilarity(subs[0], subs[1]);
         setSimilarityScore(similarity);
       }
     } catch (error) {
@@ -39,10 +169,10 @@ const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
     }
   };
 
-  const calculateSimilarity = (text1, text2) => {
+  const calculateSimilarity = (submission1, submission2) => {
     // Implementação simplificada - em produção usar Levenshtein ou similar
-    const str1 = typeof text1 === 'string' ? text1 : text1?.text || '';
-    const str2 = typeof text2 === 'string' ? text2 : text2?.text || '';
+    const str1 = extractSubmissionText(submission1) || '';
+    const str2 = extractSubmissionText(submission2) || '';
     
     const words1 = str1.toLowerCase().split(/\s+/);
     const words2 = str2.toLowerCase().split(/\s+/);
@@ -124,9 +254,7 @@ const CompareSubmissionsModal = ({ submissionIds, onClose }) => {
                 <div className="pr-4">
                   <h4 className="font-semibold mb-2">Submissão:</h4>
                   <div className="bg-gray-50 p-3 rounded whitespace-pre-wrap text-sm">
-                    {typeof submission.content === 'string' 
-                      ? submission.content 
-                      : submission.content?.text || 'Sem conteúdo'}
+                    {extractSubmissionText(submission) || 'Sem conteúdo'}
                   </div>
 
                   {submission.feedback && (

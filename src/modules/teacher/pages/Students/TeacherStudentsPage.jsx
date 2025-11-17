@@ -23,6 +23,7 @@ const TeacherStudentsPage = () => {
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,6 +148,9 @@ const TeacherStudentsPage = () => {
       logger.error('Erro:', error)
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -240,7 +244,7 @@ const TeacherStudentsPage = () => {
     }
   ];
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

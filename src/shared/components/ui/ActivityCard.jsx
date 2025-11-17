@@ -12,7 +12,7 @@ import { format, isPast, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const ActivityCard = memo(({ activity, onClick, className }) => {
-  const { id, title, description, due_date, status, grade, max_grade = 100 } = activity;
+  const { id, title, description, due_date, status, grade, max_score } = activity;
 
   // Determinar status visual
   const getActivityStatus = () => {
@@ -47,7 +47,12 @@ const ActivityCard = memo(({ activity, onClick, className }) => {
     >
       {/* Badge de status no canto */}
       <div className="absolute -top-2 -right-2 z-10">
-        <StatusBadge status={activityStatus} size="sm" score={status === 'graded' ? grade : undefined} />
+        <StatusBadge
+          status={activityStatus}
+          size="sm"
+          score={status === 'graded' ? grade : undefined}
+          maxScore={max_score || 10}
+        />
       </div>
 
       {/* Urgente badge */}
@@ -98,7 +103,7 @@ const ActivityCard = memo(({ activity, onClick, className }) => {
             <div className="flex items-center gap-2 text-sm">
               <Award className="w-4 h-4 text-green-600 dark:text-green-400" />
               <span className="font-bold text-green-700 dark:text-green-400">
-                Nota: {grade}/{max_grade}
+                Nota: {grade}/{max_score || 10}
               </span>
             </div>
           )}

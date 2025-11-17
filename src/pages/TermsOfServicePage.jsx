@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { FileText, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Footer from '@/shared/components/Footer';
 
 export default function TermsOfServicePage() {
   return (
@@ -46,7 +47,7 @@ export default function TermsOfServicePage() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 mb-6">
                 <FileText className="w-4 h-4" />
-                <span className="text-sm font-semibold">Última atualização: 10 de Novembro de 2025</span>
+                <span className="text-sm font-semibold">Última atualização: 16 de Novembro de 2025</span>
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 bg-clip-text text-transparent">
                 Termos de Uso
@@ -117,6 +118,7 @@ export default function TermsOfServicePage() {
                 <ul className="list-disc list-inside space-y-2 text-slate-600 dark:text-slate-400">
                   <li>Violar direitos autorais ou propriedade intelectual de terceiros</li>
                   <li>Enviar conteúdo ofensivo, difamatório, obsceno ou ilegal</li>
+                  <li>Importar, armazenar ou compartilhar materiais (incluindo arquivos de deck, anexos de atividades ou conteúdos de turmas) para os quais você não possua os direitos necessários</li>
                   <li>Tentar acessar contas de outros usuários sem autorização</li>
                   <li>Fazer engenharia reversa, descompilar ou desmontar a Plataforma</li>
                   <li>Usar bots, scripts ou automações não autorizadas</li>
@@ -152,12 +154,31 @@ export default function TermsOfServicePage() {
 
                 <h3 className="text-lg font-semibold mb-2">5.2 Conteúdo do Usuário</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                  Você mantém os direitos sobre o conteúdo que envia (atividades, materiais, etc.). Ao enviar conteúdo, você concede à TamanduAI uma licença mundial, não exclusiva e gratuita para usar, armazenar e processar esse conteúdo com o objetivo de fornecer os Serviços.
+                  Você mantém os direitos sobre o conteúdo que envia (atividades, materiais, arquivos, anexos, decks de flashcards, etc.). Ao enviar conteúdo, você concede à TamanduAI uma licença mundial, não exclusiva e gratuita para usar, armazenar e processar esse conteúdo com o objetivo de fornecer os Serviços.
+                </p>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  Você é o único e exclusivo responsável por todo conteúdo que criar, importar, carregar, sincronizar ou compartilhar na Plataforma, inclusive em turmas, classes virtuais ou recursos de flashcards. Isso inclui, sem limitação, arquivos de decks (como pacotes de deck de terceiros, por exemplo, Anki), materiais didáticos, textos, imagens e quaisquer outros dados. A TamanduAI não realiza controle prévio desse conteúdo e não se responsabiliza por violações de direitos autorais ou de quaisquer direitos de terceiros decorrentes do uso indevido desse material pelos Usuários.
                 </p>
 
                 <h3 className="text-lg font-semibold mb-2">5.3 IA e Correção Automática</h3>
-                <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
                   Os resultados gerados por IA (correções, sugestões, chatbot) são fornecidos "como estão" e devem ser revisados por um professor humano antes de serem considerados finais.
+                </p>
+
+                <h3 className="text-lg font-semibold mb-2">5.4 Conteúdo importado e uso de decks (incluindo Anki)</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  Funcionalidades de importação de decks e arquivos (como JSON ou pacotes de deck de terceiros) são oferecidas para uso estritamente pessoal e educacional. Decks importados permanecem privados e vinculados à sua conta, salvo quando você fizer uso de recursos específicos de compartilhamento (por exemplo, dentro de turmas ou funcionalidades colaborativas da Plataforma).
+                </p>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  "Anki" é marca registrada de seus respectivos titulares e não possui qualquer afiliação, parceria ou relação com a TamanduAI. Qualquer suporte a arquivos no formato "Anki deck package" ou a conteúdos originados do Anki é oferecido exclusivamente por compatibilidade técnica, sem que isso implique endosso, patrocínio ou associação entre as plataformas.
+                </p>
+
+                <h3 className="text-lg font-semibold mb-2">5.5 Notificações de Direitos Autorais e Remoção de Conteúdo</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  Caso você seja titular de direitos autorais (ou representante autorizado) e acredite que algum conteúdo armazenado na Plataforma viola seus direitos, poderá enviar uma notificação para que avaliemos a remoção ou restrição de acesso a esse conteúdo, preferencialmente para o e-mail <strong>copyright@tamanduai.com</strong>. A notificação deve conter, no mínimo: (a) identificação da obra protegida; (b) identificação específica do conteúdo supostamente infrator na Plataforma (por exemplo, ID de deck, card ou arquivo, captura de tela, URL interna); (c) declaração de boa-fé de que o uso contestado não é autorizado; (d) declaração de veracidade das informações, sob pena de responsabilização; e (e) nome completo e dados de contato do notificante.
+                </p>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                  Recebida uma notificação considerada válida, poderemos remover ou restringir o acesso ao conteúdo indicado, independentemente de aviso prévio ao Usuário responsável, em conformidade com a legislação aplicável. Opcionalmente, o Usuário poderá apresentar uma contra-notificação, se entender que o conteúdo foi removido por engano, cabendo à TamanduAI avaliar a situação. Em qualquer hipótese, a responsabilidade pelo conteúdo enviado permanece integralmente com o Usuário.
                 </p>
               </div>
 
@@ -288,27 +309,7 @@ export default function TermsOfServicePage() {
           </motion.div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-md py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                © 2025 TamanduAI. Todos os direitos reservados.
-              </p>
-              <div className="flex gap-6">
-                <Link to="/privacy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Política de Privacidade
-                </Link>
-                <Link to="/cookie-policy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Política de Cookies
-                </Link>
-                <Link to="/contact" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Contato
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );

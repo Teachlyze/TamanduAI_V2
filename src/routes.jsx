@@ -1,12 +1,13 @@
 import React, { Suspense } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 
 // Public Pages
-const LandingPage = React.lazy(() => import('./pages/LandingPage'));
+const TeacherLandingPage = React.lazy(() => import('./pages/TeacherLandingPage'));
 const PricingPage = React.lazy(() => import('./pages/PricingPage'));
 const RoadmapPage = React.lazy(() => import('./pages/RoadmapPage'));
+const IdeasPage = React.lazy(() => import('./pages/IdeasPage'));
 const DocumentationPage = React.lazy(() => import('./pages/DocumentationPage'));
 const LoginPage = React.lazy(() => import('./features/auth/pages/LoginPage'));
 const RegisterPage = React.lazy(() => import('./features/auth/pages/RegisterPage'));
@@ -18,6 +19,9 @@ const PrivacyPolicyPage = React.lazy(() => import('./pages/PrivacyPolicyPage'));
 const TermsOfServicePage = React.lazy(() => import('./pages/TermsOfServicePage'));
 const CookiePolicyPage = React.lazy(() => import('./pages/CookiePolicyPage'));
 const FAQPage = React.lazy(() => import('./pages/FAQPage'));
+const FeaturesPage = React.lazy(() => import('./pages/FeaturesPage'));
+const JoinClassPage = React.lazy(() => import('./pages/JoinClassPage'));
+const JoinClassWithCodePage = React.lazy(() => import('./pages/JoinClassWithCodePage'));
 
 // Module Routes
 const TeacherRoutes = React.lazy(() => import('./modules/teacher/routes'));
@@ -58,6 +62,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 // Public Route Component (redirect if already logged in)
 const PublicRoute = ({ children }) => {
   const { user, profile, loading } = useAuth();
+  const location = useLocation();
+  const redirectTo = location.state?.redirectTo;
 
   if (loading) {
     return (
@@ -68,7 +74,12 @@ const PublicRoute = ({ children }) => {
   }
 
   if (user && profile) {
-    // Redirect to correct dashboard based on role
+    // Se vier de um fluxo que passou redirectTo (ex: convite de turma), respeitar isso
+    if (redirectTo) {
+      return <Navigate to={redirectTo} replace />;
+    }
+
+    // Caso contrário, redirecionar para o dashboard apropriado
     if (profile.role === 'student') {
       return <Navigate to="/students/dashboard" replace />;
     } else if (profile.role === 'teacher') {
@@ -101,7 +112,16 @@ const AppRoutes = () => {
           path="/"
           element={
             <OpenRoute>
-              <LandingPage />
+              <TeacherLandingPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/professores"
+          element={
+            <OpenRoute>
+              <TeacherLandingPage />
             </OpenRoute>
           }
         />
@@ -111,6 +131,15 @@ const AppRoutes = () => {
           element={
             <OpenRoute>
               <PricingPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/funcionalidades"
+          element={
+            <OpenRoute>
+              <FeaturesPage />
             </OpenRoute>
           }
         />
@@ -129,6 +158,15 @@ const AppRoutes = () => {
           element={
             <OpenRoute>
               <RoadmapPage />
+            </OpenRoute>
+          }
+        />
+        
+        <Route
+          path="/ideias"
+          element={
+            <OpenRoute>
+              <IdeasPage />
             </OpenRoute>
           }
         />
@@ -210,6 +248,34 @@ const AppRoutes = () => {
           element={
             <OpenRoute>
               <FAQPage />
+            </OpenRoute>
+          }
+        />
+
+        {/* Open Routes para convites de turma */}
+        <Route
+          path="/join/:invitationCode"
+          element={
+            <OpenRoute>
+              <JoinClassPage />
+            </OpenRoute>
+          }
+        />
+
+        <Route
+          path="/join-class"
+          element={
+            <OpenRoute>
+              <JoinClassWithCodePage />
+            </OpenRoute>
+          }
+        />
+
+        <Route
+          path="/join-class/:code"
+          element={
+            <OpenRoute>
+              <JoinClassWithCodePage />
             </OpenRoute>
           }
         />

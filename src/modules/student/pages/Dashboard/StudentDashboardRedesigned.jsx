@@ -33,6 +33,7 @@ const StudentDashboardRedesigned = () => {
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [stats, setStats] = useState({
     totalClasses: 0,
     pendingActivities: 0,
@@ -68,6 +69,9 @@ const StudentDashboardRedesigned = () => {
       logger.error('Erro ao carregar dashboard:', error);
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -395,7 +399,7 @@ const StudentDashboardRedesigned = () => {
     }
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />
@@ -404,22 +408,21 @@ const StudentDashboardRedesigned = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
       {/* Header Personalizado */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-blue-600 to-cyan-500 rounded-2xl p-8 mb-8 text-white shadow-xl"
+        className="bg-gradient-to-r from-blue-600 via-blue-600 to-cyan-600 rounded-2xl p-8 mb-8 text-white shadow-xl"
       >
         <h1 className="text-3xl font-bold mb-2">
-          👋 Olá, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'Estudante'}!
+          Olá, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'Estudante'}!
         </h1>
         <p className="text-blue-100 text-lg">
           {stats.avgGrade >= 8 ? '🎉 Seu desempenho está ótimo! Continue assim!' :
            stats.avgGrade >= 6 ? '👍 Você está indo bem! Mantenha o foco!' :
-           stats.avgGrade > 0 ? '💪 Vamos melhorar juntos! Você consegue!' :
+           stats.avgGrade > 0 ? 'Vamos melhorar juntos! Você consegue!' :
            '📚 Comece suas atividades e acompanhe seu progresso!'}
-          {stats.avgGrade > 0 && ` Média atual: ${stats.avgGrade.toFixed(1)}`}
         </p>
       </motion.div>
 
@@ -488,7 +491,7 @@ const StudentDashboardRedesigned = () => {
           <Card className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
               <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                🎯 Próximas Atividades
+                Próximas Atividades
               </h2>
               <Button
                 variant="ghost"
@@ -560,7 +563,7 @@ const StudentDashboardRedesigned = () => {
           {topClasses.length > 0 && (
             <Card className="p-6">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
-                ⭐ Melhores Turmas
+                Melhores Turmas
               </h2>
               <div className="overflow-x-auto">
                 <ResponsiveContainer width="100%" height={250} className="min-w-[350px]">
@@ -616,7 +619,7 @@ const StudentDashboardRedesigned = () => {
           {/* Atalhos Rápidos */}
           <Card className="p-6">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">
-              🚀 Atalhos Rápidos
+              Atalhos Rápidos
             </h2>
             <div className="space-y-2">
               <Button

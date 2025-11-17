@@ -19,6 +19,7 @@ const TeacherRankingPage = () => {
   const { user } = useAuth();
   
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [students, setStudents] = useState([]);
   const [filters, setFilters] = useState({ period: 'month' });
   const [stats, setStats] = useState({ totalStudents: 0, totalXP: 0 });
@@ -86,6 +87,9 @@ const TeacherRankingPage = () => {
       logger.error('Erro:', error)
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -136,7 +140,7 @@ const TeacherRankingPage = () => {
 
   const podium = students.slice(0, 3);
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

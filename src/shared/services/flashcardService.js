@@ -191,13 +191,14 @@ export async function createCard(cardData) {
 
 export async function createCards(cardsArray) {
   try {
-    const { data, error } = await supabase
+    // Bulk insert sem .select() para reduzir o custo e evitar timeouts em lotes grandes
+    const { error } = await supabase
       .from('cards')
-      .insert(cardsArray)
-      .select();
+      .insert(cardsArray);
 
     if (error) throw error;
-    return { data, error: null };
+    // Chamadores só precisam saber se deu certo ou não; não usamos as linhas retornadas
+    return { data: null, error: null };
   } catch (error) {
     logger.error('Error creating cards:', error);
     return { data: null, error };

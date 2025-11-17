@@ -15,6 +15,7 @@ import CreateClassModal from './components/CreateClassModal';
 const TeacherClassesPage = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [classes, setClasses] = useState([]);
   const [filteredClasses, setFilteredClasses] = useState([]);
   const [stats, setStats] = useState({
@@ -115,6 +116,9 @@ const TeacherClassesPage = () => {
       });
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   }, [user?.id]);
 
@@ -239,7 +243,7 @@ const TeacherClassesPage = () => {
     return 'text-red-600';
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

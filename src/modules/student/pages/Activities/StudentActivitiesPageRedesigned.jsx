@@ -19,6 +19,7 @@ const StudentActivitiesPageRedesigned = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [activities, setActivities] = useState([]);
   const [filteredActivities, setFilteredActivities] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
@@ -181,6 +182,9 @@ const StudentActivitiesPageRedesigned = () => {
       logger.error('Erro ao carregar atividades:', error);
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -232,7 +236,7 @@ const StudentActivitiesPageRedesigned = () => {
   const urgentActivities = filteredActivities.filter(a => a.is_urgent);
   const otherActivities = filteredActivities.filter(a => !a.is_urgent);
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

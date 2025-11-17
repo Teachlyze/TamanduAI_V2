@@ -28,6 +28,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import flashcardService from '@/shared/services/flashcardService';
 import { previewIntervals, getQualityInfo, formatInterval } from '@/shared/services/spacedRepetition';
 import { logger } from '@/shared/utils/logger';
+import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
 
 const ReviewPage = () => {
   const { deckId } = useParams();
@@ -48,6 +49,7 @@ const ReviewPage = () => {
     startTime: Date.now(),
   });
   const [paused, setPaused] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   useEffect(() => {
     if (user?.id && deckId) {
@@ -118,18 +120,45 @@ const ReviewPage = () => {
       
       if (cardsError) throw cardsError;
 
-      if (!dueCards || dueCards.length === 0) {
-        toast({
-          title: 'Nenhum card para revisar',
-          description: 'Você está em dia com este deck! 🎉',
+      let sessionCards = dueCards || [];
+
+      // Se não houver cards devidos, entrar em modo de estudo livre usando todos os cards do deck
+      if (!sessionCards.length) {
+        const { data: allCardsData, error: allCardsError } = await flashcardService.getCardsInDeck(deckId);
+        if (allCardsError) throw allCardsError;
+
+        if (!allCardsData || allCardsData.length === 0) {
+          toast({
+            title: 'Deck vazio',
+            description: 'Adicione cards ao deck primeiro.',
+            variant: 'destructive',
+          });
+          navigate(`/students/flashcards/decks/${deckId}`);
+          return;
+        }
+
+        sessionCards = allCardsData.map((card) => {
+          const stats = Array.isArray(card.card_stats)
+            ? card.card_stats[0]
+            : card.card_stats;
+          const cardId = card.id;
+
+          return {
+            ...card,
+            ...stats,
+            id: cardId,
+          };
         });
-        navigate(`/students/flashcards/decks/${deckId}`);
-        return;
+
+        toast({
+          title: 'Estudo livre',
+          description: 'Nenhum card está pendente hoje, então vamos estudar o deck completo.',
+        });
       }
 
-      setCards(dueCards);
+      setCards(sessionCards);
       setSessionStats({
-        total: dueCards.length,
+        total: sessionCards.length,
         reviewed: 0,
         correct: 0,
         startTime: Date.now(),
@@ -218,9 +247,7 @@ const ReviewPage = () => {
   };
 
   const handleExit = () => {
-    if (confirm('Deseja realmente sair? Seu progresso será salvo.')) {
-      navigate(`/students/flashcards/decks/${deckId}`);
-    }
+    setShowExitConfirm(true);
   };
 
   if (loading) {
@@ -243,7 +270,7 @@ const ReviewPage = () => {
   const intervals = showBack ? previewIntervals(currentCard, settings) : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-950 dark:to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -307,7 +334,7 @@ const ReviewPage = () => {
               transition={{ duration: 0.3 }}
             >
               {/* Card Display */}
-              <Card className="mb-6 overflow-hidden border-2 border-purple-200 dark:border-purple-800">
+              <Card className="mb-6 overflow-hidden border border-slate-200 dark:border-slate-700">
                 {/* Card Status Badge */}
                 <div className="px-6 pt-6 pb-2 flex items-center justify-between border-b border-slate-100 dark:border-slate-800">
                   <Badge
@@ -369,8 +396,8 @@ const ReviewPage = () => {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-8 border-t-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-slate-800 dark:to-slate-900">
-                        <div className="text-center max-w-2xl mx-auto space-y-4">
+                      <div className="p-8 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                        <div className="text-left max-w-2xl mx-auto space-y-4">
                           {currentCard.back_image_url && (
                             <img 
                               src={currentCard.back_image_url} 
@@ -378,9 +405,14 @@ const ReviewPage = () => {
                               className="max-w-full max-h-64 mx-auto rounded-lg shadow-md"
                             />
                           )}
-                          <p className="text-xl text-slate-700 dark:text-slate-300 leading-relaxed">
-                            {currentCard.back}
-                          </p>
+                          <div className="text-lg text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
+                            {String(currentCard.back || '')
+                              .split('\n')
+                              .filter((line) => line.trim().length > 0)
+                              .map((line, idx) => (
+                                <p key={idx}>{line}</p>
+                              ))}
+                          </div>
                           {currentCard.back_audio_url && (
                             <audio 
                               src={currentCard.back_audio_url} 
@@ -400,7 +432,7 @@ const ReviewPage = () => {
                     <Button
                       size="lg"
                       onClick={handleShowAnswer}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-12"
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-12"
                     >
                       Mostrar Resposta
                       <span className="ml-2 text-xs opacity-75">(Espaço)</span>
@@ -486,6 +518,20 @@ const ReviewPage = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Exit confirmation dialog */}
+      <ConfirmDialog
+        isOpen={showExitConfirm}
+        onClose={() => setShowExitConfirm(false)}
+        onConfirm={() => {
+          navigate(`/students/flashcards/decks/${deckId}`);
+        }}
+        title="Sair da revisão?"
+        message="Deseja realmente sair da sessão de revisão agora? Seu progresso até este card será mantido."
+        confirmText="Sair"
+        cancelText="Continuar estudando"
+        variant="warning"
+      />
     </div>
   );
 };

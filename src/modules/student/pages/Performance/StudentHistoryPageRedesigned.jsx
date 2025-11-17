@@ -19,6 +19,7 @@ const StudentHistoryPageRedesigned = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [submissions, setSubmissions] = useState([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -143,6 +144,9 @@ const StudentHistoryPageRedesigned = () => {
       logger.error('Erro ao carregar histórico:', error);
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -211,7 +215,7 @@ const StudentHistoryPageRedesigned = () => {
     a.click();
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

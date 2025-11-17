@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Eye, EyeOff, Mail, Lock, User, GraduationCap, AlertCircle, 
@@ -16,6 +16,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { signUp } = useAuth();
   
   const [step, setStep] = useState(1); // 1: Escolher role, 2: Preencher dados
@@ -259,8 +260,12 @@ const RegisterPage = () => {
       if (data?.user) {
         setSuccess(true);
         setTimeout(() => {
+          const redirectTo = location.state?.redirectTo;
           navigate('/login', { 
-            state: { message: 'Conta criada! Verifique seu e-mail para confirmar.' }
+            state: {
+              message: 'Conta criada! Verifique seu e-mail para confirmar.',
+              ...(redirectTo ? { redirectTo } : {}),
+            },
           });
         }, 2000);
       }
@@ -275,7 +280,7 @@ const RegisterPage = () => {
   const selectedRole = roles.find(r => r.id === formData.role);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-blue-100 dark:from-gray-950 dark:via-gray-900 dark:to-slate-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[size:20px_20px]" />
       
@@ -288,7 +293,7 @@ const RegisterPage = () => {
         {/* Logo */}
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
           <div className="w-12 h-12 bg-gradient-to-br from-cyan-600 via-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
-            <Sparkles className="w-7 h-7 text-white" />
+            <BookOpen className="w-7 h-7 text-white" />
           </div>
           <span className="text-2xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">
             TamanduAI

@@ -64,9 +64,16 @@ const GradingPage = () => {
 
     // Se for objeto (respostas objetivas), renderizar questões
     try {
-      const answers = typeof submission.content === 'string' 
-        ? JSON.parse(submission.content) 
-        : submission.content;
+      const rawContent = typeof submission.content === 'string'
+        ? JSON.parse(submission.content)
+        : (submission.content || {});
+
+      // Formatos suportados:
+      // - { selectedAnswers: { [questionId]: answer } }  (novo para quizzes)
+      // - { answers: { ... } }
+      // - { answer: 'texto livre' } (dissertativa)
+      // - { qualquerChave: valor } (legado)
+      const answers = rawContent.selectedAnswers || rawContent.answers || rawContent;
 
       // Pegar questões da atividade
       const questions = activity?.content?.questions || [];
@@ -108,19 +115,54 @@ const GradingPage = () => {
       return (
         <div className="space-y-4">
           {questions.map((question, index) => {
-            const studentAnswer = answers[question.id];
-            const correctAnswer = question.answerKey;
-            const isCorrect = correctAnswer && (
-              Array.isArray(studentAnswer) 
-                ? studentAnswer.length === correctAnswer.length && studentAnswer.every(a => correctAnswer.includes(a))
-                : studentAnswer === correctAnswer
-            );
+            const questionKey = question.id ?? index;
+            const rawStudentValue = answers?.[questionKey] ?? answers?.[String(questionKey)];
+
+            let studentLabel = rawStudentValue;
+            if (question.alternatives && question.alternatives.length > 0 && rawStudentValue !== undefined && rawStudentValue !== null) {
+              const normalized = String(rawStudentValue);
+              const byId = question.alternatives.find(alt => String(alt.id) === normalized);
+              const byLetter = question.alternatives.find(alt => String(alt.letter) === normalized);
+              const byText = question.alternatives.find(alt => alt.text === rawStudentValue);
+              const match = byId || byLetter || byText;
+              studentLabel = match?.text || normalized;
+            }
+
+            let correctLabel = null;
+            if (question.alternatives && question.alternatives.length > 0) {
+              const correctAlts = question.alternatives.filter(alt => alt.isCorrect);
+              if (correctAlts.length > 0) {
+                correctLabel = correctAlts.map(alt => alt.text).join(', ');
+              }
+            }
+
+            if (!correctLabel && question.answerKey) {
+              correctLabel = question.answerKey;
+            }
+
+            let isCorrect = false;
+            if (question.alternatives && question.alternatives.length > 0 && rawStudentValue !== undefined && rawStudentValue !== null) {
+              const normalized = String(rawStudentValue);
+              const correctAlts = question.alternatives.filter(alt => alt.isCorrect);
+              isCorrect = correctAlts.some(alt =>
+                String(alt.id) === normalized ||
+                String(alt.letter) === normalized ||
+                alt.text === rawStudentValue
+              );
+            } else if (question.answerKey) {
+              const correctAnswerLegacy = question.answerKey;
+              isCorrect = Array.isArray(rawStudentValue)
+                ? Array.isArray(correctAnswerLegacy) && rawStudentValue.length === correctAnswerLegacy.length && rawStudentValue.every(a => correctAnswerLegacy.includes(a))
+                : rawStudentValue === correctAnswerLegacy;
+            }
+
+            const hasCorrectInfo = !!correctLabel;
 
             return (
               <div 
                 key={question.id} 
                 className={`p-4 rounded-lg border-2 ${
-                  correctAnswer
+                  hasCorrectInfo
                     ? isCorrect
                       ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
                       : 'bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800'
@@ -129,7 +171,7 @@ const GradingPage = () => {
               >
                 <div className="flex items-start gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold flex-shrink-0 ${
-                    correctAnswer
+                    hasCorrectInfo
                       ? isCorrect
                         ? 'bg-emerald-500 text-white'
                         : 'bg-red-500 text-white'
@@ -139,8 +181,13 @@ const GradingPage = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
-                      {question.title || question.label || `Questão ${index + 1}`}
+                      {`Questão ${index + 1}`}
                     </p>
+                    {question.text && (
+                      <p className="text-sm text-slate-700 dark:text-slate-300 mb-2">
+                        {question.text}
+                      </p>
+                    )}
                     
                     {/* Resposta do aluno */}
                     <div className="mb-2">
@@ -156,12 +203,12 @@ const GradingPage = () => {
                           lineHeight: '1.5'
                         }}
                       >
-                        {Array.isArray(studentAnswer) ? studentAnswer.join(', ') : studentAnswer || 'Sem resposta'}
+                        {Array.isArray(studentLabel) ? studentLabel.join(', ') : (studentLabel || 'Sem resposta')}
                       </div>
                     </div>
 
                     {/* Gabarito (se existir) */}
-                    {correctAnswer && (
+                    {correctLabel && (
                       <div>
                         <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Gabarito:</span>
                         <div 
@@ -175,13 +222,13 @@ const GradingPage = () => {
                             lineHeight: '1.5'
                           }}
                         >
-                          {Array.isArray(correctAnswer) ? correctAnswer.join(', ') : correctAnswer}
+                          {Array.isArray(correctLabel) ? correctLabel.join(', ') : correctLabel}
                         </div>
                       </div>
                     )}
 
                     {/* Status */}
-                    {correctAnswer && (
+                    {hasCorrectInfo && (
                       <div className="mt-2">
                         {isCorrect ? (
                           <Badge className="bg-emerald-500 text-white">✓ Correta</Badge>
@@ -297,9 +344,12 @@ const GradingPage = () => {
     if (!activity || !submission) return null;
     
     try {
-      const studentAnswers = typeof submission.content === 'string' 
+      const rawContent = typeof submission.content === 'string'
         ? JSON.parse(submission.content)
-        : submission.content;
+        : (submission.content || {});
+
+      // Garantir formato { questionId: answerId }
+      const studentAnswers = rawContent.selectedAnswers || rawContent.answers || rawContent;
       
       const questions = activity.content?.questions || [];
       const result = calculateAutoGrade(questions, studentAnswers, activity.max_score);
@@ -455,7 +505,7 @@ const GradingPage = () => {
                 </p>
                 {classInfo && (
                   <p className="text-sm font-medium text-blue-600 dark:text-blue-400 mt-1">
-                    🏫 {classInfo.name} {classInfo.subject && `- ${classInfo.subject}`}
+                    {classInfo.name} {classInfo.subject && `- ${classInfo.subject}`}
                   </p>
                 )}
               </div>

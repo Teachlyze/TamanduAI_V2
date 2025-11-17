@@ -27,7 +27,11 @@ const TeacherCorrectionsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  
+  // Debug inicial
+  console.log('🚀 TeacherCorrectionsPage montado - loading inicial:', loading);
   const [submissions, setSubmissions] = useState([]);
   const [filteredSubmissions, setFilteredSubmissions] = useState([]);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
@@ -61,18 +65,32 @@ const TeacherCorrectionsPage = () => {
 
   // Carregar turmas do professor
   const loadTeacherClasses = useCallback(async () => {
-    if (!user?.id) return;
+    console.log('🔍 loadTeacherClasses iniciado');
+    console.log('📝 user.id:', user?.id);
+    
+    if (!user?.id) {
+      console.log('❌ Retornando early: user.id não existe');
+      return;
+    }
     
     try {
+      console.log('⏳ setLoadingClasses(true)');
       setLoadingClasses(true);
       const teacherClasses = await ClassService.getTeacherClasses(user.id);
+      console.log('📊 Turmas carregadas:', teacherClasses?.length || 0);
       setClasses(teacherClasses);
       
       // Se houver apenas uma turma, seleciona automaticamente
       if (teacherClasses.length === 1) {
+        console.log('🎯 Selecionando automaticamente turma:', teacherClasses[0].id);
+        setSelectedClass(teacherClasses[0].id);
+      } else if (teacherClasses.length > 1) {
+        // Se houver múltiplas turmas, seleciona a primeira
+        console.log('🎯 Selecionando primeira turma (múltiplas disponíveis):', teacherClasses[0].id);
         setSelectedClass(teacherClasses[0].id);
       }
     } catch (error) {
+      console.error('❌ Erro em loadTeacherClasses:', error);
       logger.error('Erro ao carregar turmas:', error);
       toast({
         title: 'Erro',
@@ -80,6 +98,7 @@ const TeacherCorrectionsPage = () => {
         variant: 'destructive'
       });
     } finally {
+      console.log('✅ setLoadingClasses(false)');
       setLoadingClasses(false);
     }
   }, [user]);
@@ -131,8 +150,13 @@ const TeacherCorrectionsPage = () => {
 
   // Efeito para carregar turmas ao montar o componente
   useEffect(() => {
-    loadTeacherClasses();
-    loadMetrics();
+    console.log('🔄 useEffect principal disparado');
+    const initialize = async () => {
+      await loadTeacherClasses();
+      await loadMetrics();
+      setInitialLoading(false);
+    };
+    initialize();
   }, [loadTeacherClasses]);
 
   // Efeito para carregar atividades quando uma turma é selecionada
@@ -147,8 +171,13 @@ const TeacherCorrectionsPage = () => {
 
   // Efeito para carregar submissões APENAS quando a turma muda (atividade filtra localmente)
   useEffect(() => {
+    console.log('🔄 useEffect de submissões - selectedClass:', selectedClass);
+    console.log('🏷️ classes disponíveis:', classes.map(c => ({ id: c.id, name: c.name })));
     if (selectedClass) {
+      console.log('✅ selectedClass existe, chamando loadSubmissions()');
       loadSubmissions();
+    } else {
+      console.log('❌ selectedClass está vazio, não carregando submissões');
     }
   }, [selectedClass]);
 
@@ -203,9 +232,17 @@ const TeacherCorrectionsPage = () => {
   }, [filteredAndSortedSubmissions]);
 
   const loadSubmissions = async () => {
-    if (!user || !selectedClass) return;
+    console.log('🔍 TeacherCorrectionsPage - loadSubmissions iniciado');
+    console.log('📝 user:', user?.id);
+    console.log('📝 selectedClass:', selectedClass);
+    
+    if (!user || !selectedClass) {
+      console.log('❌ Retornando early: user ou selectedClass não existe');
+      return;
+    }
 
     try {
+      console.log('⏳ setLoading(true)');
       setLoading(true);
 
       const filters = {
@@ -215,7 +252,10 @@ const TeacherCorrectionsPage = () => {
         sortBy
       };
 
+      console.log('📡 Chamando getSubmissionsForCorrection com filters:', filters);
       const { data, error } = await getSubmissionsForCorrection(filters);
+
+      console.log('📊 Resposta:', { data: data?.length || 0, error });
 
       if (error) throw error;
 
@@ -226,6 +266,7 @@ const TeacherCorrectionsPage = () => {
       setStats(prev => ({ ...prev, totalPending: pending }));
 
     } catch (error) {
+      console.error('❌ Erro em loadSubmissions:', error);
       logger.error('Erro ao carregar submissões:', error)
       toast({
         title: 'Erro',
@@ -233,6 +274,7 @@ const TeacherCorrectionsPage = () => {
         variant: 'destructive'
       });
     } finally {
+      console.log('✅ setLoading(false)');
       setLoading(false);
     }
   };
@@ -313,7 +355,7 @@ const TeacherCorrectionsPage = () => {
     });
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Carregando correções..." />

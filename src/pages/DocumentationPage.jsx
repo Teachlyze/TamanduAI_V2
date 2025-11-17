@@ -5,6 +5,7 @@ import Seo from '@/shared/components/Seo';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
+import Footer from '@/shared/components/Footer';
 import {
   BookOpen, Search, Home, Users, GraduationCap, Video,
   MessageSquare, Settings, BarChart3, Shield, Zap,
@@ -548,6 +549,8 @@ export default function DocumentationPage() {
           </main>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

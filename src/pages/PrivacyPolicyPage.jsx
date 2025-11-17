@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Shield, Eye, Lock, Database, FileText, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Footer from '@/shared/components/Footer';
 
 export default function PrivacyPolicyPage() {
   return (
@@ -46,7 +47,7 @@ export default function PrivacyPolicyPage() {
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 mb-6">
                 <Shield className="w-4 h-4" />
-                <span className="text-sm font-semibold">Última atualização: 10 de Novembro de 2025</span>
+                <span className="text-sm font-semibold">Última atualização: 16 de Novembro de 2025</span>
               </div>
               <h1 className="text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-blue-600 via-cyan-600 to-purple-600 bg-clip-text text-transparent">
                 Política de Privacidade
@@ -130,6 +131,17 @@ export default function PrivacyPolicyPage() {
                     <li>Prevenir fraudes e garantir a segurança da plataforma</li>
                     <li>Cumprir obrigações legais e regulatórias</li>
                   </ul>
+
+                  <h3 className="text-lg font-semibold mb-2 mt-4">3.1 Conteúdo de estudo e decks importados</h3>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-2">
+                    Conteúdos de estudo que você envia ou importa para a Plataforma (como atividades, materiais didáticos, decks de flashcards ou arquivos de estudo, incluindo arquivos de deck de terceiros como Anki) são armazenados de forma privada e vinculados à sua conta. Esses conteúdos não são exibidos publicamente nem disponibilizados a outros usuários, salvo quando você utilizar funcionalidades específicas de compartilhamento (por exemplo, dentro de turmas ou recursos colaborativos que você optar por usar).
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-2">
+                    O conteúdo importado é processado apenas para fins de funcionamento da Plataforma, como geração e organização de flashcards, cálculo de estatísticas de estudo e recomendações pedagógicas. Não utilizamos o conteúdo dos seus decks ou arquivos de estudo para fins de publicidade, venda de dados ou qualquer análise comercial externa.
+                  </p>
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+                    Aplicam-se a esses dados as mesmas medidas de segurança descritas nesta Política, incluindo criptografia em trânsito, controles de acesso e demais mecanismos técnicos e organizacionais adotados para proteger suas informações contra acesso não autorizado, perda ou divulgação indevida.
+                  </p>
                 </div>
               </div>
 
@@ -266,27 +278,7 @@ export default function PrivacyPolicyPage() {
           </motion.div>
         </section>
 
-        {/* Footer */}
-        <footer className="border-t bg-white/80 dark:bg-slate-900/80 backdrop-blur-md py-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                © 2025 TamanduAI. Todos os direitos reservados.
-              </p>
-              <div className="flex gap-6">
-                <Link to="/terms" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Termos de Uso
-                </Link>
-                <Link to="/cookie-policy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Política de Cookies
-                </Link>
-                <Link to="/contact" className="text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400">
-                  Contato
-                </Link>
-              </div>
-            </div>
-          </div>
-        </footer>
+        <Footer />
       </div>
     </>
   );

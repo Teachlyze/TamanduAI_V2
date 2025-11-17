@@ -208,7 +208,9 @@ export class Logger {
  * Configurado para mostrar apenas warnings e erros (preparando para produção)
  */
 export const logger = new Logger({
-  level: 'warn', // Desabilitar debug e info logs
+  // Em desenvolvimento, mostramos todos os logs (incluindo debug) para facilitar o diagnóstico.
+  // Em produção, mantemos apenas warnings e erros.
+  level: import.meta.env.MODE === 'development' ? 'debug' : 'warn',
   enableConsole: true,
   enableRemote: import.meta.env.MODE === 'production',
   remoteEndpoint: import.meta.env.VITE_LOG_ENDPOINT,

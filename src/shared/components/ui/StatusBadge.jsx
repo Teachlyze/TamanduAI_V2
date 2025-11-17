@@ -57,7 +57,7 @@ const sizeConfig = {
   }
 };
 
-export const StatusBadge = ({ status = 'pending', size = 'md', score, className, showEmoji = true }) => {
+export const StatusBadge = ({ status = 'pending', size = 'md', score, maxScore = 10, className, showEmoji = true }) => {
   const config = statusConfig[status] || statusConfig.pending;
   const sizeClasses = sizeConfig[size];
   const Icon = config.icon;
@@ -77,7 +77,7 @@ export const StatusBadge = ({ status = 'pending', size = 'md', score, className,
       <Icon className={sizeClasses.icon} />
       <span>{config.label}</span>
       {status === 'graded' && score !== undefined && (
-        <span className="ml-1 font-bold">• {score}/100</span>
+        <span className="ml-1 font-bold">• {Number(score).toFixed(1)}/{maxScore}</span>
       )}
     </div>
   );

@@ -14,6 +14,7 @@ const StudentSettingsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState({
     full_name: '',
@@ -58,6 +59,9 @@ const StudentSettingsPage = () => {
       logger.error('Error loading profile:', error)
     } finally {
       setLoading(false);
+      if (initialLoad) {
+        setInitialLoad(false);
+      }
     }
   };
 
@@ -86,7 +90,7 @@ const StudentSettingsPage = () => {
     }
   };
 
-  if (loading) {
+  if (loading && initialLoad) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" text="Carregando configurações..." />

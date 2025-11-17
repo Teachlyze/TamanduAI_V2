@@ -301,10 +301,206 @@ export const exportAnalyticsReportToPDF = (classData, analytics) => {
   doc.save(`analytics_chatbot_${classData.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
 };
 
+/**
+ * Export teacher analytics dashboard to PDF
+ * Recebe um objeto com os principais dados já agregados na tela de Analytics do professor
+ */
+export const exportTeacherAnalyticsDashboardToPDF = (analytics) => {
+  const {
+    period,
+    kpis,
+    gradeEvolution,
+    classComparison,
+    gradeDistribution,
+    weeklyTrends,
+    topStudents,
+    bottomStudents,
+  } = analytics || {};
+
+  const doc = new jsPDF();
+
+  try {
+    // Cabeçalho
+    doc.setFontSize(18);
+    doc.text('Relatório de Analytics - Professor', 14, 18);
+
+    doc.setFontSize(11);
+    const periodLabel = period === 'all' ? 'Todo o período' : `Últimos ${period} dias`;
+    doc.text(`Período: ${periodLabel}`, 14, 26);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 32);
+
+    // KPIs principais
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Visão Geral', 14, 42);
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+
+    const kpiRows = [
+      ['Total de Alunos', String(kpis?.totalStudents ?? 0)],
+      ['Total de Atividades', String(kpis?.totalActivities ?? 0)],
+      ['Atividades em Aberto', String(kpis?.openActivities ?? 0)],
+      ['Correções Pendentes', String(kpis?.pendingCorrections ?? 0)],
+      ['Nota Média Geral', (kpis?.avgGrade ?? 0).toFixed(2)],
+      ['Entrega no Prazo', `${(kpis?.onTimeRate ?? 0).toFixed(1)}%`],
+    ];
+
+    doc.autoTable({
+      startY: 46,
+      head: [['Indicador', 'Valor']],
+      body: kpiRows,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246] },
+      styles: { fontSize: 10 },
+    });
+
+    // Evolução de notas (resumo)
+    let y = doc.lastAutoTable.finalY + 8;
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Evolução das notas (amostra)', 14, y);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+
+    const evoSample = (gradeEvolution || []).slice(-10);
+    if (evoSample.length > 0) {
+      const evoRows = evoSample.map((row) => [row.date, (row.media ?? 0).toFixed(2)]);
+      doc.autoTable({
+        startY: y + 4,
+        head: [['Dia', 'Média']],
+        body: evoRows,
+        theme: 'striped',
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 9 },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    } else {
+      doc.text('Sem dados suficientes para evolução de notas.', 14, y + 4);
+      y += 12;
+    }
+
+    // Comparação entre turmas
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Comparação entre turmas', 14, y);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+
+    const classRows = (classComparison || []).map((c) => [
+      c.name,
+      (c.media ?? 0).toFixed(2),
+      String(c.alunos ?? ''),
+      String(c.atividades ?? ''),
+    ]);
+
+    if (classRows.length > 0) {
+      doc.autoTable({
+        startY: y + 4,
+        head: [['Turma', 'Média', 'Alunos', 'Atividades']],
+        body: classRows,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 9 },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    } else {
+      doc.text('Nenhuma turma com dados disponíveis.', 14, y + 4);
+      y += 12;
+    }
+
+    // Distribuição de notas (faixas)
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Distribuição de notas (0-10)', 14, y);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+
+    const distRows = (gradeDistribution || []).map((d) => [d.range, String(d.count ?? 0)]);
+    if (distRows.length > 0) {
+      doc.autoTable({
+        startY: y + 4,
+        head: [['Faixa', 'Quantidade']],
+        body: distRows,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 9 },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    } else {
+      doc.text('Nenhuma nota registrada para distribuição.', 14, y + 4);
+      y += 12;
+    }
+
+    // Top alunos
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Top alunos', 14, y);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+
+    const topRows = (topStudents || []).map((s, idx) => [
+      String(idx + 1),
+      s.name || 'Sem nome',
+      (s.avgGrade ?? 0).toFixed(2),
+      String(s.activities ?? 0),
+      `${s.onTimeRate ?? 0}%`,
+    ]);
+
+    if (topRows.length > 0) {
+      doc.autoTable({
+        startY: y + 4,
+        head: [['Posição', 'Aluno', 'Média', 'Atividades', 'No prazo']],
+        body: topRows,
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] },
+        styles: { fontSize: 9 },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    } else {
+      doc.text('Sem alunos em destaque positivo neste período.', 14, y + 4);
+      y += 12;
+    }
+
+    // Alunos que precisam de atenção
+    doc.setFontSize(13);
+    doc.setFont(undefined, 'bold');
+    doc.text('Alunos que precisam de atenção', 14, y);
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+
+    const bottomRows = (bottomStudents || []).map((s) => [
+      s.name || 'Sem nome',
+      (s.avgGrade ?? 0).toFixed(2),
+      String(s.activities ?? 0),
+      `${s.onTimeRate ?? 0}%`,
+    ]);
+
+    if (bottomRows.length > 0) {
+      doc.autoTable({
+        startY: y + 4,
+        head: [['Aluno', 'Média', 'Atividades', 'No prazo']],
+        body: bottomRows,
+        theme: 'striped',
+        headStyles: { fillColor: [234, 179, 8] },
+        styles: { fontSize: 9 },
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    } else {
+      doc.text('Nenhum aluno em destaque negativo neste período.', 14, y + 4);
+    }
+
+    doc.save(`analytics_professor_${new Date().toISOString().split('T')[0]}.pdf`);
+  } catch (error) {
+    logger.error('Erro ao gerar PDF de analytics do professor:', error);
+    throw error;
+  }
+};
+
 export default {
   exportGradesToPDF,
   exportGradesToExcel,
   exportClassReportToPDF,
   exportDashboardToPNG,
-  exportAnalyticsReportToPDF
+  exportAnalyticsReportToPDF,
+  exportTeacherAnalyticsDashboardToPDF
 };

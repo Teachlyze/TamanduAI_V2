@@ -43,6 +43,14 @@ const ActivitySubmissionsPage = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      
+      // Debug simples no console
+      console.log('🔍 ActivitySubmissionsPage - activityId:', activityId);
+      
+      if (!activityId) {
+        console.error('❌ activityId é undefined!');
+        throw new Error('ID da atividade não fornecido');
+      }
 
       // Load activity
       const { data: activityData, error: activityError } = await supabase
@@ -51,22 +59,53 @@ const ActivitySubmissionsPage = () => {
         .eq('id', activityId)
         .single();
 
-      if (activityError) throw activityError;
+      if (activityError) {
+        logger.error('Erro ao carregar atividade:', activityError);
+        throw activityError;
+      }
       setActivity(activityData);
+      logger.debug('Atividade carregada:', activityData?.title);
 
       // Load submissions
+      logger.debug('Carregando submissões para activity_id:', activityId);
+      
+      // Primeiro, tentar query simples sem joins
       const { data: submissionsData, error: submissionsError } = await supabase
         .from('submissions')
-        .select(`
-          *,
-          student:student_id(id, full_name, email, avatar_url)
-        `)
+        .select('*')
         .eq('activity_id', activityId)
         .order('submitted_at', { ascending: false });
 
-      if (submissionsError) throw submissionsError;
+      if (submissionsError) {
+        logger.error('Erro ao carregar submissões:', submissionsError);
+        throw submissionsError;
+      }
 
-      setSubmissions(submissionsData || []);
+      logger.debug('Submissões carregadas:', submissionsData?.length || 0);
+      
+      // Se temos submissões, buscar dados dos alunos
+      let submissionsWithProfiles = submissionsData || [];
+      if (submissionsData && submissionsData.length > 0) {
+        const studentIds = submissionsData.map(s => s.student_id).filter(Boolean);
+        if (studentIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, avatar_url')
+            .in('id', studentIds);
+            
+          if (profilesError) {
+            logger.error('Erro ao carregar perfis:', profilesError);
+          } else {
+            // Combinar dados
+            submissionsWithProfiles = submissionsData.map(submission => ({
+              ...submission,
+              profiles: profilesData.find(profile => profile.id === submission.student_id)
+            }));
+          }
+        }
+      }
+      
+      setSubmissions(submissionsWithProfiles);
 
       // Calculate stats
       const gradedCount = submissionsData?.filter(s => s.status === 'graded').length || 0;
@@ -80,12 +119,14 @@ const ActivitySubmissionsPage = () => {
 
     } catch (error) {
       logger.error('Erro ao carregar submissões:', error)
+      console.error('ActivitySubmissionsPage - Erro completo:', error);
       toast({ 
         title: 'Erro ao carregar submissões',
         description: error?.message || 'Tente novamente.',
         variant: 'destructive'
       });
     } finally {
+      logger.debug('ActivitySubmissionsPage: setLoading(false)');
       setLoading(false);
     }
   };
@@ -98,8 +139,8 @@ const ActivitySubmissionsPage = () => {
 
     const query = searchQuery.toLowerCase();
     const filtered = submissions.filter(submission =>
-      submission.student?.full_name?.toLowerCase().includes(query) ||
-      submission.student?.email?.toLowerCase().includes(query)
+      submission.profiles?.full_name?.toLowerCase().includes(query) ||
+      submission.profiles?.email?.toLowerCase().includes(query)
     );
     setFilteredSubmissions(filtered);
   };
@@ -189,8 +230,8 @@ const ActivitySubmissionsPage = () => {
               submission={{
                 id: submission.id,
                 student: {
-                  name: submission.student?.full_name || 'Aluno',
-                  avatar: submission.student?.avatar_url
+                  name: submission.profiles?.full_name || 'Aluno',
+                  avatar: submission.profiles?.avatar_url
                 },
                 activity: {
                   title: activity?.title
