@@ -3,8 +3,13 @@ import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Mail, MessageCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export const RoadmapCTA = () => {
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
+
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
@@ -25,58 +30,60 @@ export const RoadmapCTA = () => {
       <div className="absolute inset-0 bg-grid-white opacity-20" />
       
       {/* Animated orbs */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{
-            x: [0, 100, 0],
-            y: [0, -100, 0],
-            scale: [1, 1.2, 1],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400 rounded-full blur-3xl opacity-15"
-        />
-        <motion.div
-          animate={{
-            x: [0, -100, 0],
-            y: [0, 100, 0],
-            scale: [1, 1.3, 1],
-          }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: "linear",
-            delay: 1.5
-          }}
-          className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-400 rounded-full blur-3xl opacity-15"
-        />
-        <motion.div
-          animate={{
-            x: [0, 50, 0],
-            y: [0, -50, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "linear",
-            delay: 3
-          }}
-          className="absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-400 rounded-full blur-3xl opacity-15"
-        />
-      </div>
+      {!isMotionLight && (
+        <div className="absolute inset-0 overflow-hidden">
+          <motion.div
+            animate={{
+              x: [0, 100, 0],
+              y: [0, -100, 0],
+              scale: [1, 1.2, 1],
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+            className="absolute top-1/4 left-1/4 w-64 h-64 bg-blue-400 rounded-full blur-3xl opacity-15"
+          />
+          <motion.div
+            animate={{
+              x: [0, -100, 0],
+              y: [0, 100, 0],
+              scale: [1, 1.3, 1],
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear",
+              delay: 1.5
+            }}
+            className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-purple-400 rounded-full blur-3xl opacity-15"
+          />
+          <motion.div
+            animate={{
+              x: [0, 50, 0],
+              y: [0, -50, 0],
+              scale: [1, 1.1, 1],
+            }}
+            transition={{
+              duration: 15,
+              repeat: Infinity,
+              ease: "linear",
+              delay: 3
+            }}
+            className="absolute top-1/2 right-1/3 w-64 h-64 bg-cyan-400 rounded-full blur-3xl opacity-15"
+          />
+        </div>
+      )}
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          style={{
+          style={isMotionLight ? {} : {
             rotateX,
             rotateY,
             transformStyle: "preserve-3d"
           }}
-          onMouseMove={handleMouseMove}
+          onMouseMove={isMotionLight ? undefined : handleMouseMove}
           className="relative perspective-1000 cursor-pointer"
         >
           {/* Main card */}

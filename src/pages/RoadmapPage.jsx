@@ -12,10 +12,14 @@ import CookieBanner from '@/shared/components/CookieBanner';
 import Footer from '@/shared/components/Footer';
 import { roadmapPhases } from '@/data/roadmapData';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export default function RoadmapPage() {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
   
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -30,16 +34,22 @@ export default function RoadmapPage() {
     };
 
     const handleMouseMove = (e) => {
+      if (isMotionLight) return;
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
 
     window.addEventListener('scroll', handleScroll);
-    window.addEventListener('mousemove', handleMouseMove);
+    if (!isMotionLight) {
+      window.addEventListener('mousemove', handleMouseMove);
+    }
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('mousemove', handleMouseMove);
+      if (!isMotionLight) {
+        window.removeEventListener('mousemove', handleMouseMove);
+      }
     };
-  }, []);
+  }, [isMotionLight]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -73,50 +83,55 @@ export default function RoadmapPage() {
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 transform origin-left z-50 shadow-lg"
       />
 
-      {/* Cursor glow effect */}
-      <motion.div
-        className="fixed w-96 h-96 rounded-full pointer-events-none z-0 mix-blend-multiply filter blur-3xl opacity-20"
-        style={{
-          background: 'radial-gradient(circle, rgba(59, 130, 246, 0.6), transparent)',
-          x: mousePosition.x - 192,
-          y: mousePosition.y - 192,
-        }}
-        animate={{
-          scale: [1, 1.2, 1],
-        }}
-        transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-      />
-
-      {/* Partículas flutuantes de fundo */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        {particles.map((particle) => (
+      {/* Cursor glow e partículas: desativados em mobile ou quando usuário prefere menos animação */}
+      {!isMotionLight && (
+        <>
+          {/* Cursor glow effect */}
           <motion.div
-            key={particle.id}
-            className="absolute rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 opacity-20"
+            className="fixed w-96 h-96 rounded-full pointer-events-none z-0 mix-blend-multiply filter blur-3xl opacity-20"
             style={{
-              width: particle.size,
-              height: particle.size,
-              left: `${particle.x}%`,
-              top: '100%'
+              background: 'radial-gradient(circle, rgba(59, 130, 246, 0.6), transparent)',
+              x: mousePosition.x - 192,
+              y: mousePosition.y - 192,
             }}
             animate={{
-              y: [0, -50, 0],
-              opacity: [0, 0.4, 0],
-              scale: [0.5, 1.2, 0.5]
+              scale: [1, 1.2, 1],
             }}
             transition={{
-              duration: particle.duration,
+              duration: 4,
               repeat: Infinity,
-              delay: particle.delay,
               ease: "easeInOut"
             }}
           />
-        ))}
-      </div>
+
+          {/* Partículas flutuantes de fundo */}
+          <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+            {particles.map((particle) => (
+              <motion.div
+                key={particle.id}
+                className="absolute rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 opacity-20"
+                style={{
+                  width: particle.size,
+                  height: particle.size,
+                  left: `${particle.x}%`,
+                  top: '100%'
+                }}
+                animate={{
+                  y: [0, -50, 0],
+                  opacity: [0, 0.4, 0],
+                  scale: [0.5, 1.2, 0.5]
+                }}
+                transition={{
+                  duration: particle.duration,
+                  repeat: Infinity,
+                  delay: particle.delay,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Navbar */}
       <motion.header 

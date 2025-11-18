@@ -8,6 +8,7 @@ import { Card } from '@/shared/components/ui/card';
 import SkipLinks from '@/shared/components/SkipLinks';
 import CookieBanner from '@/shared/components/CookieBanner';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 import {
   BookOpen, Users, Sparkles, TrendingUp, Brain,
   Clock, Lightbulb, Target, Rocket, Calendar, Shield,
@@ -19,6 +20,9 @@ import {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
 
   const features = [
     { icon: Brain, title: 'Chatbot com RAG v2.0', description: 'Treine o chatbot com seus materiais (PDF, Word, PPT, URLs) para responder dúvidas 24/7', gradient: "from-blue-500 to-blue-600", badge: 'Até 200 msgs/dia' },
@@ -192,42 +196,52 @@ export default function LandingPage() {
         {/* Hero */}
         <section className="relative overflow-hidden py-16 lg:py-24 bg-gradient-to-br from-cyan-50 via-blue-50 to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-background">
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <motion.div 
-              animate={{ 
-                scale: [1, 1.2, 1],
-                rotate: [0, 90, 0]
-              }}
-              transition={{ 
-                duration: 20,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              className="absolute top-0 right-0 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl"
-            />
-            <motion.div
-              animate={{ 
-                scale: [1, 1.3, 1],
-                rotate: [0, -90, 0]
-              }}
-              transition={{ 
-                duration: 15,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-              className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
-            />
-            <motion.div
-              animate={{ 
-                scale: [1, 1.1, 1],
-                x: [0, 100, 0]
-              }}
-              transition={{ 
-                duration: 25,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"
-            />
+            {!isMotionLight ? (
+              <>
+                <motion.div 
+                  animate={{ 
+                    scale: [1, 1.2, 1],
+                    rotate: [0, 90, 0]
+                  }}
+                  transition={{ 
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                  className="absolute top-0 right-0 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.3, 1],
+                    rotate: [0, -90, 0]
+                  }}
+                  transition={{ 
+                    duration: 15,
+                    repeat: Infinity,
+                    ease: "linear"
+                  }}
+                  className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"
+                />
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.1, 1],
+                    x: [0, 100, 0]
+                  }}
+                  transition={{ 
+                    duration: 25,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl"
+                />
+              </>
+            ) : (
+              <>
+                <div className="absolute top-0 right-0 w-72 h-72 bg-cyan-400/15 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-72 h-72 bg-blue-500/15 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 w-72 h-72 bg-blue-600/10 rounded-full blur-3xl" />
+              </>
+            )}
           </div>
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">

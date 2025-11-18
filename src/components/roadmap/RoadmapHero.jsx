@@ -1,8 +1,14 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion';
 import { Rocket, Sparkles, TrendingUp } from 'lucide-react';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export const RoadmapHero = () => {
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
+  const enableTilt = !isMotionLight;
+
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({
     target: ref,
@@ -42,30 +48,34 @@ export const RoadmapHero = () => {
       <div className="absolute inset-0 bg-gradient-radial from-transparent via-blue-50/30 to-white/50" />
       
       {/* Animated gradient orbs */}
-      <motion.div
-        className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full filter blur-3xl opacity-20"
-        animate={{
-          scale: [1, 1.2, 1],
-          rotate: [0, 90, 0]
-        }}
-        transition={{
-          duration: 20,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      />
-      <motion.div
-        className="absolute bottom-20 left-20 w-96 h-96 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full filter blur-3xl opacity-20"
-        animate={{
-          scale: [1, 1.3, 1],
-          rotate: [0, -90, 0]
-        }}
-        transition={{
-          duration: 25,
-          repeat: Infinity,
-          ease: "linear"
-        }}
-      />
+      {!isMotionLight && (
+        <>
+          <motion.div
+            className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full filter blur-3xl opacity-20"
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 90, 0]
+            }}
+            transition={{
+              duration: 20,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+          <motion.div
+            className="absolute bottom-20 left-20 w-96 h-96 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full filter blur-3xl opacity-20"
+            animate={{
+              scale: [1, 1.3, 1],
+              rotate: [0, -90, 0]
+            }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
+        </>
+      )}
 
       {/* Content with parallax */}
       <motion.div 
@@ -108,7 +118,7 @@ export const RoadmapHero = () => {
         {/* Stats Cards com 3D effect */}
         <div 
           className="grid md:grid-cols-3 gap-6 perspective-1000"
-          onMouseMove={handleMouseMove}
+          onMouseMove={enableTilt ? handleMouseMove : undefined}
         >
           {stats.map((stat, index) => {
             const Icon = stat.icon;
@@ -124,11 +134,11 @@ export const RoadmapHero = () => {
                   stiffness: 100
                 }}
                 whileHover={{ scale: 1.05, z: 50 }}
-                style={{
+                style={enableTilt ? {
                   rotateX,
                   rotateY,
                   transformStyle: "preserve-3d"
-                }}
+                } : {}}
                 className="relative group"
               >
                 <div className={`relative p-6 rounded-2xl bg-white/80 border-2 border-slate-200 backdrop-blur-xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-300`}>

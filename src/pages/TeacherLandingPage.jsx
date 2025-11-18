@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import SkipLinks from '@/shared/components/SkipLinks';
 import CookieBanner from '@/shared/components/CookieBanner';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 import {
   BookOpen,
   Sparkles,
@@ -94,6 +95,9 @@ const beyondTccItems = [
 
 export default function TeacherLandingPage() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -296,20 +300,24 @@ export default function TeacherLandingPage() {
                     </div>
                   </div>
 
-                  <motion.div
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ duration: 3, repeat: Infinity }}
-                    className="absolute top-4 right-4 w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl shadow-xl flex items-center justify-center"
-                  >
-                    <Clock className="w-8 h-8 text-white" />
-                  </motion.div>
-                  <motion.div
-                    animate={{ y: [0, 10, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, delay: 1 }}
-                    className="absolute bottom-4 left-4 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl shadow-xl flex items-center justify-center"
-                  >
-                    <Heart className="w-7 h-7 text-white" />
-                  </motion.div>
+                  {!isMotionLight && (
+                    <>
+                      <motion.div
+                        animate={{ y: [0, -10, 0] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        className="absolute top-4 right-4 w-16 h-16 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl shadow-xl flex items-center justify-center"
+                      >
+                        <Clock className="w-8 h-8 text-white" />
+                      </motion.div>
+                      <motion.div
+                        animate={{ y: [0, 10, 0] }}
+                        transition={{ duration: 3, repeat: Infinity, delay: 1 }}
+                        className="absolute bottom-4 left-4 w-14 h-14 bg-gradient-to-r from-blue-500 to-blue-700 rounded-xl shadow-xl flex items-center justify-center"
+                      >
+                        <Heart className="w-7 h-7 text-white" />
+                      </motion.div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             </div>
