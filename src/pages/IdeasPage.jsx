@@ -223,7 +223,7 @@ export default function IdeasPage() {
       
       // Toast de sucesso
       toast({
-        title: '✅ Ideia enviada com sucesso!',
+        title: 'Ideia enviada com sucesso!',
         description: 'Sua ideia já aparece na lista abaixo e está em análise.',
         className: 'bg-green-50 border-green-200',
       });
