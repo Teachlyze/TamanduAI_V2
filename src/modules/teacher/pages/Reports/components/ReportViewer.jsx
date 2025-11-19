@@ -6,6 +6,7 @@ import { Download, Printer, Share2, X, FileText } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
+import { exportToPDF } from '@/shared/utils/exportUtils';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
@@ -155,6 +156,32 @@ const ReportViewer = ({ report, onClose }) => {
     }
   };
 
+  // Função para exportar para PDF
+  const exportToPDFReport = () => {
+    try {
+      const name = (report.title || report.templateName || 'relatorio').toLowerCase().replace(/\s+/g, '-');
+      
+      // Preparar dados para o PDF
+      const data = report.data || [];
+      const columns = report.columns || Object.keys(data[0] || {}).map(key => ({ header: key, key }));
+      
+      exportToPDF(
+        data,
+        name,
+        columns,
+        {
+          title: report.title || report.templateName || 'Relatório',
+          subtitle: `Gerado em: ${new Date().toLocaleDateString('pt-BR')}`,
+          orientation: 'landscape'
+        }
+      );
+      
+      toast({ title: 'Exportado (PDF)', description: 'Arquivo PDF baixado com sucesso.' });
+    } catch (e) {
+      toast({ variant: 'destructive', title: 'Falha na exportação', description: 'Tente novamente.' });
+    }
+  };
+
   // Função para imprimir com otimizações
   const handlePrint = () => {
     setIsPrinting(true);
@@ -227,6 +254,14 @@ const ReportViewer = ({ report, onClose }) => {
             >
               <Download className="w-4 h-4 mr-2" />
               Exportar CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportToPDFReport}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar PDF
             </Button>
             <Button
               variant="outline"

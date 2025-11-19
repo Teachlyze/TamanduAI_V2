@@ -5,9 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import { GradeCard, EmptyState } from '@/modules/student/components/redesigned';
-import { History, Filter, Search, Download } from 'lucide-react';
+import { History, Filter, Search, Download, FileText } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
+import { Button } from '@/shared/components/ui/button';
+import { exportToPDF } from '@/shared/utils/exportUtils';
 import { Button } from '@/shared/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
@@ -191,6 +193,37 @@ const StudentHistoryPageRedesigned = () => {
     setFilteredSubmissions(filtered);
   };
 
+  const exportToPDF = () => {
+    const csvData = submissions.map(s => ({
+      Atividade: s.activity_title,
+      Turma: s.class_name,
+      Data: new Date(s.submitted_at).toLocaleDateString('pt-BR'),
+      Nota: s.grade || '-',
+      'Nota Máxima': s.max_score,
+      Status: s.status === 'graded' ? 'Avaliada' : s.status === 'pending' ? 'Pendente' : 'Submetida'
+    }));
+
+    const columns = [
+      { header: 'Atividade', key: 'Atividade' },
+      { header: 'Turma', key: 'Turma' },
+      { header: 'Data', key: 'Data' },
+      { header: 'Nota', key: 'Nota' },
+      { header: 'Nota Máxima', key: 'Nota Máxima' },
+      { header: 'Status', key: 'Status' }
+    ];
+
+    exportToPDF(
+      csvData,
+      `historico-${format(new Date(), 'yyyy-MM-dd')}`,
+      columns,
+      {
+        title: 'Histórico de Atividades',
+        subtitle: `Aluno: ${user?.user_metadata?.name || 'Nome do Aluno'}`,
+        orientation: 'landscape'
+      }
+    );
+  };
+
   const handleExport = () => {
     // Criar CSV com os dados
     const csvData = filteredSubmissions.map(s => ({
@@ -245,6 +278,14 @@ const StudentHistoryPageRedesigned = () => {
           <Button onClick={handleExport} disabled={filteredSubmissions.length === 0}>
             <Download className="w-4 h-4 mr-2" />
             Exportar CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToPDF}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Exportar PDF
           </Button>
         </div>
       </motion.div>

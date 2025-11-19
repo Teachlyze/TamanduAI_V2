@@ -5,8 +5,7 @@ import { LoadingScreen } from '@/shared/components/ui/LoadingScreen';
 /**
  * Enhanced Lazy Loading wrapper with intelligent preloading and error boundaries
  */
-export const [loading, setLoading] = useState(true);
-  const LazyWrapper = ({
+const LazyWrapper = ({
   children,
   fallback = null,
   errorFallback = null,

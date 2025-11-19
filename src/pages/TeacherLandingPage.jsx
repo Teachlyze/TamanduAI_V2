@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Seo from '@/shared/components/Seo';
 import { SEO, StructuredData } from '@/shared/components/seo/StructuredData';
 import { Button } from '@/shared/components/ui/button';
+import { IntersectionLazyLoad } from '@/shared/components/ui/lazy-load';
 import SkipLinks from '@/shared/components/SkipLinks';
 import CookieBanner from '@/shared/components/CookieBanner';
 import Footer from '@/shared/components/Footer';
@@ -22,6 +23,18 @@ import {
   ArrowRight,
   Lightbulb,
 } from 'lucide-react';
+
+const MobileLazy = ({ children, isMobile }) => {
+  if (!isMobile) {
+    return children;
+  }
+
+  return (
+    <IntersectionLazyLoad rootMargin="160px" threshold={0.15}>
+      {children}
+    </IntersectionLazyLoad>
+  );
+};
 
 const problemStats = [
   {
@@ -119,9 +132,9 @@ export default function TeacherLandingPage() {
       <StructuredData type="software" />
 
       <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={isMotionLight ? false : { y: -100 }}
+        animate={isMotionLight ? undefined : { y: 0 }}
+        transition={isMotionLight ? undefined : { duration: 0.5 }}
         className="w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-lg"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -131,9 +144,9 @@ export default function TeacherLandingPage() {
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                initial={isMotionLight ? false : { opacity: 0 }}
+                animate={isMotionLight ? undefined : { opacity: 1 }}
+                transition={isMotionLight ? undefined : { delay: 0.2 }}
                 className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent"
               >
                 TamanduAI
@@ -204,9 +217,9 @@ export default function TeacherLandingPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
+                initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                transition={isMotionLight ? undefined : { duration: 0.6 }}
                 className="text-center lg:text-left"
               >
                 <div className="flex flex-wrap items-center gap-3 mb-6 justify-center lg:justify-start">
@@ -263,9 +276,9 @@ export default function TeacherLandingPage() {
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, delay: 0.2 }}
+                initial={isMotionLight ? false : { opacity: 0, scale: 0.8 }}
+                animate={isMotionLight ? undefined : { opacity: 1, scale: 1 }}
+                transition={isMotionLight ? undefined : { duration: 0.8, delay: 0.2 }}
                 className="relative"
               >
                 <div className="w-full h-96 bg-gradient-to-br from-cyan-100 via-blue-100 to-blue-200 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center">
@@ -324,13 +337,14 @@ export default function TeacherLandingPage() {
           </div>
         </section>
 
-        <section id="problema" className="relative py-16 lg:py-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] hidden md:block" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 35px, currentColor 35px, currentColor 36px), repeating-linear-gradient(90deg, transparent, transparent 35px, currentColor 35px, currentColor 36px)', backgroundSize: '36px 36px' }}></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <MobileLazy isMobile={isMobile}>
+          <section id="problema" className="relative py-16 lg:py-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] hidden md:block" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 35px, currentColor 35px, currentColor 36px), repeating-linear-gradient(90deg, transparent, transparent 35px, currentColor 35px, currentColor 36px)', backgroundSize: '36px 36px' }}></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
               className="text-center mb-12"
             >
               <div className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 mb-4">
@@ -349,10 +363,10 @@ export default function TeacherLandingPage() {
               {problemStats.map((stat, index) => (
                 <motion.div
                   key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                  initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                  whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                  transition={isMotionLight ? undefined : { duration: 0.6, delay: index * 0.1 }}
+                  whileHover={isMotionLight ? undefined : { y: -4, transition: { duration: 0.2 } }}
                   className="relative bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg hover:shadow-xl border border-blue-100/60 dark:border-blue-900/40 h-full flex flex-col overflow-hidden transition-shadow duration-300"
                 >
                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300 via-amber-400 to-amber-300"></div>
@@ -364,16 +378,18 @@ export default function TeacherLandingPage() {
               ))}
             </div>
           </div>
-        </section>
+          </section>
+        </MobileLazy>
 
-        <section id="como-ajudamos" className="relative py-20 lg:py-28 bg-gradient-to-br from-cyan-50/50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-200/20 rounded-full blur-3xl hidden lg:block"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl hidden lg:block"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <MobileLazy isMobile={isMobile}>
+          <section id="como-ajudamos" className="relative py-20 lg:py-28 bg-gradient-to-br from-cyan-50/50 via-blue-50/30 to-indigo-50/50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-200/20 rounded-full blur-3xl hidden lg:block"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-200/20 rounded-full blur-3xl hidden lg:block"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
               className="text-center mb-12"
             >
               <div className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 mb-4">
@@ -398,10 +414,10 @@ export default function TeacherLandingPage() {
                 return (
                   <motion.div
                     key={pillar.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                    initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                    whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                    transition={isMotionLight ? undefined : { duration: 0.6, delay: index * 0.1 }}
+                    whileHover={isMotionLight ? undefined : { y: -6, transition: { duration: 0.2 } }}
                     className="relative bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg hover:shadow-2xl border border-blue-100/60 dark:border-blue-900/40 flex flex-col overflow-hidden transition-all duration-300 group"
                   >
                     <div className={`absolute top-0 left-0 w-16 h-1.5 bg-gradient-to-r ${tabColors[index]} rounded-br-lg`}></div>
@@ -427,9 +443,9 @@ export default function TeacherLandingPage() {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
               className="mt-12 text-center"
             >
               <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
@@ -447,17 +463,19 @@ export default function TeacherLandingPage() {
               </Link>
             </motion.div>
           </div>
-        </section>
+          </section>
+        </MobileLazy>
 
-        <section id="pesquisa" className="relative py-20 lg:py-28 bg-gradient-to-br from-slate-50 via-amber-50/20 to-slate-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
-          <div className="absolute top-10 left-10 w-24 h-2 bg-amber-300/40 rounded-full rotate-12 hidden lg:block"></div>
-          <div className="absolute bottom-10 right-10 w-32 h-2 bg-blue-300/40 rounded-full -rotate-12 hidden lg:block"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <MobileLazy isMobile={isMobile}>
+          <section id="pesquisa" className="relative py-20 lg:py-28 bg-gradient-to-br from-slate-50 via-amber-50/20 to-slate-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 overflow-hidden">
+            <div className="absolute top-10 left-10 w-24 h-2 bg-amber-300/40 rounded-full rotate-12 hidden lg:block"></div>
+            <div className="absolute bottom-10 right-10 w-32 h-2 bg-blue-300/40 rounded-full -rotate-12 hidden lg:block"></div>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center mb-16">
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
+                initial={isMotionLight ? false : { opacity: 0, x: -20 }}
+                whileInView={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+                transition={isMotionLight ? undefined : { duration: 0.6 }}
               >
                 <div className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 mb-4">
                   Pesquisa e roadmap
@@ -491,10 +509,10 @@ export default function TeacherLandingPage() {
                 {researchStats.map((stat, index) => (
                   <motion.div
                     key={stat.label}
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.15 }}
-                    whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
+                    initial={isMotionLight ? false : { opacity: 0, x: 20 }}
+                    whileInView={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+                    transition={isMotionLight ? undefined : { duration: 0.6, delay: index * 0.15 }}
+                    whileHover={isMotionLight ? undefined : { scale: 1.02, transition: { duration: 0.2 } }}
                     className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg hover:shadow-xl border border-amber-100/60 dark:border-amber-900/40 flex items-start gap-4 transition-all duration-300"
                   >
                     <div className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 bg-clip-text text-transparent flex-shrink-0">
@@ -507,10 +525,10 @@ export default function TeacherLandingPage() {
             </div>
 
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              whileHover={{ scale: 1.01, transition: { duration: 0.2 } }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
+              whileHover={isMotionLight ? undefined : { scale: 1.01, transition: { duration: 0.2 } }}
               className="relative bg-gradient-to-r from-amber-500/10 via-blue-500/10 to-cyan-500/10 dark:from-amber-500/20 dark:via-blue-500/20 dark:to-cyan-500/20 border border-amber-300/30 rounded-2xl p-8 md:p-10 shadow-lg hover:shadow-xl flex flex-col md:flex-row items-start md:items-center gap-6 overflow-hidden transition-all duration-300"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300 via-blue-300 to-cyan-300"></div>
@@ -552,19 +570,21 @@ export default function TeacherLandingPage() {
               </div>
             </motion.div>
           </div>
-        </section>
+          </section>
+        </MobileLazy>
 
-        <section className="relative py-16 lg:py-20 bg-gradient-to-br from-cyan-500 via-blue-600 to-blue-800 overflow-hidden">
-          <div className="absolute top-10 right-10 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl hidden lg:block"></div>
-          <div className="absolute bottom-10 left-10 w-40 h-40 bg-white/5 rounded-full blur-3xl hidden lg:block"></div>
-          <div className="absolute top-1/2 left-1/4 w-2 h-20 bg-amber-300/15 rounded-full rotate-12 hidden lg:block"></div>
-          <div className="absolute top-1/3 right-1/4 w-2 h-16 bg-white/10 rounded-full -rotate-12 hidden lg:block"></div>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
+        <MobileLazy isMobile={isMobile}>
+          <section className="relative py-16 lg:py-20 bg-gradient-to-br from-cyan-500 via-blue-600 to-blue-800 overflow-hidden">
+            <div className="absolute top-10 right-10 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl hidden lg:block"></div>
+            <div className="absolute bottom-10 left-10 w-40 h-40 bg-white/5 rounded-full blur-3xl hidden lg:block"></div>
+            <div className="absolute top-1/2 left-1/4 w-2 h-20 bg-amber-300/15 rounded-full rotate-12 hidden lg:block"></div>
+            <div className="absolute top-1/3 right-1/4 w-2 h-16 bg-white/10 rounded-full -rotate-12 hidden lg:block"></div>
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+              <motion.div
+                initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                transition={isMotionLight ? undefined : { duration: 0.6 }}
+              >
               <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4">
                 Pronto para reduzir sua sobrecarga digital?
               </h2>
@@ -595,7 +615,8 @@ export default function TeacherLandingPage() {
               </div>
             </motion.div>
           </div>
-        </section>
+          </section>
+        </MobileLazy>
       </main>
 
       <Footer />
