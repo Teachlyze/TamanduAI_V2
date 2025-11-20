@@ -7,11 +7,15 @@ import {
 } from 'lucide-react';
 import { SEO, StructuredData } from '@/shared/components/seo/StructuredData';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const FAQPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [openQuestion, setOpenQuestion] = useState(null);
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
 
   const categories = [
     { id: 'all', name: 'Todas', icon: HelpCircle },
@@ -202,9 +206,9 @@ const FAQPage = () => {
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 mb-6">
                 <HelpCircle className="w-4 h-4" />
@@ -239,9 +243,9 @@ const FAQPage = () => {
               {categories.map((cat, index) => (
                 <motion.button
                   key={cat.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                  animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                  transition={isMotionLight ? undefined : { delay: index * 0.1 }}
                   onClick={() => setActiveCategory(cat.id)}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all ${
                     activeCategory === cat.id
@@ -272,9 +276,9 @@ const FAQPage = () => {
                 {filteredFaqs.map((faq, index) => (
                   <motion.div
                     key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                    animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                    transition={isMotionLight ? undefined : { delay: index * 0.05 }}
                   >
                     <button
                       onClick={() => setOpenQuestion(openQuestion === index ? null : index)}
@@ -295,10 +299,10 @@ const FAQPage = () => {
                         <AnimatePresence>
                           {openQuestion === index && (
                             <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.3 }}
+                              initial={isMotionLight ? false : { opacity: 0, height: 0 }}
+                              animate={isMotionLight ? undefined : { opacity: 1, height: 'auto' }}
+                              exit={isMotionLight ? undefined : { opacity: 0, height: 0 }}
+                              transition={isMotionLight ? undefined : { duration: 0.3 }}
                             >
                               <p className="mt-4 text-slate-600 dark:text-slate-400 text-left leading-relaxed">
                                 {faq.answer}

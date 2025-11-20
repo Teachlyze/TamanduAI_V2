@@ -5,10 +5,14 @@ import Seo from '@/shared/components/Seo';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export default function PricingPage() {
   const navigate = useNavigate();
   const [billingPeriod, setBillingPeriod] = useState('monthly');
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
 
   const professorPlan = {
     id: 'professor',
@@ -110,9 +114,9 @@ export default function PricingPage() {
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-16">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
           >
             <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Plano <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">Professor</span>
@@ -165,9 +169,9 @@ export default function PricingPage() {
         {/* Pricing Card */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
             className="relative"
           >
             <Card className="relative overflow-hidden transition-all duration-300 hover:shadow-2xl border-4 border-cyan-400 shadow-cyan-200/50">
@@ -222,9 +226,9 @@ export default function PricingPage() {
         {/* FAQ */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
             className="text-center mb-12"
           >
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -236,9 +240,9 @@ export default function PricingPage() {
             {faqs.map((faq, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: idx * 0.05 }}
+                initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                transition={isMotionLight ? undefined : { duration: 0.6, delay: idx * 0.05 }}
               >
                 <Card className="p-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">
@@ -254,9 +258,9 @@ export default function PricingPage() {
         {/* CTA Final */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
+            initial={isMotionLight ? false : { opacity: 0, scale: 0.95 }}
+            whileInView={isMotionLight ? undefined : { opacity: 1, scale: 1 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
             className="bg-gradient-to-r from-cyan-500 via-blue-600 to-blue-800 rounded-3xl p-12 text-center text-white"
           >
             <h2 className="text-4xl font-bold mb-4">Pronto para começar?</h2>

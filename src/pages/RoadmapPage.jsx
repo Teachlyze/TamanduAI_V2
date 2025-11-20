@@ -78,10 +78,12 @@ export default function RoadmapPage() {
       <SkipLinks />
 
       {/* Scroll progress bar */}
-      <motion.div
-        style={{ scaleX }}
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 transform origin-left z-50 shadow-lg"
-      />
+      {!isMotionLight && (
+        <motion.div
+          style={{ scaleX }}
+          className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500 transform origin-left z-50 shadow-lg"
+        />
+      )}
 
       {/* Cursor glow e partículas: desativados em mobile ou quando usuário prefere menos animação */}
       {!isMotionLight && (
@@ -135,16 +137,16 @@ export default function RoadmapPage() {
 
       {/* Navbar */}
       <motion.header 
-        initial={{ y: -100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, type: "spring", stiffness: 100 }}
+        initial={isMotionLight ? false : { y: -100, opacity: 0 }}
+        animate={isMotionLight ? undefined : { y: 0, opacity: 1 }}
+        transition={isMotionLight ? undefined : { duration: 0.6, type: "spring", stiffness: 100 }}
         className="z-40 w-full bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 shadow-sm"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={isMotionLight ? undefined : { scale: 1.05 }}
+              whileTap={isMotionLight ? undefined : { scale: 0.95 }}
             >
               <Link to="/" className="flex items-center space-x-3 group">
                 <motion.div 
@@ -168,9 +170,9 @@ export default function RoadmapPage() {
               ].map((item, index) => (
                 <motion.div
                   key={item.to}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 + 0.2 }}
+                  initial={isMotionLight ? false : { opacity: 0, y: -10 }}
+                  animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                  transition={isMotionLight ? undefined : { delay: index * 0.1 + 0.2 }}
                 >
                   <Link 
                     to={item.to} 
@@ -219,12 +221,12 @@ export default function RoadmapPage() {
           rotate: showScrollTop ? 0 : -180,
           y: showScrollTop ? 0 : 20
         }}
-        whileHover={{ 
+        whileHover={isMotionLight ? undefined : { 
           scale: 1.2, 
           rotate: 360,
           boxShadow: "0 20px 60px rgba(59, 130, 246, 0.5)"
         }}
-        whileTap={{ scale: 0.9 }}
+        whileTap={isMotionLight ? undefined : { scale: 0.9 }}
         transition={{ 
           type: "spring",
           stiffness: 260,

@@ -4,8 +4,13 @@ import { Helmet } from 'react-helmet-async';
 import { FileText, CheckCircle, XCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export default function TermsOfServicePage() {
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
+
   return (
     <>
       <Helmet>
@@ -43,7 +48,7 @@ export default function TermsOfServicePage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: isMotionLight ? 0 : 0.6 }}
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 mb-6">
                 <FileText className="w-4 h-4" />

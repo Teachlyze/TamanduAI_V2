@@ -13,11 +13,15 @@ import { Label } from '@/shared/components/ui/label';
 import { Card } from '@/shared/components/ui/card';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signUp } = useAuth();
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
   
   const [step, setStep] = useState(1); // 1: Escolher role, 2: Preencher dados
   const [formData, setFormData] = useState({
@@ -285,9 +289,9 @@ const RegisterPage = () => {
       <div className="absolute inset-0 bg-grid-slate-900/[0.04] dark:bg-grid-slate-400/[0.05] bg-[size:20px_20px]" />
       
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+        animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+        transition={isMotionLight ? undefined : { duration: 0.5 }}
         className="w-full max-w-4xl relative z-10"
       >
         {/* Logo */}
@@ -317,9 +321,9 @@ const RegisterPage = () => {
             {step === 1 && (
               <motion.div
                 key="step1"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={isMotionLight ? false : { opacity: 0, x: 20 }}
+                animate={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+                exit={isMotionLight ? undefined : { opacity: 0, x: -20 }}
               >
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
@@ -334,9 +338,9 @@ const RegisterPage = () => {
                   {roles.map((role, index) => (
                     <motion.button
                       key={role.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                      animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                      transition={isMotionLight ? undefined : { delay: index * 0.1 }}
                       onClick={() => handleRoleSelect(role.id)}
                       disabled={role.disabled}
                       className={`group relative p-6 rounded-2xl border-2 transition-all text-left ${
@@ -384,9 +388,9 @@ const RegisterPage = () => {
             {step === 2 && (
               <motion.div
                 key="step2"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                initial={isMotionLight ? false : { opacity: 0, x: 20 }}
+                animate={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+                exit={isMotionLight ? undefined : { opacity: 0, x: -20 }}
                 className="max-w-2xl mx-auto"
               >
                 {/* Selected Role Badge */}
@@ -422,8 +426,8 @@ const RegisterPage = () => {
                 {/* Success Message */}
                 {success && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={isMotionLight ? false : { opacity: 0, y: -10 }}
+                    animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
                   >
                     <Alert className="mb-6 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
                       <CheckCircle2 className="w-4 h-4 text-green-600" />
@@ -437,8 +441,8 @@ const RegisterPage = () => {
                 {/* Error Alert */}
                 {error && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={isMotionLight ? false : { opacity: 0, y: -10 }}
+                    animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
                   >
                     <Alert variant="destructive" className="mb-6">
                       <AlertCircle className="w-4 h-4" />
@@ -800,8 +804,8 @@ const RegisterPage = () => {
       </motion.div>
 
       {/* Decorative Blobs */}
-      <div className="fixed top-0 left-0 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-3xl -z-10" />
-      <div className="fixed bottom-0 right-0 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl -z-10" />
+      <div className="hidden md:block fixed top-0 left-0 w-96 h-96 bg-cyan-400/20 dark:bg-cyan-600/10 rounded-full blur-3xl -z-10" />
+      <div className="hidden md:block fixed bottom-0 right-0 w-96 h-96 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl -z-10" />
     </div>
   );
 };

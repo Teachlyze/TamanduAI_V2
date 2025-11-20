@@ -6,6 +6,7 @@ import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Input } from '@/shared/components/ui/input';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 import {
   BookOpen, Search, Home, Users, GraduationCap, Video,
   MessageSquare, Settings, BarChart3, Shield, Zap,
@@ -17,6 +18,9 @@ export default function DocumentationPage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState('intro');
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
 
   const sections = [
     {
@@ -469,9 +473,9 @@ export default function DocumentationPage() {
           <main className="flex-1 min-w-0">
             <motion.div
               key={selectedSection}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.3 }}
             >
               <Card className="p-8">
                 <div className="mb-6">

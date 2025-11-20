@@ -22,6 +22,7 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import toast from 'react-hot-toast';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -35,6 +36,9 @@ const LoginPage = () => {
   const { signIn, user, profile, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
 
   // Redirect if already logged in
   useEffect(() => {
@@ -141,9 +145,9 @@ const LoginPage = () => {
       {/* Left Side - Form */}
       <div className="flex-1 flex items-center justify-center px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
+          initial={isMotionLight ? false : { opacity: 0, x: -20 }}
+          animate={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+          transition={isMotionLight ? undefined : { duration: 0.5 }}
           className="w-full max-w-md"
         >
           {/* Logo */}
@@ -158,9 +162,9 @@ const LoginPage = () => {
 
           {/* Welcome Text */}
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 10 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { delay: 0.1 }}
             className="text-center mb-8"
           >
             <h2 className="text-3xl font-bold text-foreground mb-2">
@@ -173,9 +177,9 @@ const LoginPage = () => {
 
           {/* Form */}
           <motion.form
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { delay: 0.2 }}
             onSubmit={handleSubmit}
             className="space-y-6"
           >
@@ -274,9 +278,9 @@ const LoginPage = () => {
 
           {/* Divider */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            initial={isMotionLight ? false : { opacity: 0 }}
+            animate={isMotionLight ? undefined : { opacity: 1 }}
+            transition={isMotionLight ? undefined : { delay: 0.3 }}
             className="my-8 flex items-center gap-4"
           >
             <div className="flex-1 h-px bg-border" />
@@ -286,9 +290,9 @@ const LoginPage = () => {
 
           {/* Sign Up Link */}
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
+            initial={isMotionLight ? false : { opacity: 0 }}
+            animate={isMotionLight ? undefined : { opacity: 1 }}
+            transition={isMotionLight ? undefined : { delay: 0.4 }}
             className="text-center text-muted-foreground"
           >
             Não tem uma conta?{' '}

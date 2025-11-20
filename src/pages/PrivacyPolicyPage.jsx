@@ -4,8 +4,13 @@ import { Helmet } from 'react-helmet-async';
 import { Shield, Eye, Lock, Database, FileText, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export default function PrivacyPolicyPage() {
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
+
   return (
     <>
       <Helmet>
@@ -41,9 +46,9 @@ export default function PrivacyPolicyPage() {
         <section className="py-16 px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
             >
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 mb-6">
                 <Shield className="w-4 h-4" />
@@ -62,9 +67,9 @@ export default function PrivacyPolicyPage() {
         {/* Content */}
         <section className="pb-20 px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { duration: 0.6, delay: 0.2 }}
             className="max-w-4xl mx-auto"
           >
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 lg:p-12 space-y-8">

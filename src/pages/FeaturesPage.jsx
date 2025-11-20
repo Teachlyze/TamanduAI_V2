@@ -5,6 +5,7 @@ import Seo from '@/shared/components/Seo';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import Footer from '@/shared/components/Footer';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 import {
   Brain, FileEdit, Shield, BarChart3, MessageSquare, Calendar,
   Users, Upload, Sparkles, TrendingUp, Clock, CheckCircle,
@@ -12,6 +13,10 @@ import {
 } from 'lucide-react';
 
 export default function FeaturesPage() {
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
+
   const coreFeatures = [
     {
       icon: Brain,
@@ -184,9 +189,9 @@ export default function FeaturesPage() {
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-20">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-100 text-amber-800 mb-6">
               <Sparkles className="w-4 h-4" />
@@ -219,10 +224,10 @@ export default function FeaturesPage() {
             {coreFeatures.map((feature, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
+                transition={isMotionLight ? undefined : { duration: 0.6, delay: idx * 0.1 }}
               >
                 <Card className="h-full p-8 rounded-2xl border border-blue-100/60 dark:border-blue-900/40 hover:shadow-xl transition-all duration-300">
                   {/* Icon & Badge */}
@@ -273,10 +278,10 @@ export default function FeaturesPage() {
             {organizationFeatures.map((feature, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
+                transition={isMotionLight ? undefined : { duration: 0.6, delay: idx * 0.1 }}
               >
                 <Card className="h-full p-6 rounded-2xl border border-blue-100/60 dark:border-blue-900/40 hover:shadow-xl transition-all duration-300">
                   <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center mb-4">
@@ -317,10 +322,10 @@ export default function FeaturesPage() {
             {advancedFeatures.map((feature, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
+                initial={isMotionLight ? false : { opacity: 0, scale: 0.9 }}
+                whileInView={isMotionLight ? undefined : { opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: idx * 0.1 }}
+                transition={isMotionLight ? undefined : { duration: 0.6, delay: idx * 0.1 }}
               >
                 <Card className="p-6 rounded-2xl border border-blue-100/60 dark:border-blue-900/40 hover:shadow-xl transition-all duration-300 text-center">
                   <feature.icon className={`w-12 h-12 mx-auto mb-4 ${feature.color}`} />
@@ -339,10 +344,10 @@ export default function FeaturesPage() {
         {/* CTA Final */}
         <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
           >
             <Card className="relative overflow-hidden p-12 rounded-2xl border border-amber-200 dark:border-amber-800/40 bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50/30 dark:from-amber-900/20 dark:via-blue-900/20 dark:to-cyan-900/20">
               {/* Decorative Elements */}

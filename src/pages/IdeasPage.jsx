@@ -29,6 +29,7 @@ import CookieBanner from '@/shared/components/CookieBanner';
 import Footer from '@/shared/components/Footer';
 import { listIdeas, createIdea, toggleIdeaVote, getUserVotedIdeas } from '@/shared/services/edgeFunctions';
 import { toast } from '@/shared/components/ui/use-toast';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const statusConfig = {
   'em-analise': {
@@ -60,6 +61,9 @@ export default function IdeasPage() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [newIdeaId, setNewIdeaId] = useState(null);
   const ITEMS_PER_PAGE = 6;
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
   
   // Form state
   const [formData, setFormData] = useState({
@@ -268,9 +272,9 @@ export default function IdeasPage() {
 
       {/* Header */}
       <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={isMotionLight ? false : { y: -100 }}
+        animate={isMotionLight ? undefined : { y: 0 }}
+        transition={isMotionLight ? undefined : { duration: 0.5 }}
         className="w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 shadow-lg"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -280,9 +284,9 @@ export default function IdeasPage() {
                 <BookOpen className="w-5 h-5 text-white" />
               </div>
               <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                initial={isMotionLight ? false : { opacity: 0 }}
+                animate={isMotionLight ? undefined : { opacity: 1 }}
+                transition={isMotionLight ? undefined : { delay: 0.2 }}
                 className="text-xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent"
               >
                 TamanduAI
@@ -315,9 +319,9 @@ export default function IdeasPage() {
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
               className="text-center max-w-4xl mx-auto"
             >
               <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full bg-amber-300 text-gray-900 shadow-md mb-6">
@@ -372,9 +376,9 @@ export default function IdeasPage() {
             {/* Success Message Banner */}
             {showSuccessMessage && (
               <motion.div
-                initial={{ opacity: 0, y: -20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                initial={isMotionLight ? false : { opacity: 0, y: -20, scale: 0.95 }}
+                animate={isMotionLight ? undefined : { opacity: 1, y: 0, scale: 1 }}
+                exit={isMotionLight ? undefined : { opacity: 0, y: -20, scale: 0.95 }}
                 className="mb-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6 shadow-lg"
               >
                 <div className="flex items-start gap-4">
@@ -409,9 +413,9 @@ export default function IdeasPage() {
 
             {/* Filters */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
               className="mb-12"
             >
               <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -472,10 +476,10 @@ export default function IdeasPage() {
                 return (
                   <motion.div
                     key={idea.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: index * 0.1 }}
-                    whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                    initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                    whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                    transition={isMotionLight ? undefined : { duration: 0.6, delay: index * 0.1 }}
+                    whileHover={isMotionLight ? undefined : { y: -4, transition: { duration: 0.2 } }}
                     className={`relative bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-lg hover:shadow-xl border flex flex-col transition-all duration-300 ${
                       isNewIdea 
                         ? 'border-4 border-green-400 shadow-2xl shadow-green-200/50 animate-pulse' 
@@ -622,9 +626,9 @@ export default function IdeasPage() {
         <section id="nova-ideia" className="py-16 lg:py-24 bg-gradient-to-br from-slate-50 via-amber-50/20 to-slate-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+              whileInView={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
             >
               <div className="text-center mb-12">
                 <div className="inline-flex items-center text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-800 mb-4">

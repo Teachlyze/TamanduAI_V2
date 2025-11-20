@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const ContactPage = () => {
   const { toast } = useToast();
@@ -27,7 +28,10 @@ const ContactPage = () => {
   const [charCount, setCharCount] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
+  const isMobile = useIsMobile();
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const isMotionLight = isMobile || prefersReducedMotion;
+
   // Honeypot field (anti-spam)
   const [honeypot, setHoneypot] = useState('');
 
@@ -300,9 +304,9 @@ const ContactPage = () => {
         {/* Hero Section */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-16">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+            animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+            transition={isMotionLight ? undefined : { duration: 0.6 }}
           >
             <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white mb-6">
               Vamos <span className="bg-gradient-to-r from-cyan-600 via-blue-600 to-blue-800 bg-clip-text text-transparent">conversar</span>?
@@ -318,9 +322,9 @@ const ContactPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Left Side - Contact Form */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, x: -20 }}
+              animate={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
             >
               <Card className="p-8 shadow-2xl border border-blue-100/60 dark:border-blue-900/40 bg-white dark:bg-gray-900 rounded-2xl">
                 <div className="flex items-center gap-3 mb-6">
@@ -522,9 +526,9 @@ const ContactPage = () => {
 
             {/* Right Side - Contact Information */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+              initial={isMotionLight ? false : { opacity: 0, x: 20 }}
+              animate={isMotionLight ? undefined : { opacity: 1, x: 0 }}
+              transition={isMotionLight ? undefined : { duration: 0.6 }}
               className="space-y-8"
             >
               {/* Contact Info Cards */}
@@ -532,9 +536,9 @@ const ContactPage = () => {
                 {contactInfo.map((info, idx) => (
                   <motion.div
                     key={idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: idx * 0.1 }}
+                    initial={isMotionLight ? false : { opacity: 0, y: 20 }}
+                    animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                    transition={isMotionLight ? undefined : { duration: 0.6, delay: idx * 0.1 }}
                   >
                     <Card className="p-6 rounded-2xl border border-blue-100/60 dark:border-blue-900/40 hover:shadow-xl transition-all duration-300">
                       <div className="flex items-center gap-4">
@@ -608,17 +612,17 @@ const ContactPage = () => {
       <AnimatePresence>
         {showSuccessModal && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={isMotionLight ? false : { opacity: 0 }}
+            animate={isMotionLight ? undefined : { opacity: 1 }}
+            exit={isMotionLight ? undefined : { opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
             onClick={() => setShowSuccessModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              transition={{ type: "spring", duration: 0.5 }}
+              initial={isMotionLight ? false : { scale: 0.9, y: 20 }}
+              animate={isMotionLight ? undefined : { scale: 1, y: 0 }}
+              exit={isMotionLight ? undefined : { scale: 0.9, y: 20 }}
+              transition={isMotionLight ? undefined : { type: "spring", duration: 0.5 }}
               className="relative max-w-md w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8"
               onClick={(e) => e.stopPropagation()}
             >
@@ -633,36 +637,36 @@ const ContactPage = () => {
               {/* Success Icon */}
               <div className="flex flex-col items-center text-center">
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+                  initial={isMotionLight ? false : { scale: 0 }}
+                  animate={isMotionLight ? undefined : { scale: 1 }}
+                  transition={isMotionLight ? undefined : { delay: 0.2, type: "spring", stiffness: 200 }}
                   className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-emerald-600 flex items-center justify-center mb-6 shadow-lg"
                 >
                   <CheckCircle className="w-12 h-12 text-white" />
                 </motion.div>
 
                 <motion.h2
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                  initial={isMotionLight ? false : { opacity: 0, y: 10 }}
+                  animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                  transition={isMotionLight ? undefined : { delay: 0.3 }}
                   className="text-2xl font-bold text-gray-900 dark:text-white mb-3"
                 >
                   Mensagem Enviada!
                 </motion.h2>
 
                 <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
+                  initial={isMotionLight ? false : { opacity: 0, y: 10 }}
+                  animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                  transition={isMotionLight ? undefined : { delay: 0.4 }}
                   className="text-gray-600 dark:text-gray-300 mb-6"
                 >
                   Recebemos sua mensagem com sucesso! Nossa equipe entrará em contato em até <strong>24 horas úteis</strong>.
                 </motion.p>
 
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
+                  initial={isMotionLight ? false : { opacity: 0, y: 10 }}
+                  animate={isMotionLight ? undefined : { opacity: 1, y: 0 }}
+                  transition={isMotionLight ? undefined : { delay: 0.5 }}
                   className="w-full space-y-3"
                 >
                   <Button
