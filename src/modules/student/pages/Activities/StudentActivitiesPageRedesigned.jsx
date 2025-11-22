@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useToast } from '@/shared/components/ui/use-toast';
 import { ActivityCard, EmptyState } from '@/modules/student/components/redesigned';
 import { FileText, Search, Filter, Clock, CheckCircle2, AlertTriangle, Calendar } from 'lucide-react';
 import { Card } from '@/shared/components/ui/card';
@@ -17,6 +18,7 @@ import { differenceInHours } from 'date-fns';
 const StudentActivitiesPageRedesigned = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -64,6 +66,11 @@ const StudentActivitiesPageRedesigned = () => {
       setClasses(classList || []);
     } catch (error) {
       logger.error('Erro ao carregar turmas:', error);
+      toast({
+        title: 'Erro ao carregar turmas',
+        description: 'Não foi possível carregar suas turmas. Tente novamente em instantes.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -122,13 +129,6 @@ const StudentActivitiesPageRedesigned = () => {
         logger.error('Erro ao buscar submissões:', submissionsError);
       }
 
-      logger.debug('[Activities] Submissões encontradas:', {
-        userId: user.id,
-        totalActivities: activityIds.length,
-        submissions: submissions?.length || 0,
-        submissionsData: submissions
-      });
-
       const submissionsMap = {};
       submissions?.forEach(s => {
         submissionsMap[s.activity_id] = s;
@@ -180,6 +180,11 @@ const StudentActivitiesPageRedesigned = () => {
       setActivities(activitiesWithStatus);
     } catch (error) {
       logger.error('Erro ao carregar atividades:', error);
+      toast({
+        title: 'Erro ao carregar atividades',
+        description: 'Não foi possível carregar suas atividades. Tente novamente em instantes.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
       if (initialLoad) {
@@ -235,14 +240,6 @@ const StudentActivitiesPageRedesigned = () => {
   // Separar urgentes
   const urgentActivities = filteredActivities.filter(a => a.is_urgent);
   const otherActivities = filteredActivities.filter(a => !a.is_urgent);
-
-  if (loading && initialLoad) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-3 sm:p-4 md:p-6">

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { TeacherLayout } from './layouts/TeacherLayout';
 
@@ -32,6 +32,54 @@ const TeacherAnalyticsPage = React.lazy(() => import('./pages/Analytics/TeacherA
 const TeacherReportsPage = React.lazy(() => import('./pages/Reports/TeacherReportsPage'));
 
 const TeacherRoutes = () => {
+  useEffect(() => {
+    // Prefetch de código das principais páginas do módulo de professor em background
+    const timeout = setTimeout(() => {
+      // Dashboard e páginas principais
+      import('./pages/Dashboard/TeacherDashboard');
+      import('./pages/Profile/TeacherProfilePage');
+      import('./pages/Calendar/TeacherCalendarPage');
+
+      // Turmas
+      import('./pages/Classes/TeacherClassesPage');
+      import('./pages/Classes/ClassDetailsPage');
+      import('./pages/Classes/ClassMembersPage');
+      import('./pages/Classes/ClassActivitiesPage');
+      import('./pages/Classes/EditClassPage');
+      import('./pages/Classes/ClassGradingPage');
+      import('./pages/Classes/ClassGradesPage');
+      import('./pages/Classes/ClassMaterialsPage');
+      import('./pages/Classes/ClassSchedulePage');
+      import('./pages/Classes/ClassAttendancePage');
+
+      // Atividades
+      import('./pages/Activities/ActivitiesListPage');
+      import('./pages/Activities/TeacherActivitiesPage');
+      import('./pages/Activities/TeacherActivityCreatePage');
+      import('./pages/Activities/ActivitySubmissionsPage');
+
+      // Correções e avaliação
+      import('./pages/Grading/GradingPage');
+      import('./pages/Corrections/TeacherCorrectionsPage');
+
+      // Alunos
+      import('./pages/Students/TeacherStudentsPage');
+      import('./pages/Students/StudentDetailPage');
+
+      // Ranking e chatbot
+      import('./pages/Ranking/TeacherRankingPage');
+      import('./pages/Chatbot/TeacherChatbotPage');
+      import('./pages/Chatbot/ChatbotConfigPage');
+      import('./pages/Chatbot/ChatbotAnalyticsPage');
+
+      // Analytics e reports
+      import('./pages/Analytics/TeacherAnalyticsPage');
+      import('./pages/Reports/TeacherReportsPage');
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   return (
     <TeacherLayout>
       <Routes>

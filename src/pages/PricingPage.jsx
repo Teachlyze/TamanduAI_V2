@@ -265,7 +265,7 @@ export default function PricingPage() {
           >
             <h2 className="text-4xl font-bold mb-4">Pronto para começar?</h2>
             <p className="text-xl mb-8 opacity-90">
-              Junte-se a milhares de professores que estão transformando seu ensino com IA
+              Junte-se a professores que estão testando a TamanduAI para reduzir sua sobrecarga digital com IA
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/register">

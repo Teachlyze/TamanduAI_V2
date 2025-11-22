@@ -177,8 +177,6 @@ const TeacherAnalyticsPage = () => {
       if (selectedClasses.length === 0 && classesData.length > 0) {
         setSelectedClasses(classesData.map(c => c.id));
       }
-      
-      logger.debug('[TeacherAnalytics] Classes carregadas:', classesData.length);
     } catch (error) {
       logger.error('Erro ao carregar turmas:', error);
       setClasses([]);
@@ -284,35 +282,65 @@ const TeacherAnalyticsPage = () => {
   };
 
   const loadGradeEvolution = async () => {
-    const days = period === 'all' ? 90 : parseInt(period);
-    const dateFilter = format(subDays(new Date(), days), 'yyyy-MM-dd');
+    // Se nenhuma turma estiver selecionada, não há dados para mostrar
+    if (selectedClasses.length === 0) {
+      setGradeEvolution([]);
+      return;
+    }
 
-    // UMA query ao invés de dezenas!
-    const { data: grades } = await supabase
+    // Período em dias ("all" = últimos 90 dias por padrão)
+    const days = period === 'all' ? 90 : Number.parseInt(period, 10) || 30;
+    const startDate = subDays(new Date(), days);
+
+    // UMA query ao invés de dezenas, com limite para evitar datasets gigantes
+    const { data: grades, error } = await supabase
       .from('submissions')
       .select('grade, graded_at, activity_id, activities!inner(activity_class_assignments!inner(class_id))')
       .not('grade', 'is', null)
       .in('activities.activity_class_assignments.class_id', selectedClasses)
-      .gte('graded_at', dateFilter)
-      .order('graded_at', { ascending: true });
+      .gte('graded_at', startDate.toISOString())
+      .order('graded_at', { ascending: true })
+      .limit(1000);
 
-    // Agrupar por data no frontend
+    if (error) {
+      logger.error('Erro ao carregar evolução de notas:', error);
+      setGradeEvolution([]);
+      return;
+    }
+
+    // Agrupar por data no frontend, ignorando registros inválidos
     const groupedByDate = {};
-    grades?.forEach(g => {
-      const dateKey = format(new Date(g.graded_at), 'dd/MM');
+    (grades || []).forEach(g => {
+      if (!g || g.grade == null || !g.graded_at) return;
+
+      const numericGrade = parseFloat(g.grade);
+      if (Number.isNaN(numericGrade)) return;
+
+      const gradedAt = new Date(g.graded_at);
+      if (Number.isNaN(gradedAt.getTime())) return;
+
+      const dateKey = format(gradedAt, 'dd/MM');
+
       if (!groupedByDate[dateKey]) {
         groupedByDate[dateKey] = [];
       }
-      groupedByDate[dateKey].push(g.grade);
+      groupedByDate[dateKey].push(numericGrade);
     });
 
-    const data = Object.entries(groupedByDate).map(([date, gradesList]) => ({
-      date,
-      media: parseFloat((gradesList.reduce((sum, g) => sum + g, 0) / gradesList.length).toFixed(2)),
-      submissoes: gradesList.length
-    }));
+    const data = Object.entries(groupedByDate).map(([date, gradesList]) => {
+      const avg = gradesList.length > 0
+        ? gradesList.reduce((sum, g) => sum + g, 0) / gradesList.length
+        : 0;
 
-    setGradeEvolution(data.slice(-30)); // Últimos 30 pontos
+      return {
+        date,
+        media: parseFloat(avg.toFixed(2)),
+        submissoes: gradesList.length
+      };
+    });
+
+    // Mantém o gráfico enxuto mostrando apenas os últimos 30 pontos
+    setGradeEvolution(data.slice(-30));
   };
 
   const loadClassComparison = async () => {
@@ -321,67 +349,95 @@ const TeacherAnalyticsPage = () => {
       return;
     }
 
-    // Buscar tudo em uma query com eager loading
-    const { data: allData } = await supabase
-      .from('submissions')
-      .select(`
-        grade, 
-        activity_id, 
-        activities!inner(
-          activity_class_assignments!inner(class_id)
-        )
-      `)
-      .not('grade', 'is', null)
-      .in('activities.activity_class_assignments.class_id', selectedClasses);
+    try {
+      // Buscar submissões com eager loading, limitando quantidade para performance
+      const { data: allData, error: submissionsError } = await supabase
+        .from('submissions')
+        .select(`
+          grade,
+          activity_id,
+          activities!inner(
+            activity_class_assignments!inner(class_id)
+          )
+        `)
+        .not('grade', 'is', null)
+        .in('activities.activity_class_assignments.class_id', selectedClasses)
+        .limit(2000);
 
-    // Buscar contagens de alunos por turma
-    const { data: membersData } = await supabase
-      .from('class_members')
-      .select('class_id, user_id')
-      .in('class_id', selectedClasses)
-      .eq('role', 'student');
+      if (submissionsError) {
+        throw submissionsError;
+      }
 
-    // Buscar contagens de atividades por turma
-    const { data: activitiesData } = await supabase
-      .from('activity_class_assignments')
-      .select('class_id, activity_id')
-      .in('class_id', selectedClasses);
+      // Buscar contagens de alunos por turma
+      const { data: membersData, error: membersError } = await supabase
+        .from('class_members')
+        .select('class_id, user_id')
+        .in('class_id', selectedClasses)
+        .eq('role', 'student');
 
-    // Processar dados
-    const comparison = [];
-    
-    // Criar mapa de contagens
-    const studentCountMap = {};
-    const activityCountMap = {};
-    
-    membersData?.forEach(m => {
-      studentCountMap[m.class_id] = (studentCountMap[m.class_id] || 0) + 1;
-    });
-    
-    activitiesData?.forEach(a => {
-      activityCountMap[a.class_id] = (activityCountMap[a.class_id] || 0) + 1;
-    });
+      if (membersError) {
+        throw membersError;
+      }
 
-    for (const classItem of classes.filter(c => selectedClasses.includes(c.id))) {
-      // Filtrar grades desta turma
-      const grades = allData?.filter(g => 
-        g.activities?.activity_class_assignments?.some(aca => aca.class_id === classItem.id)
-      ) || [];
+      // Buscar contagens de atividades por turma
+      const { data: activitiesData, error: activitiesError } = await supabase
+        .from('activity_class_assignments')
+        .select('class_id, activity_id')
+        .in('class_id', selectedClasses);
 
-      const avgGrade = grades.length > 0
-        ? grades.reduce((sum, s) => sum + s.grade, 0) / grades.length
-        : 0;
+      if (activitiesError) {
+        throw activitiesError;
+      }
 
-      comparison.push({
-        name: classItem.name,
-        media: parseFloat(avgGrade.toFixed(2)),
-        alunos: studentCountMap[classItem.id] || 0,
-        atividades: activityCountMap[classItem.id] || 0,
-        color: classItem.color || '#3B82F6'
+      // Processar dados
+      const comparison = [];
+
+      // Criar mapa de contagens
+      const studentCountMap = {};
+      const activityCountMap = {};
+
+      (membersData || []).forEach(m => {
+        if (!m.class_id) return;
+        studentCountMap[m.class_id] = (studentCountMap[m.class_id] || 0) + 1;
       });
-    }
 
-    setClassComparison(comparison.sort((a, b) => b.media - a.media));
+      (activitiesData || []).forEach(a => {
+        if (!a.class_id) return;
+        activityCountMap[a.class_id] = (activityCountMap[a.class_id] || 0) + 1;
+      });
+
+      const classesById = classes.reduce((acc, cls) => {
+        acc[cls.id] = cls;
+        return acc;
+      }, {});
+
+      for (const classId of selectedClasses) {
+        const classItem = classesById[classId];
+        if (!classItem) continue;
+
+        // Filtrar grades desta turma
+        const grades = (allData || []).filter(g =>
+          g.activities?.activity_class_assignments?.some(aca => aca.class_id === classId)
+        );
+
+        const avgGrade = grades.length > 0
+          ? grades.reduce((sum, s) => sum + (s.grade || 0), 0) / grades.length
+          : 0;
+
+        comparison.push({
+          name: classItem.name,
+          media: parseFloat(avgGrade.toFixed(2)),
+          alunos: studentCountMap[classId] || 0,
+          atividades: activityCountMap[classId] || 0,
+          color: classItem.color || '#3B82F6'
+        });
+      }
+
+      setClassComparison(comparison.sort((a, b) => b.media - a.media));
+    } catch (error) {
+      logger.error('Erro ao carregar comparação entre turmas:', error);
+      setClassComparison([]);
+    }
   };
 
   const loadGradeDistribution = async () => {
@@ -483,11 +539,6 @@ const TeacherAnalyticsPage = () => {
         total: weekSubmissions.length
       });
     }
-
-    logger.debug('[TeacherAnalytics] Weekly trends calculadas:', {
-      totalSubmissions: allSubmissions?.length || 0,
-      weeksCount: weeks.length
-    });
 
     setWeeklyTrends(weeks);
   };
@@ -599,31 +650,102 @@ const TeacherAnalyticsPage = () => {
       return;
     }
 
-    const { data: checks } = await supabase
-      .from('plagiarism_checks')
-      .select(`
-        plagiarism_percentage,
-        ai_generated,
-        submission_id,
-        submissions!inner(activity_id, activities!inner(activity_class_assignments!inner(class_id)))
-      `)
-      .in('submissions.activities.activity_class_assignments.class_id', selectedClasses)
-      .limit(500);
+    // Mesmo conceito de período usado em outros gráficos
+    const days = period === 'all' ? 90 : Number.parseInt(period, 10) || 30;
+    const startDate = subDays(new Date(), days);
 
-    if (!checks || checks.length === 0) {
+    try {
+      // 1) Tentar usar a tabela nova plagiarism_checks_v2
+      const { data: v2Checks, error: v2Error } = await supabase
+        .from('plagiarism_checks_v2')
+        .select(`
+          similarity_percentage,
+          plagiarism_severity,
+          checked_at,
+          activity_id,
+          submission_id,
+          activities!inner(activity_class_assignments!inner(class_id))
+        `)
+        .in('activities.activity_class_assignments.class_id', selectedClasses)
+        .gte('checked_at', startDate.toISOString())
+        .limit(1000);
+
+      if (v2Error) {
+        logger.error('Erro ao carregar estatísticas de plágio (v2):', v2Error);
+      }
+
+      const validV2 = (v2Checks || []).filter(c => c.similarity_percentage != null);
+
+      if (validV2.length > 0) {
+        const avgOriginalityV2 = validV2.reduce((sum, c) => {
+          const sim = Number.parseFloat(c.similarity_percentage);
+          const similarity = Number.isNaN(sim) ? 0 : sim;
+          return sum + (100 - similarity);
+        }, 0) / validV2.length;
+
+        // Considera severidades altas/críticas como "casos críticos"
+        const criticalSeverities = ['high', 'critical'];
+        const casesDetectedV2 = validV2.filter(c =>
+          criticalSeverities.includes((c.plagiarism_severity || '').toLowerCase())
+        ).length;
+
+        setPlagiarismStats({
+          avgOriginality: Math.round(avgOriginalityV2),
+          totalChecks: validV2.length,
+          casesDetected: casesDetectedV2,
+          // A tabela v2 não possui flag explícita de IA, então mantemos 0 aqui
+          aiDetected: 0
+        });
+        return;
+      }
+
+      // 2) Fallback para tabela legacy plagiarism_checks se não houver dados em v2
+      const { data: legacyChecks, error: legacyError } = await supabase
+        .from('plagiarism_checks')
+        .select(`
+          plagiarism_percentage,
+          ai_generated,
+          submission_id,
+          submissions!inner(activity_id, activities!inner(activity_class_assignments!inner(class_id)))
+        `)
+        .in('submissions.activities.activity_class_assignments.class_id', selectedClasses)
+        .gte('checked_at', startDate.toISOString())
+        .limit(1000);
+
+      if (legacyError) {
+        logger.error('Erro ao carregar estatísticas de plágio (legacy):', legacyError);
+        setPlagiarismStats(null);
+        return;
+      }
+
+      const validLegacy = (legacyChecks || []).filter(c => c.plagiarism_percentage != null);
+
+      if (validLegacy.length === 0) {
+        setPlagiarismStats(null);
+        return;
+      }
+
+      const avgOriginalityLegacy = validLegacy.reduce((sum, c) => {
+        const pct = c.plagiarism_percentage || 0;
+        return sum + (100 - pct);
+      }, 0) / validLegacy.length;
+
+      const casesDetectedLegacy = validLegacy.filter(c => {
+        const pct = c.plagiarism_percentage || 0;
+        const originality = 100 - pct;
+        return originality < 70;
+      }).length;
+
+      setPlagiarismStats({
+        avgOriginality: Math.round(avgOriginalityLegacy),
+        totalChecks: validLegacy.length,
+        casesDetected: casesDetectedLegacy,
+        aiDetected: validLegacy.filter(c => c.ai_generated).length
+      });
+    } catch (error) {
+      logger.error('Erro ao carregar estatísticas de plágio:', error);
       setPlagiarismStats(null);
-      return;
     }
-
-    const avgOriginality = checks.reduce((sum, c) => sum + (100 - (c.plagiarism_percentage || 0)), 0) / checks.length;
-    const casesDetected = checks.filter(c => (100 - c.plagiarism_percentage) < 70).length;
-
-    setPlagiarismStats({
-      avgOriginality: Math.round(avgOriginality),
-      totalChecks: checks.length,
-      casesDetected,
-      aiDetected: checks.filter(c => c.ai_generated).length
-    });
   };
 
   const loadEngagementStats = async () => {

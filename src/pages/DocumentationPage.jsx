@@ -91,7 +91,7 @@ export default function DocumentationPage() {
           },
           {
             title: 'Passo 4: Convidar Alunos',
-            content: 'Copie o código de 6 dígitos ou link direto. Compartilhe com alunos por WhatsApp ou email.'
+            content: 'Copie o código de 8 caracteres ou link direto. Compartilhe com alunos por WhatsApp ou email.'
           }
         ]
       }
@@ -148,7 +148,7 @@ export default function DocumentationPage() {
         items: [
           {
             title: 'Entrar em Turmas',
-            content: 'Use o código de 6 dígitos fornecido pelo professor para entrar em uma turma.'
+            content: 'Use o código de 8 caracteres fornecido pelo professor para entrar em uma turma.'
           },
           {
             title: 'Realizar Atividades',

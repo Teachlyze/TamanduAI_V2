@@ -360,7 +360,7 @@ export default function FeaturesPage() {
                   Pronto para transformar sua rotina?
                 </h2>
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-                  Junte-se a centenas de professores que já economizam horas por semana com a TamanduAI
+                  Junte-se aos professores que estão testando a TamanduAI para reduzir sua sobrecarga digital com IA
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link to="/register">

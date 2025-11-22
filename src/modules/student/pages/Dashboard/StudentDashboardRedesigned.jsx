@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useToast } from '@/shared/components/ui/use-toast';
 import { 
   StatCard, 
   ActivityCard, 
@@ -31,6 +32,7 @@ import { ptBR } from 'date-fns/locale';
 const StudentDashboardRedesigned = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -67,6 +69,11 @@ const StudentDashboardRedesigned = () => {
       ]);
     } catch (error) {
       logger.error('Erro ao carregar dashboard:', error);
+      toast({
+        title: 'Erro ao carregar informações',
+        description: 'Não foi possível carregar seu painel. Tente novamente em instantes.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
       if (initialLoad) {
@@ -430,14 +437,6 @@ const StudentDashboardRedesigned = () => {
       logger.error('Erro ao carregar alertas:', error);
     }
   };
-
-  if (loading && initialLoad) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-blue-50/30 to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">

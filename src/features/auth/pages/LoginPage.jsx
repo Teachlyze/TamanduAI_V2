@@ -356,7 +356,7 @@ const LoginPage = () => {
               ))}
             </div>
 
-            {/* Stats */}
+            {/* Stats (mensagens qualitativas, sem números fictícios) */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -364,9 +364,9 @@ const LoginPage = () => {
               className="mt-12 grid grid-cols-3 gap-6"
             >
               {[
-                { value: '10K+', label: 'Professores' },
-                { value: '50K+', label: 'Alunos' },
-                { value: '99%', label: 'Satisfação' }
+                { value: 'IA', label: 'focada em professores' },
+                { value: '24/7', label: 'para tirar dúvidas dos alunos' },
+                { value: 'Beta', label: 'aberto para testes reais' }
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   <div className="text-3xl font-bold mb-1">{stat.value}</div>

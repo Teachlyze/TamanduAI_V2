@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, ArrowLeft, Search, AlertCircle } from 'lucide-react';
+import { Home, ArrowLeft, Search, AlertCircle, Mail } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 
@@ -122,6 +122,15 @@ const NotFoundPage = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Se o problema persistir, entre em contato com o suporte.
           </p>
+          <Button
+            onClick={() => navigate('/contact')}
+            variant="ghost"
+            size="sm"
+            className="mt-2 inline-flex items-center gap-2 text-blue-600 dark:text-blue-400"
+          >
+            <Mail className="w-4 h-4" />
+            Falar com o suporte
+          </Button>
         </motion.div>
       </motion.div>
     </div>

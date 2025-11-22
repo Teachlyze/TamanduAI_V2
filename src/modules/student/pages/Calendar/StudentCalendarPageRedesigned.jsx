@@ -61,9 +61,6 @@ const StudentCalendarPageRedesigned = () => {
         .lte('start_time', end.toISOString())
         .order('start_time', { ascending: true });
 
-      // Buscar eventos onde é participante (reuniões)
-      logger.debug('[Calendar] Buscando eventos como participante:', { userId: user.id });
-
       const { data: attendeeEvents, error: attendeeError } = await supabase
         .from('calendar_events')
         .select('id, title, description, start_time, end_time, type, modality, location, meeting_link, attendees, class_id, created_by, activity_id')
@@ -74,11 +71,6 @@ const StudentCalendarPageRedesigned = () => {
 
       if (attendeeError) {
         logger.error('[Calendar] Erro ao buscar eventos como participante:', attendeeError);
-      } else {
-        logger.debug('[Calendar] Eventos encontrados como participante:', { 
-          count: attendeeEvents?.length || 0,
-          events: attendeeEvents 
-        });
       }
 
       // Buscar prazos de atividades

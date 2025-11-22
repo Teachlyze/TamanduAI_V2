@@ -4,16 +4,19 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useToast } from '@/shared/components/ui/use-toast';
 import { ClassCard, EmptyState } from '@/modules/student/components/redesigned';
-import { BookOpen, Search, Grid3x3, List, Star } from 'lucide-react';
+import { BookOpen, Search, Grid3x3, List, Star, LogIn, X } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
+import { Card } from '@/shared/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 
 const StudentClassesPageRedesigned = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
@@ -22,6 +25,10 @@ const StudentClassesPageRedesigned = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState('grid');
   const [sortBy, setSortBy] = useState('name');
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [joiningClass, setJoiningClass] = useState(false);
+  const [joinError, setJoinError] = useState('');
 
   useEffect(() => {
     if (user?.id) {
@@ -141,6 +148,11 @@ const StudentClassesPageRedesigned = () => {
       setClasses(classesWithStats);
     } catch (error) {
       logger.error('Erro ao carregar turmas:', error);
+      toast({
+        title: 'Erro ao carregar turmas',
+        description: 'Não foi possível carregar suas turmas. Tente novamente em instantes.',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
       if (initialLoad) {
@@ -183,13 +195,88 @@ const StudentClassesPageRedesigned = () => {
     setFilteredClasses(filtered);
   };
 
-  if (loading && initialLoad) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  const handleJoinClass = async () => {
+    const code = joinCode.replace(/\s/g, '').trim().toUpperCase();
+
+    if (!code) {
+      setJoinError('Digite o código da turma');
+      return;
+    }
+
+    if (code.length !== 8) {
+      setJoinError('O código deve ter 8 caracteres');
+      return;
+    }
+
+    if (!user?.id) {
+      setJoinError('Você precisa estar autenticado para entrar em uma turma.');
+      return;
+    }
+
+    try {
+      setJoiningClass(true);
+      setJoinError('');
+
+      // Buscar turma pelo código (case-insensitive, como na tela antiga)
+      const { data: classData, error: searchError } = await supabase
+        .from('classes')
+        .select('id, name')
+        .ilike('invite_code', code)
+        .maybeSingle();
+
+      if (searchError || !classData) {
+        logger.error('Erro ao buscar turma:', searchError);
+        setJoinError('Código inválido! Verifique se digitou corretamente.');
+        return;
+      }
+
+      // Verificar se já é membro
+      const { data: existingMembership } = await supabase
+        .from('class_members')
+        .select('id')
+        .eq('class_id', classData.id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingMembership) {
+        setJoinError('Você já está nesta turma!');
+        return;
+      }
+
+      // Adicionar como membro
+      const { data: inserted, error: insertError } = await supabase
+        .from('class_members')
+        .insert({
+          class_id: classData.id,
+          user_id: user.id,
+          role: 'student',
+          joined_at: new Date().toISOString(),
+        })
+        .select();
+
+      if (insertError) throw insertError;
+
+      if (!inserted || inserted.length === 0) {
+        throw new Error('Falha ao adicionar você à turma');
+      }
+
+      setShowJoinModal(false);
+      setJoinCode('');
+      setJoinError('');
+
+      await loadClasses();
+
+      toast({
+        title: '🎉 Bem-vindo(a)!',
+        description: `Você entrou na turma "${classData.name}" com sucesso!`,
+      });
+    } catch (error) {
+      logger.error('Erro ao entrar na turma:', error);
+      setJoinError('Erro ao entrar na turma. Tente novamente.');
+    } finally {
+      setJoiningClass(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6">
@@ -223,8 +310,8 @@ const StudentClassesPageRedesigned = () => {
           </div>
         </div>
 
-        {/* Ordenação */}
-        <div className="flex gap-2">
+        {/* Ordenação e Ações */}
+        <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
           <Tabs value={sortBy} onValueChange={setSortBy}>
             <TabsList>
               <TabsTrigger value="name">Nome</TabsTrigger>
@@ -253,6 +340,16 @@ const StudentClassesPageRedesigned = () => {
               <List className="w-4 h-4" />
             </Button>
           </div>
+
+          {/* Entrar com código */}
+          <Button
+            type="button"
+            onClick={() => setShowJoinModal(true)}
+            className="sm:ml-2 bg-blue-600 hover:bg-blue-700 text-white whitespace-nowrap"
+          >
+            <LogIn className="w-4 h-4 mr-2" />
+            Entrar com código
+          </Button>
         </div>
       </div>
 
@@ -279,8 +376,14 @@ const StudentClassesPageRedesigned = () => {
           description={
             searchQuery
               ? 'Tente ajustar sua busca para encontrar o que procura.'
-              : 'Entre em contato com seu professor para ser adicionado a uma turma.'
+              : 'Use o código fornecido pelo seu professor para entrar em uma turma.'
           }
+          action={
+            searchQuery
+              ? undefined
+              : () => setShowJoinModal(true)
+          }
+          actionLabel={searchQuery ? undefined : 'Entrar com código da turma'}
           variant="default"
         />
       )}
@@ -332,6 +435,102 @@ const StudentClassesPageRedesigned = () => {
             </p>
           </div>
         </motion.div>
+      )}
+      {showJoinModal && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowJoinModal(false);
+            setJoinCode('');
+            setJoinError('');
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Card className="p-8 max-w-md w-full bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  Entrar em uma Turma
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowJoinModal(false);
+                    setJoinCode('');
+                    setJoinError('');
+                  }}
+                  className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                Digite o código fornecido pelo professor
+              </p>
+
+              <div className="mb-6">
+                <Input
+                  value={joinCode}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase();
+                    if (value.length <= 8) {
+                      setJoinCode(value);
+                      setJoinError('');
+                    }
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleJoinClass();
+                    }
+                  }}
+                  placeholder="CÓDIGO DA TURMA"
+                  maxLength={8}
+                  className="text-center text-2xl font-mono tracking-widest uppercase h-14 border-2 focus:border-blue-500"
+                  autoFocus
+                  disabled={joiningClass}
+                />
+                {joinError && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 text-center">
+                    {joinError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowJoinModal(false);
+                    setJoinCode('');
+                    setJoinError('');
+                  }}
+                  className="flex-1 border-slate-300 dark:border-slate-700"
+                  disabled={joiningClass}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleJoinClass}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={joiningClass || !joinCode.trim()}
+                >
+                  {joiningClass ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Entrando...
+                    </>
+                  ) : (
+                    'Entrar'
+                  )}
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        </div>
       )}
     </div>
   );

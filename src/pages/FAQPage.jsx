@@ -270,6 +270,16 @@ const FAQPage = () => {
                 <p className="text-lg text-slate-600 dark:text-slate-400">
                   Nenhuma pergunta encontrada. Tente outra busca.
                 </p>
+                <p className="mt-4 text-slate-600 dark:text-slate-400">
+                  Ainda está com dúvida?{' '}
+                  <Link
+                    to="/contact"
+                    className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Fale com nossa equipe
+                  </Link>
+                  .
+                </p>
               </div>
             ) : (
               <div className="space-y-4">

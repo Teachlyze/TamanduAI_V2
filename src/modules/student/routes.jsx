@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { StudentLayout } from './layouts/StudentLayout';
 
@@ -33,6 +33,50 @@ const FlashcardsSettingsPage = React.lazy(() => import('./pages/Flashcards/Flash
 const DeckSettingsPage = React.lazy(() => import('./pages/Flashcards/DeckSettingsPage'));
 
 const StudentRoutes = () => {
+  useEffect(() => {
+    // Prefetch de código das principais páginas do módulo de aluno em background
+    const timeout = setTimeout(() => {
+      // Páginas de classes
+      import('./pages/Classes/StudentClassesPageRedesigned');
+      import('./pages/Classes/StudentClassDetailsPageRedesigned');
+
+      // Páginas de atividades
+      import('./pages/Activities/StudentActivitiesPageRedesigned');
+      import('./pages/Activities/StudentActivityDetailsPageRedesigned');
+
+      // Desempenho
+      import('./pages/Performance/StudentPerformancePageRedesigned');
+      import('./pages/Performance/StudentHistoryPageRedesigned');
+
+      // Gamificação e social
+      import('./pages/Gamification/StudentGamificationPage');
+      import('./pages/Gamification/StudentMissionsPage');
+      import('./pages/Social/StudentRankingPage');
+      import('./pages/Social/StudentDiscussionPage');
+      import('./pages/Social/StudentPublicQuizzesPage');
+      import('./pages/Social/StudentQuizPlayPage');
+
+      // Calendário e perfil/configurações
+      import('./pages/Calendar/StudentCalendarPageRedesigned');
+      import('./pages/Profile/StudentProfilePage');
+      import('./pages/Profile/StudentFeedbackPage');
+      import('./pages/Settings/StudentSettingsPage');
+
+      // Flashcards
+      import('./pages/Flashcards/FlashcardsPage');
+      import('./pages/Flashcards/FlashcardsStatsPage');
+      import('./pages/Flashcards/CreateDeckPage');
+      import('./pages/Flashcards/DeckDetailPage');
+      import('./pages/Flashcards/ReviewPage');
+      import('./pages/Flashcards/CramModePage');
+      import('./pages/Flashcards/CardEditorPage');
+      import('./pages/Flashcards/FlashcardsSettingsPage');
+      import('./pages/Flashcards/DeckSettingsPage');
+    }, 1500);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   return (
     <StudentLayout>
       <Routes>
