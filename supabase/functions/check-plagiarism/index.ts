@@ -32,7 +32,7 @@ serve(async (req) => {
       }
     )
 
-    // Chamar WinstonAI API
+    // Chamar WinstonAI Plagiarism API v2
     const winstonKey = Deno.env.get('WINSTON_AI_KEY')
     
     const winstonResponse = await fetch('https://api.gowinston.ai/v2/plagiarism', {
@@ -42,9 +42,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        text: text,
+        text,
         language: 'pt',
-        sentences: true, // Análise por sentença
+        country: 'br',
       }),
     })
 
@@ -55,16 +55,18 @@ serve(async (req) => {
 
     const winstonData = await winstonResponse.json()
 
-    // Processar resultado
-    const plagiarismScore = winstonData.score || 0
-    const aiScore = winstonData.ai_score || 0
-    const sources = winstonData.sources || []
+    // Processar resultado conforme a API /v2/plagiarism
+    const result = winstonData?.result || {}
+    const plagiarismScore = typeof result.score === 'number' ? result.score : 0
+    const sources = Array.isArray(winstonData?.sources) ? winstonData.sources : []
+    // A API de plágio não garante score de IA; manter campo para compatibilidade
+    const aiScore = typeof winstonData?.ai_score === 'number' ? winstonData.ai_score : 0
     
-    // Determinar severidade
+    // Determinar severidade (quanto maior o score, mais grave)
     let severity = 'low'
-    if (plagiarismScore < 70) {
+    if (plagiarismScore >= 85) {
       severity = 'high'
-    } else if (plagiarismScore < 85) {
+    } else if (plagiarismScore >= 70) {
       severity = 'medium'
     }
 

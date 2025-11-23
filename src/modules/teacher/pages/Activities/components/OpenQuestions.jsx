@@ -8,10 +8,11 @@ import { Textarea } from '@/shared/components/ui/textarea';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Badge } from '@/shared/components/ui/badge';
 
-const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
+const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed, isLocked }) => {
   const [draggedIndex, setDraggedIndex] = useState(null);
 
   const addQuestion = () => {
+    if (isLocked) return;
     setQuestions([
       ...questions,
       {
@@ -30,14 +31,17 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
   };
 
   const updateQuestion = (id, field, value) => {
+    if (isLocked) return;
     setQuestions(questions.map(q => q.id === id ? { ...q, [field]: value } : q));
   };
 
   const deleteQuestion = (id) => {
+    if (isLocked) return;
     setQuestions(questions.filter(q => q.id !== id));
   };
 
   const addRubricCriterion = (questionId) => {
+    if (isLocked) return;
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
         return {
@@ -55,6 +59,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
   };
 
   const updateRubricCriterion = (questionId, criterionId, field, value) => {
+    if (isLocked) return;
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
         return {
@@ -67,6 +72,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
   };
 
   const deleteRubricCriterion = (questionId, criterionId) => {
+    if (isLocked) return;
     setQuestions(questions.map(q => {
       if (q.id === questionId) {
         return {
@@ -80,11 +86,13 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
 
   // Funções de Drag and Drop
   const handleDragStart = (index) => {
+    if (isLocked) return;
     setDraggedIndex(index);
   };
 
   const handleDragOver = (e, index) => {
     e.preventDefault();
+    if (isLocked) return;
     if (draggedIndex === null || draggedIndex === index) return;
 
     const newQuestions = [...questions];
@@ -119,12 +127,20 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={addQuestion} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={addQuestion} className="bg-green-600 hover:bg-green-700" disabled={isLocked}>
               <Plus className="w-4 h-4 mr-2" />
               Questão Dissertativa
             </Button>
             {onAddClosed && (
-              <Button onClick={onAddClosed} variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
+              <Button
+                onClick={() => {
+                  if (isLocked) return;
+                  onAddClosed();
+                }}
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                disabled={isLocked}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Questão Objetiva
               </Button>
@@ -135,7 +151,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
         {questions.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
             <p className="mb-4">Nenhuma questão adicionada ainda.</p>
-            <Button onClick={addQuestion} variant="outline">
+            <Button onClick={addQuestion} variant="outline" disabled={isLocked}>
               <Plus className="w-4 h-4 mr-2" />
               Criar Primeira Questão
             </Button>
@@ -146,7 +162,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
               <Card 
                 key={question.id} 
                 className={`p-6 border-l-4 border-l-green-500 transition-opacity ${draggedIndex === index ? 'opacity-50' : 'opacity-100'}`}
-                draggable
+                draggable={!isLocked}
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
@@ -164,6 +180,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                         placeholder="Digite o enunciado da questão..."
                         value={question.text}
                         onChange={(e) => updateQuestion(question.id, 'text', e.target.value)}
+                        disabled={isLocked}
                         className="mt-1 min-h-[100px]"
                       />
                     </div>
@@ -177,6 +194,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                           min="0"
                           value={question.points}
                           onChange={(e) => updateQuestion(question.id, 'points', parseFloat(e.target.value))}
+                          disabled={isLocked}
                           className="mt-1"
                         />
                       </div>
@@ -188,6 +206,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                           placeholder="Ilimitado"
                           value={question.maxLines || ''}
                           onChange={(e) => updateQuestion(question.id, 'maxLines', e.target.value ? parseInt(e.target.value) : null)}
+                          disabled={isLocked}
                           className="mt-1"
                         />
                       </div>
@@ -199,6 +218,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                           placeholder="Ilimitado"
                           value={question.maxCharacters || ''}
                           onChange={(e) => updateQuestion(question.id, 'maxCharacters', e.target.value ? parseInt(e.target.value) : null)}
+                          disabled={isLocked}
                           className="mt-1"
                         />
                       </div>
@@ -212,6 +232,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                           size="sm"
                           variant="outline"
                           onClick={() => addRubricCriterion(question.id)}
+                          disabled={isLocked}
                         >
                           <Plus className="w-4 h-4 mr-1" />
                           Adicionar Critério
@@ -227,11 +248,13 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                                   placeholder="Nome do critério"
                                   value={criterion.name}
                                   onChange={(e) => updateRubricCriterion(question.id, criterion.id, 'name', e.target.value)}
+                                  disabled={isLocked}
                                 />
                                 <Input
                                   placeholder="Descrição"
                                   value={criterion.description}
                                   onChange={(e) => updateRubricCriterion(question.id, criterion.id, 'description', e.target.value)}
+                                  disabled={isLocked}
                                 />
                                 <Input
                                   type="number"
@@ -239,12 +262,14 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                                   placeholder="Pontos máximos"
                                   value={criterion.maxPoints}
                                   onChange={(e) => updateRubricCriterion(question.id, criterion.id, 'maxPoints', parseFloat(e.target.value))}
+                                  disabled={isLocked}
                                 />
                               </div>
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => deleteRubricCriterion(question.id, criterion.id)}
+                                disabled={isLocked}
                               >
                                 <Trash2 className="w-4 h-4 text-red-500" />
                               </Button>
@@ -261,6 +286,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                         placeholder="Digite uma resposta de referência para consulta durante correção..."
                         value={question.expectedAnswer}
                         onChange={(e) => updateQuestion(question.id, 'expectedAnswer', e.target.value)}
+                        disabled={isLocked}
                         className="mt-1 min-h-[80px]"
                       />
                     </div>
@@ -270,6 +296,7 @@ const OpenQuestions = ({ questions, setQuestions, maxScore, onAddClosed }) => {
                     variant="ghost"
                     size="icon"
                     onClick={() => deleteQuestion(question.id)}
+                    disabled={isLocked}
                   >
                     <Trash2 className="w-5 h-5 text-red-500" />
                   </Button>

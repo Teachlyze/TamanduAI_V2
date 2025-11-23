@@ -1,4 +1,5 @@
-import React, { useState, memo, useCallback } from 'react';
+import React, { useState, memo, useCallback, useEffect } from 'react';
+
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PostActivityModal from '@/modules/teacher/components/PostActivityModal';
@@ -14,7 +15,8 @@ import { Badge } from '@/shared/components/ui/badge';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { StatsCard, EmptyState } from '@/shared/design';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { format, isToday, isTomorrow } from 'date-fns';
+import { supabase } from '@/shared/services/supabaseClient';
+import { format, isToday, isTomorrow, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // Hooks granulares (cada um com cache Redis independente)
@@ -88,6 +90,7 @@ const TeacherDashboard = () => {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [upcomingEventsPage, setUpcomingEventsPage] = useState(1);
   const EVENTS_PER_PAGE = 6; // 3 linhas x 2 colunas
+  const [recentNotifications, setRecentNotifications] = useState([]);
 
   // Callbacks para evitar re-renders desnecessários
   const handleEventFilterChange = useCallback((filter) => {
@@ -110,6 +113,33 @@ const TeacherDashboard = () => {
   const { data: submissions, loading: submissionsLoading, refetch: refetchSubmissions } = useDashboardSubmissions();
   const { data: alertStudents, loading: alertsLoading } = useDashboardAlerts();
   const { data: recentData, loading: recentLoading } = useDashboardRecentData();
+
+  // Notificações recentes (inclui alertas de plágio / IA)
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (!user?.id) {
+        setRecentNotifications([]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+
+        setRecentNotifications(data || []);
+      } catch (error) {
+        console.error('[TeacherDashboard] Error loading notifications for feed:', error);
+      }
+    };
+
+    loadNotifications();
+  }, [user?.id]);
 
   // Callbacks que dependem dos hooks devem vir depois da declaração
   const handlePostActivitySuccess = useCallback(() => {
@@ -185,6 +215,62 @@ const TeacherDashboard = () => {
       change: `${stats?.todayCorrections || 0} hoje`
     }
   ];
+
+  // Construir feed cronológico unificado (submissões, prazos, plágio/IA)
+  const plagiarismNotifications = (recentNotifications || []).filter(
+    (n) => n.type === 'plagiarism_alert' || n.type === 'ai_detection'
+  );
+
+  const feedItems = [];
+
+  // Submissões recentes (já pendentes de correção)
+  pendingSubmissions.forEach((sub) => {
+    if (sub.submitted_at) {
+      feedItems.push({
+        id: `submission-${sub.id}`,
+        kind: 'submission',
+        timestamp: new Date(sub.submitted_at),
+        sub,
+      });
+    }
+  });
+
+  // Prazos de atividades (eventos de calendário do tipo deadline)
+  [...todayEvents, ...upcomingEvents].forEach((event) => {
+    if (event.type === 'deadline' && event.start_time) {
+      feedItems.push({
+        id: `deadline-${event.id}`,
+        kind: 'deadline',
+        timestamp: new Date(event.start_time),
+        event,
+      });
+    }
+  });
+
+  // Notificações de plágio / detecção de IA
+  plagiarismNotifications.forEach((notification) => {
+    if (notification.created_at) {
+      feedItems.push({
+        id: `notification-${notification.id}`,
+        kind: notification.type === 'ai_detection' ? 'ai_detection' : 'plagiarism',
+        timestamp: new Date(notification.created_at),
+        notification,
+      });
+    }
+  });
+
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const sevenDaysAhead = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const filteredFeedItems = feedItems.filter((item) => {
+    if (!item.timestamp) return false;
+    return item.timestamp >= sevenDaysAgo && item.timestamp <= sevenDaysAhead;
+  });
+
+  filteredFeedItems.sort((a, b) => b.timestamp - a.timestamp);
+
+  const limitedFeedItems = filteredFeedItems.slice(0, 10);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6">
@@ -377,11 +463,6 @@ const TeacherDashboard = () => {
                   <FileText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white">Correções Pendentes</h3>
-                {pendingSubmissions.length > 0 && (
-                  <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
-                    {pendingSubmissions.length}
-                  </Badge>
-                )}
               </div>
               <Link to="/dashboard/corrections">
                 <Button variant="ghost" size="sm" className="text-amber-600 hover:text-amber-700">
@@ -443,9 +524,27 @@ const TeacherDashboard = () => {
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Próximos Eventos</h3>
             </div>
             <div className="flex gap-2">
-              <Button size="sm" variant={eventFilter === 1 ? 'default' : 'outline'} onClick={() => handleEventFilterChange(1)}>Hoje</Button>
-              <Button size="sm" variant={eventFilter === 3 ? 'default' : 'outline'} onClick={() => handleEventFilterChange(3)}>3 dias</Button>
-              <Button size="sm" variant={eventFilter === 7 ? 'default' : 'outline'} onClick={() => handleEventFilterChange(7)}>7 dias</Button>
+              <Button
+                size="sm"
+                variant={eventFilter === 1 ? 'default' : 'outline'}
+                onClick={() => handleEventFilterChange(1)}
+              >
+                Hoje
+              </Button>
+              <Button
+                size="sm"
+                variant={eventFilter === 3 ? 'default' : 'outline'}
+                onClick={() => handleEventFilterChange(3)}
+              >
+                3 dias
+              </Button>
+              <Button
+                size="sm"
+                variant={eventFilter === 7 ? 'default' : 'outline'}
+                onClick={() => handleEventFilterChange(7)}
+              >
+                7 dias
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => navigate('/dashboard/calendar')}>
                 Ver Todos
               </Button>
@@ -632,7 +731,7 @@ const TeacherDashboard = () => {
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-xl">
                     {student.name?.[0] || 'A'}
                   </div>
-                  <div className="flex-1">
+                  <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white">{student.name}</h4>
                     <Badge className="bg-red-100 text-red-700 text-xs mt-1">Média: {student.avgGrade.toFixed(1)}</Badge>
                   </div>
@@ -643,6 +742,159 @@ const TeacherDashboard = () => {
           </Card>
         </motion.div>
       )}
+
+      {/* Feed cronológico de atividades recentes (submissões, prazos, alertas) */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.55 }}
+        className="mb-8"
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500">
+            <Activity className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Feed de Atividades e Alertas</h2>
+          <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+            Beta
+          </Badge>
+        </div>
+
+        <Card className="p-6 border-2 border-blue-100 dark:border-blue-800/30 shadow-lg">
+          {limitedFeedItems.length > 0 ? (
+            <div className="space-y-3">
+              {limitedFeedItems.map((item, index) => {
+                if (item.kind === 'submission') {
+                  const sub = item.sub;
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white text-sm font-bold">
+                          {sub.student_name?.[0] || 'A'}
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">
+                            {sub.student_name} enviou{' '}
+                            <span className="font-semibold">"{sub.activity_title}"</span>
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {item.timestamp
+                              ? formatDistanceToNow(item.timestamp, {
+                                  locale: ptBR,
+                                  addSuffix: true,
+                                })
+                              : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <Link to={`/dashboard/grading/${sub.id}`}>
+                        <Button size="sm" variant="outline">
+                          Corrigir
+                        </Button>
+                      </Link>
+                    </motion.div>
+                  );
+                }
+
+                if (item.kind === 'deadline') {
+                  const event = item.event;
+                  return (
+                    <motion.div
+                      key={item.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-gray-900 border border-blue-100 dark:border-blue-800 cursor-pointer"
+                      onClick={() => navigate('/dashboard/calendar')}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center">
+                          <Clock className="w-4 h-4 text-blue-600 dark:text-blue-300" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-900 dark:text-white font-medium">
+                            Prazo da atividade{' '}
+                            <span className="font-semibold">"{event.activity_title || event.title}"</span>
+                            {event.class_name && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{' '}• Turma {event.class_name}</span>
+                            )}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {item.timestamp
+                              ? formatDistanceToNow(item.timestamp, {
+                                  locale: ptBR,
+                                  addSuffix: true,
+                                })
+                              : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline">
+                        Ver calendário
+                      </Button>
+                    </motion.div>
+                  );
+                }
+
+                const notification = item.notification;
+                const data = notification?.data || notification?.metadata || {};
+                const submissionId = data.submissionId || data.submission_id;
+
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-gray-900 border border-red-100 dark:border-red-800"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/40 flex items-center justify-center">
+                        <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-300" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-900 dark:text-white font-medium">
+                          {notification.title || (item.kind === 'ai_detection' ? 'Conteúdo gerado por IA detectado' : 'Plágio detectado')}
+                        </p>
+                        {notification.message && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
+                            {notification.message}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {item.timestamp
+                            ? formatDistanceToNow(item.timestamp, {
+                                locale: ptBR,
+                                addSuffix: true,
+                              })
+                            : ''}
+                        </p>
+                      </div>
+                    </div>
+                    <Link to={submissionId ? `/dashboard/grading/${submissionId}` : '/dashboard/corrections'}>
+                      <Button size="sm" variant="outline">
+                        Ver detalhes
+                      </Button>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Activity}
+              title="Nenhuma atividade recente"
+              description="Novas submissões, prazos e alertas aparecerão aqui em ordem cronológica."
+            />
+          )}
+        </Card>
+      </motion.div>
 
       {/* Turmas e Atividades Recentes - Layout 3 colunas */}
       <motion.div

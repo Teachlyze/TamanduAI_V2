@@ -5,6 +5,8 @@ import { ArrowLeft, User, Calendar, FileText, ChevronLeft, ChevronRight } from '
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
 import { Badge } from '@/shared/components/ui/badge';
+import Breadcrumb from '@/shared/components/ui/Breadcrumb';
+import { Progress } from '@/shared/components/ui/progress';
 import { useToast } from '@/shared/components/ui/use-toast';
 import {
   DashboardHeader,
@@ -455,6 +457,25 @@ const GradingPage = () => {
     );
   }
 
+  const totalSubmissions = allSubmissions.length || 0;
+  const gradedCount = allSubmissions.filter(s => s.status === 'graded').length;
+  const gradingProgress = totalSubmissions ? (gradedCount / totalSubmissions) * 100 : 0;
+
+  const breadcrumbItems = [
+    { label: 'Correções', path: '/dashboard/corrections' },
+  ];
+
+  if (activity) {
+    breadcrumbItems.push({
+      label: activity.title,
+      path: `/dashboard/activities/${activity.id}/submissions`,
+    });
+  }
+
+  if (submission?.student?.full_name) {
+    breadcrumbItems.push({ label: submission.student.full_name });
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       {/* Back Button */}
@@ -467,12 +488,26 @@ const GradingPage = () => {
         Voltar para Submissões
       </Button>
 
+      <Breadcrumb items={breadcrumbItems} className="mb-4" />
+
       {/* Header */}
       <DashboardHeader
         title={`Corrigir Submissão${submission?.student?.full_name ? ` - ${submission.student.full_name}` : ''}`}
         subtitle={`${activity?.title || 'Atividade'}${classInfo?.name ? ` • Turma: ${classInfo.name}` : ''} • ${currentIndex + 1} de ${allSubmissions.length}`}
         role="teacher"
       />
+
+      <div className="mt-4 mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+            Progresso da correção
+          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {gradedCount} de {totalSubmissions} corrigidas
+          </span>
+        </div>
+        <Progress value={gradingProgress} />
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Student Info & Submission Content */}

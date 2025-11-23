@@ -115,6 +115,32 @@ const ActivityListItemImproved = ({
               </div>
             )}
           </div>
+
+          {/* Linha 4: Versionamento */}
+          {(activity.version || activity.previousActivityId || activity.hasNewerVersion) && (
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-1 flex-wrap">
+              <span>
+                Versão v{activity.version || 1}
+              </span>
+              {activity.previousActivityId && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.location.href = `/dashboard/activities/${activity.previousActivityId}/submissions`;
+                  }}
+                  className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                >
+                  Ver submissões da versão anterior
+                </button>
+              )}
+              {activity.hasNewerVersion && (
+                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                  Nova versão disponível
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Badges e Status - Meio */}

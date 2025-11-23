@@ -1,6 +1,6 @@
 import { logger } from '@/shared/utils/logger';
 import { supabase } from '@/shared/services/supabaseClient';
-import { checkTextForPlagiarism, invokeEdgeCheck } from './plagiarismService';
+import { checkTextForPlagiarism, checkPlagiarismWithEdgeFunction } from './plagiarismService';
 import NotificationOrchestrator from '@/shared/services/notificationOrchestrator';
 
 /**
@@ -89,11 +89,22 @@ export const createSubmission = async (submissionData, submit = false) => {
       try {
         const { data: activityCfg } = await supabase
           .from('activities')
-          .select('id, plagiarism_enabled')
+          .select('id, plagiarism_enabled, type, activity_type')
           .eq('id', activity_id)
           .single();
 
-        if (activityCfg?.plagiarism_enabled) {
+        const rawType = activityCfg?.activity_type || activityCfg?.type || null;
+        const isOpenOrMixed =
+          rawType === 'open' ||
+          rawType === 'mixed' ||
+          rawType === 'assignment' ||
+          rawType === 'essay';
+        const isQuizLike =
+          rawType === 'quiz' ||
+          rawType === 'closed' ||
+          rawType === 'objective';
+
+        if (activityCfg?.plagiarism_enabled && isOpenOrMixed && !isQuizLike) {
           // Extract text from submission data (supports array or object)
           const items = Array.isArray(data) ? data : Object.values(data || {});
           const textAnswers = (items || [])
@@ -102,17 +113,16 @@ export const createSubmission = async (submissionData, submit = false) => {
             .join('\n\n');
 
           if (textAnswers.length > 0) {
-            // Non-blocking: prefer Edge Function; fallback to local if needed
-            const res = await invokeEdgeCheck({
-              submissionId: submission.id,
-              activityId: activityCfg.id,
-              classId: null, // Will be handled by plagiarism service
-              text: textAnswers,
-              rephrased: true,
-            });
-            if (!res) {
-              // Best-effort fallback, still non-blocking
-              try { await checkTextForPlagiarism(textAnswers); } catch (e) { logger.warn('checkTextForPlagiarism fallback failed:', e) }
+            // Prefer Edge Function check-plagiarism; fallback para chamada direta se falhar
+            try {
+              await checkPlagiarismWithEdgeFunction(submission.id, textAnswers);
+            } catch (e) {
+              logger.warn('Plagiarism edge check failed (non-blocking):', e)
+              try {
+                await checkTextForPlagiarism(textAnswers);
+              } catch (fallbackError) {
+                logger.warn('checkTextForPlagiarism fallback failed:', fallbackError)
+              }
             }
           }
         }
@@ -428,11 +438,22 @@ export const submitDraft = async (submissionId) => {
     try {
       const { data: subActivity } = await supabase
         .from('activities')
-        .select('id, class_id, plagiarism_enabled')
+        .select('id, class_id, plagiarism_enabled, type, activity_type')
         .eq('id', submission.activity_id)
         .single();
 
-      if (subActivity?.plagiarism_enabled) {
+      const rawType = subActivity?.activity_type || subActivity?.type || null;
+      const isOpenOrMixed =
+        rawType === 'open' ||
+        rawType === 'mixed' ||
+        rawType === 'assignment' ||
+        rawType === 'essay';
+      const isQuizLike =
+        rawType === 'quiz' ||
+        rawType === 'closed' ||
+        rawType === 'objective';
+
+      if (subActivity?.plagiarism_enabled && isOpenOrMixed && !isQuizLike) {
         // Load submission data and extract text
         const { data: sub } = await supabase
           .from('submissions')
@@ -447,14 +468,16 @@ export const submitDraft = async (submissionId) => {
           .join('\n\n');
 
         if (textContent) {
-          const res = await invokeEdgeCheck({
-            submissionId,
-            activityId: subActivity.id,
-            classId: null, // Will be handled by plagiarism service
-            text: textContent,
-            rephrased: true,
-          });
-          if (!res) { try { await checkTextForPlagiarism(textContent); } catch (e) { logger.warn('checkTextForPlagiarism fallback failed:', e) } }
+          try {
+            await checkPlagiarismWithEdgeFunction(submissionId, textContent);
+          } catch (e) {
+            logger.warn('Plagiarism edge check failed (non-blocking):', e)
+            try {
+              await checkTextForPlagiarism(textContent);
+            } catch (fallbackError) {
+              logger.warn('checkTextForPlagiarism fallback failed:', fallbackError)
+            }
+          }
         }
       }
     } catch (plagErr) {

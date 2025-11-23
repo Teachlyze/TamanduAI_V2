@@ -20,6 +20,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { cn } from '@/lib/utils';
+import Breadcrumb from '@/shared/components/ui/Breadcrumb';
 import ActivityListItem from './components/ActivityListItemImproved';
 import ActivityGridCard from './components/ActivityGridCard';
 import PostActivityModal from './components/PostActivityModal';
@@ -94,16 +95,33 @@ const TeacherActivitiesPage = () => {
 
       if (error) throw error;
 
-      const processedActivities = (data || []).map(activity => {
+      const rawActivities = data || [];
+
+      const hasNewerVersionMap = new Map();
+      rawActivities.forEach((activity) => {
+        const prevId = activity.content?.advanced_settings?.previousActivityId;
+        if (prevId) {
+          hasNewerVersionMap.set(prevId, true);
+        }
+      });
+
+      const processedActivities = rawActivities.map(activity => {
         const submittedCount = activity.submissions?.filter(s => s.status === 'submitted' || s.status === 'graded').length || 0;
         const avgGrade = activity.submissions?.filter(s => s.grade !== null).reduce((acc, s) => acc + parseFloat(s.grade), 0) / submittedCount || 0;
+
+        const version = activity.content?.advanced_settings?.version || 1;
+        const previousActivityId = activity.content?.advanced_settings?.previousActivityId || null;
+        const hasNewerVersion = hasNewerVersionMap.has(activity.id);
         
         return {
           ...activity,
           timesUsed: activity.assignments?.length || 0,
           submittedCount,
           avgGrade: avgGrade.toFixed(2),
-          classNames: activity.assignments?.map(a => a.class?.name).filter(Boolean) || []
+          classNames: activity.assignments?.map(a => a.class?.name).filter(Boolean) || [],
+          version,
+          previousActivityId,
+          hasNewerVersion,
         };
       });
 
@@ -307,6 +325,12 @@ const TeacherActivitiesPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
       <div className="mb-8">
+        <Breadcrumb
+          items={[
+            { label: 'Atividades', path: '/dashboard/activities' }
+          ]}
+          className="mb-2"
+        />
         <DashboardHeader title="Banco de Atividades" subtitle="Crie, organize e reutilize suas atividades" role="teacher" />
         <div className="flex flex-wrap gap-3 mt-4">
           <Button size="lg" onClick={() => {

@@ -48,6 +48,8 @@ const TeacherActivityCreatePage = () => {
   const [loading, setLoading] = useState(isEditMode);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [hasSubmissions, setHasSubmissions] = useState(false);
+  const [lockedStructure, setLockedStructure] = useState(null);
 
   // Dados da atividade
   const [activityType, setActivityType] = useState(null);
@@ -178,6 +180,71 @@ const TeacherActivityCreatePage = () => {
     }
   };
 
+  const handleCreateNewVersion = async () => {
+    if (!id) return;
+
+    try {
+      setSaving(true);
+
+      const { data: existingActivity, error } = await supabase
+        .from('activities')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+
+      const previousVersion =
+        existingActivity.content?.advanced_settings?.version ||
+        existingActivity.content?.advanced_settings?.activityVersion ||
+        1;
+
+      const nextVersion = previousVersion + 1;
+
+      const newContent = {
+        ...(existingActivity.content || {}),
+        advanced_settings: {
+          ...(existingActivity.content?.advanced_settings || {}),
+          version: nextVersion,
+          previousActivityId: existingActivity.id,
+        },
+      };
+
+      const { data: newActivity, error: insertError } = await supabase
+        .from('activities')
+        .insert({
+          title: `${existingActivity.title} - Versão ${nextVersion}`,
+          description: existingActivity.description,
+          type: existingActivity.type,
+          max_score: existingActivity.max_score,
+          status: 'draft',
+          is_published: false,
+          content: newContent,
+          created_by: user.id,
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Nova versão criada',
+        description: `A Versão ${nextVersion} foi criada como rascunho.`,
+      });
+
+      navigate(`/dashboard/activities/${newActivity.id}/edit`);
+    } catch (error) {
+      logger.error('Erro ao criar nova versão de atividade:', error);
+      toast({
+        title: 'Erro ao criar nova versão',
+        description: 'Não foi possível criar uma nova versão da atividade.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const loadActivity = async () => {
     try {
       setLoading(true);
@@ -213,6 +280,32 @@ const TeacherActivityCreatePage = () => {
         setAdvancedSettings(data.content.advanced_settings);
       }
 
+      try {
+        const { data: submissionsData, error: submissionsError } = await supabase
+          .from('submissions')
+          .select('id')
+          .eq('activity_id', id)
+          .limit(1);
+
+        if (submissionsError) {
+          logger.warn('Erro ao verificar submissões da atividade:', submissionsError);
+        }
+
+        const hasSubs = (submissionsData || []).length > 0;
+        setHasSubmissions(hasSubs);
+
+        if (hasSubs) {
+          setLockedStructure({
+            databaseType: data.type,
+            maxScore: data.max_score || 10,
+            questions: data.content?.questions || [],
+            advancedSettings: data.content?.advanced_settings || advancedSettings,
+          });
+        }
+      } catch (submissionsCheckError) {
+        logger.warn('Falha inesperada ao verificar submissões da atividade:', submissionsCheckError);
+      }
+
       toast({
         title: 'Atividade carregada',
         description: 'Você pode editar e salvar as alterações.'
@@ -234,23 +327,26 @@ const TeacherActivityCreatePage = () => {
     if (!title || !activityType) return;
 
     try {
-      // Mapear tipo do frontend para o banco
-      const databaseType = mapFrontendTypeToDatabase(activityType);
+      const shouldLockStructure = isEditMode && hasSubmissions && lockedStructure;
+
+      const databaseType = shouldLockStructure
+        ? lockedStructure.databaseType
+        : mapFrontendTypeToDatabase(activityType);
 
       const activityData = {
         title,
         description,
         type: databaseType,  // CORREÇÃO: usa tipo mapeado
-        max_score: maxScore,
+        max_score: shouldLockStructure ? lockedStructure.maxScore : maxScore,
         status: 'draft',
         content: {
           subject,
           tags,
           difficulty,
           estimated_time: estimatedTime,
-          questions,
+          questions: shouldLockStructure ? lockedStructure.questions : questions,
           attachments,
-          advanced_settings: advancedSettings
+          advanced_settings: shouldLockStructure ? lockedStructure.advancedSettings : advancedSettings
         },
         created_by: user.id,
         updated_at: new Date().toISOString()
@@ -360,8 +456,12 @@ const TeacherActivityCreatePage = () => {
     try {
       setSaving(true);
 
-      // Mapear tipo do frontend para o banco
-      const databaseType = mapFrontendTypeToDatabase(activityType);
+      const shouldLockStructure = isEditMode && hasSubmissions && lockedStructure;
+
+      // Mapear tipo do frontend para o banco, respeitando estrutura bloqueada quando houver submissões
+      const databaseType = shouldLockStructure
+        ? lockedStructure.databaseType
+        : mapFrontendTypeToDatabase(activityType);
       
       logger.debug('[Activity Draft] Mapeando tipo:', { 
         frontendType: activityType, 
@@ -372,16 +472,16 @@ const TeacherActivityCreatePage = () => {
         title: title.trim(),
         description: description?.trim() || '',
         type: databaseType,  // CORREÇÃO: usa tipo mapeado
-        max_score: maxScore,
+        max_score: shouldLockStructure ? lockedStructure.maxScore : maxScore,
         status: 'draft',
         content: {
           subject,
           tags,
           difficulty,
           estimated_time: estimatedTime,
-          questions,
+          questions: shouldLockStructure ? lockedStructure.questions : questions,
           attachments,
-          advanced_settings: advancedSettings
+          advanced_settings: shouldLockStructure ? lockedStructure.advancedSettings : advancedSettings
         },
         created_by: user.id,
         updated_at: new Date().toISOString()
@@ -464,8 +564,12 @@ const TeacherActivityCreatePage = () => {
     try {
       setSaving(true);
 
-      // Mapear tipo do frontend para o banco
-      const databaseType = mapFrontendTypeToDatabase(activityType);
+      const shouldLockStructure = isEditMode && hasSubmissions && lockedStructure;
+
+      // Mapear tipo do frontend para o banco, respeitando estrutura bloqueada quando houver submissões
+      const databaseType = shouldLockStructure
+        ? lockedStructure.databaseType
+        : mapFrontendTypeToDatabase(activityType);
       
       logger.debug('[Activity Create] Mapeando tipo:', { 
         frontendType: activityType, 
@@ -477,7 +581,7 @@ const TeacherActivityCreatePage = () => {
         title,
         description,
         type: databaseType,  // CORREÇÃO: usa tipo mapeado
-        max_score: maxScore,
+        max_score: shouldLockStructure ? lockedStructure.maxScore : maxScore,
         status: 'published',
         is_published: true,
         content: {
@@ -485,9 +589,9 @@ const TeacherActivityCreatePage = () => {
           tags,
           difficulty,
           estimated_time: estimatedTime,
-          questions,
+          questions: shouldLockStructure ? lockedStructure.questions : questions,
           attachments,
-          advanced_settings: advancedSettings
+          advanced_settings: shouldLockStructure ? lockedStructure.advancedSettings : advancedSettings
         },
         created_by: user.id,
         updated_at: new Date().toISOString()
@@ -619,6 +723,11 @@ const TeacherActivityCreatePage = () => {
                 <Badge variant="outline">
                   {isEditMode ? 'Editando' : 'Nova'}
                 </Badge>
+                {hasSubmissions && (
+                  <Badge variant="outline" className="border-orange-500 text-orange-600">
+                    Estrutura bloqueada (há submissões)
+                  </Badge>
+                )}
                 {lastSaved && (
                   <span className="text-sm text-gray-500">
                     Salvo {Math.floor((new Date() - lastSaved) / 1000)}s atrás
@@ -637,6 +746,16 @@ const TeacherActivityCreatePage = () => {
               <Eye className="w-5 h-5 mr-2" />
               Prévia
             </Button>
+            {isEditMode && hasSubmissions && (
+              <Button
+                variant="outline"
+                onClick={handleCreateNewVersion}
+                disabled={saving}
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                Criar nova versão
+              </Button>
+            )}
             <Button
               variant="outline"
               onClick={handleSaveDraft}
@@ -656,6 +775,19 @@ const TeacherActivityCreatePage = () => {
           </div>
         </div>
       </div>
+
+      {isEditMode && hasSubmissions && (
+        <div className="mb-6 p-4 rounded-lg border border-orange-200 bg-orange-50 text-sm text-orange-800 flex items-start gap-2">
+          <AlertCircle className="w-5 h-5 mt-0.5" />
+          <div>
+            <p className="font-semibold">Atividade com entregas</p>
+            <p>
+              Questões, pontuação máxima e configurações de correção estão bloqueadas para preservar as notas já registradas.
+              {' '}Para alterar o gabarito ou a estrutura da atividade, crie uma nova versão.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-12 gap-6">
         {/* Navegação Lateral */}
@@ -839,7 +971,13 @@ const TeacherActivityCreatePage = () => {
                         value={maxScore}
                         onChange={(e) => setMaxScore(parseFloat(e.target.value))}
                         className="mt-1"
+                        disabled={hasSubmissions}
                       />
+                      {hasSubmissions && (
+                        <p className="text-xs text-orange-600 mt-1">
+                          Pontuação máxima bloqueada porque esta atividade já possui submissões.
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -895,6 +1033,7 @@ const TeacherActivityCreatePage = () => {
                     maxScore={maxScore}
                     // Só permite adicionar questão objetiva em atividades mistas
                     onAddClosed={undefined}
+                    isLocked={hasSubmissions}
                   />
                 )}
                 {(activityType === 'closed' || activityType === 'quiz') && (
@@ -904,6 +1043,7 @@ const TeacherActivityCreatePage = () => {
                     maxScore={maxScore}
                     // Só permite adicionar questão dissertativa em atividades mistas
                     onAddOpen={undefined}
+                    isLocked={hasSubmissions}
                   />
                 )}
                 {(activityType === 'mixed' || activityType === 'project') && (
@@ -911,6 +1051,7 @@ const TeacherActivityCreatePage = () => {
                     questions={questions}
                     setQuestions={setQuestions}
                     maxScore={maxScore}
+                    isLocked={hasSubmissions}
                   />
                 )}
               </>
@@ -922,6 +1063,7 @@ const TeacherActivityCreatePage = () => {
                 settings={advancedSettings}
                 setSettings={setAdvancedSettings}
                 activityType={activityType}
+                isLocked={hasSubmissions}
               />
             )}
 

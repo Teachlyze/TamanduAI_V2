@@ -7,13 +7,14 @@ import { Tabs, TabsList, TabsTrigger } from '@/shared/components/ui/tabs';
 import OpenQuestions from './OpenQuestions';
 import ClosedQuestions from './ClosedQuestions';
 
-const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
+const MixedQuestions = ({ questions, setQuestions, maxScore, isLocked }) => {
   const [questionTypeToAdd, setQuestionTypeToAdd] = useState('open');
 
   const openQuestions = questions.filter(q => q.type === 'open');
   const closedQuestions = questions.filter(q => q.type === 'closed');
 
   const addQuestion = (type) => {
+    if (isLocked) return;
     const newQuestion = type === 'open' ? {
       id: Date.now(),
       type: 'open',
@@ -71,11 +72,11 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
             <p className="mb-4">Nenhuma questão adicionada ainda.</p>
             <p className="mb-6">Comece adicionando questões abertas ou fechadas.</p>
             <div className="flex gap-3 justify-center">
-              <Button onClick={() => addQuestion('open')} variant="outline">
+              <Button onClick={() => addQuestion('open')} variant="outline" disabled={isLocked}>
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Questão Aberta
               </Button>
-              <Button onClick={() => addQuestion('closed')} variant="outline">
+              <Button onClick={() => addQuestion('closed')} variant="outline" disabled={isLocked}>
                 <Plus className="w-4 h-4 mr-2" />
                 Adicionar Questão Fechada
               </Button>
@@ -121,6 +122,7 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
           }}
           maxScore={maxScore * (openPercentage / 100)}
           onAddClosed={() => addQuestion('closed')}
+          isLocked={isLocked}
         />
       )}
 
@@ -135,6 +137,7 @@ const MixedQuestions = ({ questions, setQuestions, maxScore }) => {
           }}
           maxScore={maxScore * (closedPercentage / 100)}
           onAddOpen={() => addQuestion('open')}
+          isLocked={isLocked}
         />
       )}
     </div>

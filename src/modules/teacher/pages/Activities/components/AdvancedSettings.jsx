@@ -6,8 +6,9 @@ import { Switch } from '@/shared/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/components/ui/select';
 import { Slider } from '@/shared/components/ui/slider';
 
-const AdvancedSettings = ({ settings, setSettings, activityType }) => {
+const AdvancedSettings = ({ settings, setSettings, activityType, isLocked }) => {
   const updateSetting = (key, value) => {
+    if (isLocked) return;
     setSettings({ ...settings, [key]: value });
   };
 
@@ -26,6 +27,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
           <Switch
             checked={settings.allowLateSubmission}
             onCheckedChange={(checked) => updateSetting('allowLateSubmission', checked)}
+            disabled={isLocked}
           />
         </div>
 
@@ -33,7 +35,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
           <div className="grid grid-cols-3 gap-4 pl-4 border-l-2 border-gray-300">
             <div>
               <Label>Tipo de Penalidade</Label>
-              <Select value={settings.latePenaltyType} onValueChange={(v) => updateSetting('latePenaltyType', v)}>
+              <Select value={settings.latePenaltyType} onValueChange={(v) => updateSetting('latePenaltyType', v)} disabled={isLocked}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
@@ -49,6 +51,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
                 type="number"
                 value={settings.latePenaltyValue}
                 onChange={(e) => updateSetting('latePenaltyValue', parseFloat(e.target.value))}
+                disabled={isLocked}
                 className="mt-1"
               />
             </div>
@@ -58,6 +61,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
                 type="number"
                 value={settings.maxLateDays}
                 onChange={(e) => updateSetting('maxLateDays', parseInt(e.target.value))}
+                disabled={isLocked}
                 className="mt-1"
               />
             </div>
@@ -77,6 +81,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             <Switch
               checked={settings.allowMultipleAttempts}
               onCheckedChange={(checked) => updateSetting('allowMultipleAttempts', checked)}
+              disabled={isLocked}
             />
           </div>
 
@@ -89,12 +94,13 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
                   min="1"
                   value={settings.maxAttempts}
                   onChange={(e) => updateSetting('maxAttempts', parseInt(e.target.value))}
+                  disabled={isLocked}
                   className="mt-1"
                 />
               </div>
               <div>
                 <Label>Considerar</Label>
-                <Select value={settings.attemptScoring} onValueChange={(v) => updateSetting('attemptScoring', v)}>
+                <Select value={settings.attemptScoring} onValueChange={(v) => updateSetting('attemptScoring', v)} disabled={isLocked}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
@@ -120,6 +126,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             placeholder="Ilimitado"
             value={settings.timeLimit || ''}
             onChange={(e) => updateSetting('timeLimit', e.target.value ? parseInt(e.target.value) : null)}
+            disabled={isLocked}
             className="mt-1"
           />
           <p className="text-xs text-gray-500 mt-1">Deixe vazio para sem limite</p>
@@ -135,6 +142,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             <Switch
               checked={settings.showScoreImmediately}
               onCheckedChange={(checked) => updateSetting('showScoreImmediately', checked)}
+              disabled={isLocked}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -142,6 +150,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             <Switch
               checked={settings.showAnswerKey}
               onCheckedChange={(checked) => updateSetting('showAnswerKey', checked)}
+              disabled={isLocked}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -149,6 +158,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             <Switch
               checked={settings.releaseAnswerAfterDeadline}
               onCheckedChange={(checked) => updateSetting('releaseAnswerAfterDeadline', checked)}
+              disabled={isLocked}
             />
           </div>
         </div>
@@ -166,6 +176,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             <Switch
               checked={settings.plagiarismEnabled}
               onCheckedChange={(checked) => updateSetting('plagiarismEnabled', checked)}
+              disabled={isLocked}
             />
           </div>
 
@@ -173,7 +184,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
             <div className="space-y-4 pl-4 border-l-2 border-gray-300">
               <div>
                 <Label>Sensibilidade</Label>
-                <Select value={settings.plagiarismSensitivity} onValueChange={(v) => updateSetting('plagiarismSensitivity', v)}>
+                <Select value={settings.plagiarismSensitivity} onValueChange={(v) => updateSetting('plagiarismSensitivity', v)} disabled={isLocked}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
@@ -189,6 +200,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
                 <Slider
                   value={[settings.plagiarismMinOriginality]}
                   onValueChange={(value) => updateSetting('plagiarismMinOriginality', value[0])}
+                  disabled={isLocked}
                   min={0}
                   max={100}
                   step={5}
@@ -213,6 +225,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
               <Switch
                 checked={settings.shuffleQuestions}
                 onCheckedChange={(checked) => updateSetting('shuffleQuestions', checked)}
+                disabled={isLocked}
               />
             </div>
             <div className="flex items-center justify-between">
@@ -223,6 +236,7 @@ const AdvancedSettings = ({ settings, setSettings, activityType }) => {
               <Switch
                 checked={settings.shuffleAlternatives}
                 onCheckedChange={(checked) => updateSetting('shuffleAlternatives', checked)}
+                disabled={isLocked}
               />
             </div>
           </div>

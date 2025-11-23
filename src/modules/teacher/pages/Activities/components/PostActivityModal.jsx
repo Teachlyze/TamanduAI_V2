@@ -24,6 +24,15 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
   const [notifyStudents, setNotifyStudents] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  const canEnablePlagiarism = React.useMemo(() => {
+    if (!activities || activities.length === 0) return false;
+    return activities.every((activity) => {
+      const rawType = (activity.activity_type || activity.type || '').toLowerCase();
+      if (!rawType) return true;
+      return !['quiz', 'closed', 'objective'].includes(rawType);
+    });
+  }, [activities]);
+
   const handleClassToggle = (classId) => {
     setSelectedClasses(prev =>
       prev.includes(classId)
@@ -279,21 +288,23 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <Label htmlFor="plagiarism" className="cursor-pointer">
-                  Ativar Antiplágio
-                </Label>
-                <p className="text-xs text-gray-500">
-                  Verificar originalidade das respostas
-                </p>
+            {canEnablePlagiarism && (
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <Label htmlFor="plagiarism" className="cursor-pointer">
+                    Ativar Antiplágio
+                  </Label>
+                  <p className="text-xs text-gray-500">
+                    Verificar originalidade das respostas
+                  </p>
+                </div>
+                <Switch
+                  id="plagiarism"
+                  checked={enablePlagiarism}
+                  onCheckedChange={setEnablePlagiarism}
+                />
               </div>
-              <Switch
-                id="plagiarism"
-                checked={enablePlagiarism}
-                onCheckedChange={setEnablePlagiarism}
-              />
-            </div>
+            )}
 
             <div className="flex items-center justify-between">
               <div className="flex-1">

@@ -4,7 +4,7 @@ import NotificationOrchestrator from '@/shared/services/notificationOrchestrator
 
 // Winston AI API Configuration
 const WINSTON_API_KEY = import.meta.env.VITE_WINSTON_API_KEY || '';
-const WINSTON_API_URL = 'https://api.winston.ai/v1';
+const WINSTON_API_URL = 'https://api.gowinston.ai/v2';
 
 // Plagiarism severity thresholds
 const PLAGIARISM_THRESHOLDS = {
@@ -38,18 +38,19 @@ export const checkTextForPlagiarism = async (text, options = {}) => {
       throw new Error('Winston AI API key not configured');
     }
 
-    const response = await fetch(`${WINSTON_API_URL}/detect`, {
+    const response = await fetch(`${WINSTON_API_URL}/plagiarism`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${WINSTON_API_KEY}`,
-        'X-API-Key': WINSTON_API_KEY,
       },
       body: JSON.stringify({
         text,
+        file: options.file,
+        website: options.website,
+        excluded_sources: options.excluded_sources || options.excludedSources || [],
         language: options.language || 'pt',
-        threshold: options.threshold || 0.1,
-        ...options,
+        country: options.country || 'br',
       }),
     });
 
@@ -58,15 +59,18 @@ export const checkTextForPlagiarism = async (text, options = {}) => {
       throw new Error(error.message || `Winston AI error: ${response.status}`);
     }
 
-    const result = await response.json();
+    const payload = await response.json();
+
+    const score = typeof payload?.result?.score === 'number' ? payload.result.score : 0;
 
     return {
-      score: result.score || 0,
-      severity: mapScoreToSeverity(result.score || 0),
-      aiDetected: result.ai_generated || false,
-      sources: result.sources || [],
-      rawResponse: result,
-      confidence: result.confidence || 0,
+      score,
+      severity: mapScoreToSeverity(score),
+      // A API de plágio não traz IA; manter campos para compatibilidade
+      aiDetected: false,
+      sources: Array.isArray(payload?.sources) ? payload.sources : [],
+      rawResponse: payload,
+      confidence: 0,
     };
   } catch (error) {
     logger.error('Error checking for plagiarism with Winston AI:', error)

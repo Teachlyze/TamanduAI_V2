@@ -15,6 +15,7 @@ import {
 } from '@/shared/design';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
+import Breadcrumb from '@/shared/components/ui/Breadcrumb';
 
 const ActivitySubmissionsPage = () => {
   const { activityId } = useParams();
@@ -172,6 +173,14 @@ const ActivitySubmissionsPage = () => {
         <ArrowLeft className="w-4 h-4 mr-2" />
         Voltar
       </Button>
+
+      <Breadcrumb
+        items={[
+          { label: 'Atividades', path: '/dashboard/activities' },
+          { label: activity?.title || 'Atividade' }
+        ]}
+        className="mb-4"
+      />
 
       {/* Header */}
       <DashboardHeader
