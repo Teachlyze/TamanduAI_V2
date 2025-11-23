@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         ]);
         const sessionTime = performance.now() - startTime;
 
-        console.log('[AuthContext] Session check:', {
+        logger.debug('[AuthContext] Session check:', {
           hasSession: !!session,
           error: sessionError,
           timeMs: sessionTime.toFixed(2)
@@ -152,7 +152,7 @@ export const AuthProvider = ({ children }) => {
       const { data, error } = await supabase.auth.signInWithPassword(signInOptions);
       
       if (error) {
-        console.error('Supabase sign-in error:', {
+        logger.error('Supabase sign-in error:', {
           message: error.message,
           status: error.status,
           code: error.code,

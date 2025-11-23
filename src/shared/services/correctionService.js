@@ -167,7 +167,7 @@ export const saveCorrection = async (submissionId, correctionData) => {
       teacherId
     } = correctionData;
 
-    console.log('📝 Salvando correção:', {
+    logger.debug('📝 Salvando correção:', {
       submissionId,
       grade: grade,
       gradeType: typeof grade,
@@ -195,7 +195,7 @@ export const saveCorrection = async (submissionId, correctionData) => {
     const maxScore = submissionData?.activity?.max_score || 10;
     const gradingSystem = submissionData?.activity?.activity_class_assignments?.[0]?.class?.grading_system || '0-10';
     
-    console.log('📊 Convertendo nota:', {
+    logger.debug('📊 Convertendo nota:', {
       gradeInput: grade,
       gradingSystem: gradingSystem,
       maxScore: maxScore

@@ -29,7 +29,8 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
     return activities.every((activity) => {
       const rawType = (activity.activity_type || activity.type || '').toLowerCase();
       if (!rawType) return true;
-      return !['quiz', 'closed', 'objective'].includes(rawType);
+      // Em atividades do tipo 'project' (upload-only), antiplágio não deve ser usado
+      return !['quiz', 'closed', 'objective', 'project'].includes(rawType);
     });
   }, [activities]);
 
@@ -72,6 +73,8 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
             .eq('activity_id', activity.id);
 
           let activityIdToUse = activity.id;
+          const rawType = (activity.activity_type || activity.type || '').toLowerCase();
+          const plagiarismForThisActivity = rawType === 'project' ? false : enablePlagiarism;
 
           // Se já existe assignment, criar uma CÓPIA da atividade para esta turma
           if (existingAssignments && existingAssignments.length > 0) {
@@ -86,7 +89,7 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
                 due_date: dueDate,
                 weight: weight,
                 instructions: additionalInstructions || activity.instructions,
-                plagiarism_enabled: enablePlagiarism,
+                plagiarism_enabled: plagiarismForThisActivity,
                 status: 'published',
                 created_by: activity.created_by,
                 teacher_id: activity.teacher_id
@@ -105,7 +108,7 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
                 max_score: maxScore,
                 weight: weight,
                 instructions: additionalInstructions || activity.instructions,
-                plagiarism_enabled: enablePlagiarism,
+                plagiarism_enabled: plagiarismForThisActivity,
                 status: 'published'
               })
               .eq('id', activity.id);

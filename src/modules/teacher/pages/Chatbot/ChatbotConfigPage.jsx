@@ -83,7 +83,13 @@ const ChatbotConfigPage = () => {
         .select('activity:activities(*)')
         .eq('class_id', classId);
 
-      setActivities(acts?.map(a => a.activity).filter(Boolean) || []);
+      const rawActivities = acts?.map(a => a.activity).filter(Boolean) || [];
+      const filteredActivities = rawActivities.filter((activity) => {
+        const rawType = (activity?.activity_type || activity?.type || '').toLowerCase();
+        return rawType !== 'project';
+      });
+
+      setActivities(filteredActivities);
 
     } catch (error) {
       logger.error('Erro:', error)

@@ -291,7 +291,9 @@ const SubmissionView = ({ submission }) => {
     );
   };
 
-  if (submission.activity?.type === 'assignment') {
+  const activityType = submission.activity?.type;
+
+  if (activityType === 'assignment' || activityType === 'essay' || activityType === 'project') {
     // Atividade Aberta
     const activityDescription = submission.activity?.description || submission.activity?.content?.description || '';
     

@@ -64,7 +64,7 @@ export const useEnhancedState = (initialValue, options = {}) => {
 
     // Debug logging
     if (debug) {
-      console.log('State changed:', {
+      logger.debug('State changed:', {
         from: prevStateRef.current,
         to: valueToSet,
         key: persistKey,
@@ -395,7 +395,9 @@ export const useAsyncOperation = (asyncFn, options = {}) => {
   // Execute immediately if specified
   useEffect(() => {
     if (immediate) {
-      execute().catch(console.error);
+      execute().catch((err) => {
+        logger.error('useAsyncOperation immediate execution error:', err);
+      });
     }
   }, [immediate, execute]);
 

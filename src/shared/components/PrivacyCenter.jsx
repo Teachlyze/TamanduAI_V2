@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { Switch } from '@/shared/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/shared/lib/supabase';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Privacy Center Component
@@ -38,7 +39,7 @@ export default function PrivacyCenter() {
         setConsents(JSON.parse(saved));
       }
     } catch (error) {
-      console.error('Error loading consents:', error);
+      logger.error('Error loading consents:', error);
     }
   };
 
@@ -101,7 +102,7 @@ export default function PrivacyCenter() {
         description: 'Seu arquivo JSON foi baixado.'
       });
     } catch (error) {
-      console.error('Error exporting data:', error);
+      logger.error('Error exporting data:', error);
       toast.error('Erro ao exportar dados', {
         description: error.message
       });
@@ -167,7 +168,7 @@ export default function PrivacyCenter() {
         window.location.href = '/';
       }, 2000);
     } catch (error) {
-      console.error('Error deleting account:', error);
+      logger.error('Error deleting account:', error);
       toast.error('Erro ao deletar conta', {
         description: error.message
       });
@@ -207,7 +208,7 @@ export default function PrivacyCenter() {
         description: `Consentimento de ${type} ${value ? 'ativado' : 'desativado'}.`
       });
     } catch (error) {
-      console.error('Error updating consent:', error);
+      logger.error('Error updating consent:', error);
       toast.error('Erro ao atualizar preferências');
     }
   };
@@ -215,12 +216,12 @@ export default function PrivacyCenter() {
   /**
    * Audit Log Helper (LGPD Art. 37º)
    */
-  const auditLog = async (action, details) => {
+  const auditLog = async (action, details = {}) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
       // TODO: Salvar em tabela audit_logs quando existir
-      console.log('Audit Log:', {
+      logger.info('Audit Log:', {
         user_id: user?.id,
         action,
         details,
@@ -228,7 +229,7 @@ export default function PrivacyCenter() {
         user_agent: navigator.userAgent
       });
     } catch (error) {
-      console.error('Error logging audit:', error);
+      logger.error('Error logging audit:', error);
     }
   };
 

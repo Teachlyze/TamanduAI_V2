@@ -30,6 +30,7 @@ import Footer from '@/shared/components/Footer';
 import { listIdeas, createIdea, toggleIdeaVote, getUserVotedIdeas } from '@/shared/services/edgeFunctions';
 import { toast } from '@/shared/components/ui/use-toast';
 import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
+import { logger } from '@/shared/utils/logger';
 
 const statusConfig = {
   'em-analise': {
@@ -86,7 +87,7 @@ export default function IdeasPage() {
       setAllIdeas(result.ideas || []);
       setVotedIdeas(new Set(votedIds));
     } catch (error) {
-      console.error('Error fetching ideas:', error);
+      logger.error('Error fetching ideas:', error);
       toast({
         title: 'Erro ao carregar ideias',
         description: 'Tente novamente mais tarde.',
@@ -168,8 +169,9 @@ export default function IdeasPage() {
         }
         return newSet;
       });
+      return result;
     } catch (error) {
-      console.error('Error voting:', error);
+      logger.error('Error voting:', error);
       toast({
         title: 'Erro ao votar',
         description: 'Tente novamente mais tarde.',
@@ -241,7 +243,7 @@ export default function IdeasPage() {
       // Remover highlight após 3 segundos
       setTimeout(() => setNewIdeaId(null), 3000);
     } catch (error) {
-      console.error('Error creating idea:', error);
+      logger.error('Error creating idea:', error);
       toast({
         title: 'Erro ao enviar ideia',
         description: error.message || 'Tente novamente mais tarde.',

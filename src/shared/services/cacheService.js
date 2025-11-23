@@ -12,6 +12,8 @@
  *    VITE_UPSTASH_REDIS_REST_TOKEN=...
  */
 
+import { logger } from '@/shared/utils/logger';
+
 class CacheService {
   constructor() {
     this.enabled = false;
@@ -21,10 +23,10 @@ class CacheService {
     // Verificar se credenciais estão configuradas
     if (this.url && this.token) {
       this.enabled = true;
-      console.log('[Cache] ✅ Upstash Redis configurado');
+      logger.info('[Cache] ✅ Upstash Redis configurado');
     } else {
-      console.warn('[Cache] ⚠️  Upstash Redis não configurado - cache desabilitado');
-      console.warn('[Cache] Configure VITE_UPSTASH_REDIS_REST_URL e VITE_UPSTASH_REDIS_REST_TOKEN');
+      logger.warn('[Cache] ⚠️  Upstash Redis não configurado - cache desabilitado');
+      logger.warn('[Cache] Configure VITE_UPSTASH_REDIS_REST_URL e VITE_UPSTASH_REDIS_REST_TOKEN');
     }
   }
 
@@ -50,11 +52,11 @@ class CacheService {
       const data = await response.json();
       
       if (data.result === null) {
-        console.log(`[Cache] ❌ Miss: ${key}`);
+        logger.debug(`[Cache] ❌ Miss: ${key}`);
         return null;
       }
 
-      console.log(`[Cache] ✅ Hit: ${key}`);
+      logger.debug(`[Cache] ✅ Hit: ${key}`);
       
       // Upstash retorna string, precisamos parsear JSON
       try {
@@ -63,7 +65,7 @@ class CacheService {
         return data.result;
       }
     } catch (error) {
-      console.error(`[Cache] Erro ao buscar ${key}:`, error);
+      logger.error(`[Cache] Erro ao buscar ${key}:`, error);
       return null;
     }
   }
@@ -92,10 +94,10 @@ class CacheService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log(`[Cache] 💾 Saved: ${key} (TTL: ${ttl}s)`);
+      logger.debug(`[Cache] 💾 Saved: ${key} (TTL: ${ttl}s)`);
       return true;
     } catch (error) {
-      console.error(`[Cache] Erro ao salvar ${key}:`, error);
+      logger.error(`[Cache] Erro ao salvar ${key}:`, error);
       return false;
     }
   }
@@ -120,10 +122,10 @@ class CacheService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log(`[Cache] 🗑️  Deleted: ${key}`);
+      logger.debug(`[Cache] 🗑️  Deleted: ${key}`);
       return true;
     } catch (error) {
-      console.error(`[Cache] Erro ao deletar ${key}:`, error);
+      logger.error(`[Cache] Erro ao deletar ${key}:`, error);
       return false;
     }
   }
@@ -152,7 +154,7 @@ class CacheService {
       const keys = keysData.result || [];
 
       if (keys.length === 0) {
-        console.log(`[Cache] 🔍 No keys found for pattern: ${pattern}`);
+        logger.debug(`[Cache] 🔍 No keys found for pattern: ${pattern}`);
         return true;
       }
 
@@ -160,10 +162,10 @@ class CacheService {
       const deletePromises = keys.map(key => this.del(key));
       await Promise.all(deletePromises);
 
-      console.log(`[Cache] 🧹 Invalidated ${keys.length} keys matching: ${pattern}`);
+      logger.debug(`[Cache] 🧹 Invalidated ${keys.length} keys matching: ${pattern}`);
       return true;
     } catch (error) {
-      console.error(`[Cache] Erro ao invalidar padrão ${pattern}:`, error);
+      logger.error(`[Cache] Erro ao invalidar padrão ${pattern}:`, error);
       return false;
     }
   }
@@ -210,10 +212,10 @@ class CacheService {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('[Cache] 🚨 Cache completamente limpo (FLUSH)');
+      logger.warn('[Cache] 🚨 Cache completamente limpo (FLUSH)');
       return true;
     } catch (error) {
-      console.error('[Cache] Erro ao limpar cache:', error);
+      logger.error('[Cache] Erro ao limpar cache:', error);
       return false;
     }
   }

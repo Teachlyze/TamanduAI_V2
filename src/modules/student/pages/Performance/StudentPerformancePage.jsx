@@ -271,7 +271,7 @@ const StudentPerformancePage = () => {
         const subject = activity?.activity_class_assignments?.[0]?.class?.subject || 'Geral';
         
         // Debug: ver conteúdo de CADA atividade
-        console.log(`\n📝 Activity ${idx + 1}/${detailedSubmissions.length}:`, {
+        logger.debug(`\n📝 Activity ${idx + 1}/${detailedSubmissions.length}:`, {
           title: activity?.title,
           grade: submission.grade,
           hasContent: !!activity?.content,

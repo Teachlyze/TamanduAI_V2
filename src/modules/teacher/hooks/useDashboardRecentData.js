@@ -2,6 +2,7 @@ import { useRedisCache } from '@/shared/hooks/useRedisCache';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useCallback } from 'react';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Hook granular para turmas e atividades recentes
@@ -56,7 +57,7 @@ export const useDashboardRecentData = () => {
         activities: activitiesFormatted,
       };
     } catch (error) {
-      console.error('[useDashboardRecentData] Error:', error);
+      logger.error('[useDashboardRecentData] Error:', error);
       return { classes: [], activities: [] };
     }
   }, [user?.id]);

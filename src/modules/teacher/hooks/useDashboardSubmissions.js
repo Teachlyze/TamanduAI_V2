@@ -3,6 +3,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useCallback } from 'react';
 import { startOfDay, endOfDay, subDays, getDay, parseISO } from 'date-fns';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Hook granular para submissões pendentes
@@ -73,7 +74,7 @@ export const useDashboardSubmissions = (limit = 10) => {
         weeklyTotal
       };
     } catch (error) {
-      console.error('[useDashboardSubmissions] Error:', error);
+      logger.error('[useDashboardSubmissions] Error:', error);
       return { submissions: [], weeklySubmissions: [0, 0, 0, 0, 0, 0, 0], weeklyTotal: 0 };
     }
   }, [user?.id, limit]);

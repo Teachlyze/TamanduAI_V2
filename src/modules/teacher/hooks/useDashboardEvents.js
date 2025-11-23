@@ -3,6 +3,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { addDays } from 'date-fns';
 import { useCallback } from 'react';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Hook granular para eventos do dashboard
@@ -70,7 +71,7 @@ export const useDashboardEvents = (daysAhead = 7) => {
         })),
       };
     } catch (error) {
-      console.error('[useDashboardEvents] Error:', error);
+      logger.error('[useDashboardEvents] Error:', error);
       return { today: [], upcoming: [] };
     }
   }, [user?.id, daysAhead]);

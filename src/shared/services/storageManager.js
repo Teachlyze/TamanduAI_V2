@@ -5,6 +5,8 @@
  * garantindo limpeza correta no logout e persistência adequada de configurações.
  */
 
+import { logger } from '@/shared/utils/logger';
+
 // ============================================================================
 // NAMESPACES - Organização de chaves no localStorage
 // ============================================================================
@@ -58,7 +60,7 @@ class StorageManager {
       this.storage.setItem(key, serialized);
       return true;
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      logger.error('Error saving to localStorage:', error);
       return false;
     }
   }
@@ -73,7 +75,7 @@ class StorageManager {
       const item = this.storage.getItem(key);
       return item ? JSON.parse(item) : defaultValue;
     } catch (error) {
-      console.error('Error reading from localStorage:', error);
+      logger.error('Error reading from localStorage:', error);
       return defaultValue;
     }
   }
@@ -88,7 +90,7 @@ class StorageManager {
       this.storage.removeItem(key);
       return true;
     } catch (error) {
-      console.error('Error removing from localStorage:', error);
+      logger.error('Error removing from localStorage:', error);
       return false;
     }
   }
@@ -277,12 +279,12 @@ class StorageManager {
       // Remover todas as chaves identificadas
       keysToRemove.forEach(key => this.storage.removeItem(key));
       
-      console.log(`[StorageManager] Cleared ${keysToRemove.length} user data keys`);
-      console.log('[StorageManager] Preserved app preferences (theme, language, etc.)');
+      logger.info('[StorageManager] Cleared user data keys', { count: keysToRemove.length });
+      logger.info('[StorageManager] Preserved app preferences (theme, language, etc.)');
       
       return true;
     } catch (error) {
-      console.error('[StorageManager] Error clearing user data:', error);
+      logger.error('[StorageManager] Error clearing user data:', error);
       return false;
     }
   }
@@ -296,10 +298,10 @@ class StorageManager {
     
     try {
       this.storage.clear();
-      console.log('[StorageManager] Cleared ALL localStorage');
+      logger.warn('[StorageManager] Cleared ALL localStorage');
       return true;
     } catch (error) {
-      console.error('[StorageManager] Error clearing all storage:', error);
+      logger.error('[StorageManager] Error clearing all storage:', error);
       return false;
     }
   }
@@ -321,11 +323,11 @@ class StorageManager {
       }
 
       keysToRemove.forEach(key => this.storage.removeItem(key));
-      console.log(`[StorageManager] Cleared ${keysToRemove.length} cache keys`);
+      logger.info('[StorageManager] Cleared cache keys', { count: keysToRemove.length });
       
       return true;
     } catch (error) {
-      console.error('[StorageManager] Error clearing cache:', error);
+      logger.error('[StorageManager] Error clearing cache:', error);
       return false;
     }
   }
@@ -369,7 +371,7 @@ class StorageManager {
         totalSizeKB: (totalSize / 1024).toFixed(2)
       };
     } catch (error) {
-      console.error('[StorageManager] Error getting stats:', error);
+      logger.error('[StorageManager] Error getting stats:', error);
       return null;
     }
   }
@@ -399,7 +401,7 @@ class StorageManager {
 
       return keys;
     } catch (error) {
-      console.error('[StorageManager] Error listing keys:', error);
+      logger.error('[StorageManager] Error listing keys:', error);
       return null;
     }
   }

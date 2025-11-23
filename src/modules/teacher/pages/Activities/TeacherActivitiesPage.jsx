@@ -342,6 +342,14 @@ const TeacherActivitiesPage = () => {
           <Button variant="outline" size="lg" onClick={() => setShowImportModal(true)}>
             <Upload className="w-5 h-5 mr-2" />Importar
           </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => navigate('/dashboard/activities/projects')}
+          >
+            <ClipboardList className="w-5 h-5 mr-2" />
+            Tarefas por Arquivo
+          </Button>
           <label className="flex items-center gap-2 cursor-pointer bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
             <input
               type="checkbox"

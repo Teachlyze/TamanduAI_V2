@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import { logger } from '@/shared/utils/logger';
 import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const ContactPage = () => {
@@ -231,7 +232,7 @@ const ContactPage = () => {
       setTimeout(() => setSubmitted(false), 5000);
       
     } catch (error) {
-      console.error('Erro ao enviar:', error);
+      logger.error('Erro ao enviar:', error);
       toast({
         title: 'Erro ao enviar',
         description: error.message || 'Ocorreu um erro. Tente novamente ou entre em contato por email: contato@tamanduai.com',

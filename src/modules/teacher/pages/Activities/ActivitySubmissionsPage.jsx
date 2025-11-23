@@ -46,10 +46,10 @@ const ActivitySubmissionsPage = () => {
       setLoading(true);
       
       // Debug simples no console
-      console.log('🔍 ActivitySubmissionsPage - activityId:', activityId);
+      logger.debug('🔍 ActivitySubmissionsPage - activityId:', activityId);
       
       if (!activityId) {
-        console.error('❌ activityId é undefined!');
+        logger.error('❌ activityId é undefined!');
         throw new Error('ID da atividade não fornecido');
       }
 
@@ -120,7 +120,6 @@ const ActivitySubmissionsPage = () => {
 
     } catch (error) {
       logger.error('Erro ao carregar submissões:', error)
-      console.error('ActivitySubmissionsPage - Erro completo:', error);
       toast({ 
         title: 'Erro ao carregar submissões',
         description: error?.message || 'Tente novamente.',

@@ -10,6 +10,7 @@ import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/components/ui/use-toast';
+import { logger } from '@/shared/utils/logger';
 
 const FeedTab = ({ posts, loading }) => {
   const { user } = useAuth();
@@ -176,7 +177,7 @@ const FeedTab = ({ posts, loading }) => {
       setNewComment(prev => ({ ...prev, [postId]: '' }));
       toast({ title: '💬 Comentário adicionado!', duration: 2000 });
     } else {
-      console.error('Erro ao adicionar comentário:', error);
+      logger.error('Erro ao adicionar comentário:', error);
       toast({ title: 'Erro ao adicionar comentário', description: error?.message || 'Tente novamente', variant: 'destructive' });
     }
   };

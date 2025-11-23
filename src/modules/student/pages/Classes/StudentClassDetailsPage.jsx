@@ -68,7 +68,7 @@ const StudentClassDetailsPage = () => {
         const result = await response.json();
         const data = result.data;
 
-        console.log('[StudentClassDetailsPage] 📦 Dados recebidos da Edge Function:', {
+        logger.debug('[StudentClassDetailsPage] 📦 Dados recebidos da Edge Function:', {
           classInfo: data.classInfo,
           posts: data.posts?.length || 0,
           discussions: data.discussions?.length || 0,
@@ -97,7 +97,7 @@ const StudentClassDetailsPage = () => {
         // Filtrar apenas atividades publicadas para alunos
         const publishedActivities = (data.activities || []).filter(act => act.status === 'published');
         
-        console.log('[StudentClassDetailsPage] 🎯 Atividades filtradas:', {
+        logger.debug('[StudentClassDetailsPage] 🎯 Atividades filtradas:', {
           total: data.activities?.length || 0,
           published: publishedActivities.length,
           filtered: data.activities?.filter(a => a.status !== 'published').map(a => ({ title: a.title, status: a.status }))

@@ -5,6 +5,7 @@
  */
 
 import { supabase } from '../supabaseClient';
+import { logger } from '@/shared/utils/logger';
 
 const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_URL + '/functions/v1';
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -62,7 +63,7 @@ export async function listIdeas({ status = 'todos', sort = 'votos', page = 1, li
     return data; // { ideas: [], pagination: { page, limit, total, totalPages, hasNext, hasPrev } }
     
   } catch (error) {
-    console.error('Error listing ideas:', error);
+    logger.error('Error listing ideas:', error);
     throw error;
   }
 }
@@ -98,7 +99,7 @@ export async function createIdea(idea) {
     return data.idea;
     
   } catch (error) {
-    console.error('Error creating idea:', error);
+    logger.error('Error creating idea:', error);
     throw error;
   }
 }
@@ -134,7 +135,7 @@ export async function toggleIdeaVote(ideaId) {
     return data;
     
   } catch (error) {
-    console.error('Error toggling vote:', error);
+    logger.error('Error toggling vote:', error);
     throw error;
   }
 }
@@ -166,7 +167,7 @@ export async function getUserVotedIdeas() {
     return data.voted_ids || [];
     
   } catch (error) {
-    console.error('Error getting user votes:', error);
+    logger.error('Error getting user votes:', error);
     // Em caso de erro, retornar array vazio para não quebrar a UI
     return [];
   }

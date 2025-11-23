@@ -296,7 +296,7 @@ const StudentActivityDetailsPage = () => {
       const assignments = assignmentsRes.data || [];
       const attemptsData = attemptsRes.data || [];
 
-      console.log('[StudentActivityDetailsPage] ✅ Atividade carregada:', {
+      logger.debug('[StudentActivityDetailsPage] ✅ Atividade carregada:', {
         title: act?.title,
         description: act?.description,
         type: act?.type,

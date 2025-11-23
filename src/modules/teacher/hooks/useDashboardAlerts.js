@@ -2,6 +2,7 @@ import { useRedisCache } from '@/shared/hooks/useRedisCache';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useCallback } from 'react';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Hook granular para alunos em risco (alerta)
@@ -63,7 +64,7 @@ export const useDashboardAlerts = (threshold = 6.0) => {
 
       return alerts;
     } catch (error) {
-      console.error('[useDashboardAlerts] Error:', error);
+      logger.error('[useDashboardAlerts] Error:', error);
       return [];
     }
   }, [user?.id, threshold]);

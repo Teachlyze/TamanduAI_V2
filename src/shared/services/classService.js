@@ -207,11 +207,10 @@ export const ClassService = {
 
     if (classError) {
       logger.error('Error creating class:', classError)
-      console.error('Error details:', {
+      logger.error('Error details:', {
         code: classError.code,
         message: classError.message,
         details: classError.details,
-        hint: classError.hint
       });
       throw new Error(`Erro ao criar turma: ${classError.message}. Detalhes: ${classError.hint || classError.details || 'Nenhum detalhe adicional'}`);
     }

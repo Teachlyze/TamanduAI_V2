@@ -16,6 +16,7 @@ const ClassMaterialsPage = React.lazy(() => import('./pages/Classes/ClassMateria
 const ActivitiesListPage = React.lazy(() => import('./pages/Activities/ActivitiesListPage'));
 const TeacherActivitiesPage = React.lazy(() => import('./pages/Activities/TeacherActivitiesPage'));
 const TeacherActivityCreatePage = React.lazy(() => import('./pages/Activities/TeacherActivityCreatePage'));
+const TeacherProjectActivitiesPage = React.lazy(() => import('./pages/Activities/TeacherProjectActivitiesPage'));
 const ActivitySubmissionsPage = React.lazy(() => import('./pages/Activities/ActivitySubmissionsPage'));
 const GradingPage = React.lazy(() => import('./pages/Grading/GradingPage'));
 const TeacherStudentsPage = React.lazy(() => import('./pages/Students/TeacherStudentsPage'));
@@ -56,6 +57,7 @@ const TeacherRoutes = () => {
       import('./pages/Activities/ActivitiesListPage');
       import('./pages/Activities/TeacherActivitiesPage');
       import('./pages/Activities/TeacherActivityCreatePage');
+      import('./pages/Activities/TeacherProjectActivitiesPage');
       import('./pages/Activities/ActivitySubmissionsPage');
 
       // Correções e avaliação
@@ -104,6 +106,7 @@ const TeacherRoutes = () => {
       <Route path="activities" element={<TeacherActivitiesPage />} />
       <Route path="activities/create" element={<TeacherActivityCreatePage />} />
       <Route path="activities/:id/edit" element={<TeacherActivityCreatePage />} />
+      <Route path="activities/projects" element={<TeacherProjectActivitiesPage />} />
       <Route path="activities/:activityId/submissions" element={<ActivitySubmissionsPage />} />
       
       {/* Grading */}

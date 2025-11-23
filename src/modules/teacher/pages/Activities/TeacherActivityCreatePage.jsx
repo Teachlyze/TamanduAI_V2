@@ -487,7 +487,7 @@ const TeacherActivityCreatePage = () => {
         updated_at: new Date().toISOString()
       };
 
-      console.log('[TeacherActivityCreatePage] 💾 Salvando atividade:', {
+      logger.debug('[TeacherActivityCreatePage] 💾 Salvando atividade:', {
         title,
         type: activityType,
         questionsCount: questions.length,

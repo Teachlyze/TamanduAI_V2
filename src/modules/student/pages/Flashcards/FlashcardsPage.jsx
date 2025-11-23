@@ -186,13 +186,13 @@ const FlashcardsPage = () => {
   };
 
   const handleImportClick = () => {
-    console.log('Import button clicked');
-    console.log('fileInputRef.current:', fileInputRef.current);
+    logger.debug('Import button clicked');
+    logger.debug('fileInputRef.current:', fileInputRef.current);
     if (fileInputRef.current) {
-      console.log('Triggering file input click');
+      logger.debug('Triggering file input click');
       fileInputRef.current.click();
     } else {
-      console.error('fileInputRef.current is null');
+      logger.error('fileInputRef.current is null');
     }
   };
 

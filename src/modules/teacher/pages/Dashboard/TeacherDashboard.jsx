@@ -1,7 +1,9 @@
 import React, { useState, memo, useCallback, useEffect } from 'react';
+import { logger } from '@/shared/utils/logger';
 
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+
 import PostActivityModal from '@/modules/teacher/components/PostActivityModal';
 import EventDetailsModal from '@/modules/teacher/pages/Calendar/components/EventDetailsModal';
 import {
@@ -134,7 +136,7 @@ const TeacherDashboard = () => {
 
         setRecentNotifications(data || []);
       } catch (error) {
-        console.error('[TeacherDashboard] Error loading notifications for feed:', error);
+        logger.error('[TeacherDashboard] Error loading notifications for feed:', error);
       }
     };
 

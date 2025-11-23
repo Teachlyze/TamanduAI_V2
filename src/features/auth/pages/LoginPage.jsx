@@ -42,7 +42,7 @@ const LoginPage = () => {
 
   // Redirect if already logged in
   useEffect(() => {
-    console.log('[LoginPage] Auth state:', { 
+    logger.debug('[LoginPage] Auth state:', { 
       hasUser: !!user, 
       hasProfile: !!profile, 
       authLoading,

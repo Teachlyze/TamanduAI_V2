@@ -23,6 +23,7 @@ import { format, isPast, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
 import { calculateAutoGrade, generateAutoFeedback, canAutoGrade, shouldShowScoreImmediately } from '@/shared/services/autoGradingService';
+import useActivityFiles from '@/shared/hooks/useActivityFiles';
 
 const StudentActivityDetailsPageRedesigned = () => {
   const { activityId } = useParams();
@@ -40,6 +41,13 @@ const StudentActivityDetailsPageRedesigned = () => {
   const [classStats, setClassStats] = useState(null);
   const [submissionAttempts, setSubmissionAttempts] = useState(0);
   const [isNewAttempt, setIsNewAttempt] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  const {
+    uploadSubmission,
+    isUploading,
+    uploadProgress
+  } = useActivityFiles(activityId, currentUser?.id, false);
 
   useEffect(() => {
     loadActivityAndSubmission();
@@ -49,6 +57,12 @@ const StudentActivityDetailsPageRedesigned = () => {
     try {
       setLoading(true);
       const { data: user } = await supabase.auth.getUser();
+
+      if (!user?.user?.id) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      setCurrentUser(user.user);
 
       // Buscar atividade
       const { data: activityData, error: actError } = await supabase
@@ -146,8 +160,11 @@ const StudentActivityDetailsPageRedesigned = () => {
 
       setActivity(activityWithClass);
       setSubmission(submissionData);
-      setAnswer(submissionData?.content?.answer || '');
-      setSelectedAnswers(submissionData?.content?.selectedAnswers || {});
+
+      const submissionContent = submissionData?.content || {};
+      setAnswer(submissionContent.answer || '');
+      setSelectedAnswers(submissionContent.selectedAnswers || {});
+      setAttachments(Array.isArray(submissionContent.attachments) ? submissionContent.attachments : []);
       setIsNewAttempt(false);
     } catch (error) {
       logger.error('Erro ao carregar atividade:', error)
@@ -206,7 +223,7 @@ const StudentActivityDetailsPageRedesigned = () => {
     });
 
     // Validar questões objetivas (se aplicável)
-    if (activity?.type === 'closed' || activity?.type === 'quiz' || activity?.type === 'multiple_choice') {
+    if (isObjectiveActivity) {
       const questions = activity.content?.questions || [];
       
       logger.debug('[handleSubmit] Validando questões:', {
@@ -226,6 +243,16 @@ const StudentActivityDetailsPageRedesigned = () => {
         toast({
           title: 'Questões não respondidas',
           description: 'Responda todas as questões antes de enviar',
+          variant: 'destructive'
+        });
+        return;
+      }
+    } else if (isProjectUploadOnly) {
+      if (!attachments || attachments.length === 0) {
+        logger.warn('[handleSubmit] Nenhum arquivo anexado para atividade project');
+        toast({
+          title: 'Nenhum arquivo anexado',
+          description: 'Envie pelo menos um arquivo com sua resposta antes de enviar a atividade.',
           variant: 'destructive'
         });
         return;
@@ -254,10 +281,18 @@ const StudentActivityDetailsPageRedesigned = () => {
       setSubmitting(true);
       
       // Preparar conteúdo baseado no tipo de atividade
-      let submissionContent = { answer };
-      
-      if (activity?.type === 'quiz' || activity?.type === 'multiple_choice' || activity?.type === 'closed') {
-        submissionContent.selectedAnswers = selectedAnswers;
+      let submissionContent;
+
+      if (isProjectUploadOnly) {
+        submissionContent = {
+          attachments
+        };
+      } else {
+        submissionContent = { answer };
+        
+        if (isObjectiveActivity) {
+          submissionContent.selectedAnswers = selectedAnswers;
+        }
       }
 
       // Calcular número da tentativa atual
@@ -402,6 +437,7 @@ const StudentActivityDetailsPageRedesigned = () => {
   const isUrgent = dueDate && differenceInHours(dueDate, new Date()) < 24 && activityStatus === 'pending';
 
   const isObjectiveActivity = activity?.type === 'quiz' || activity?.type === 'multiple_choice' || activity?.type === 'closed';
+  const isProjectUploadOnly = activity?.type === 'project' || activity?.content?.advanced_settings?.submissionMode === 'file_upload';
   const maxAttempts = activity?.content?.advanced_settings?.maxAttempts || 1;
   const allowsMultipleAttempts = maxAttempts > 1;
   const hasRemainingAttempts = allowsMultipleAttempts && submissionAttempts < maxAttempts;
@@ -419,6 +455,79 @@ const StudentActivityDetailsPageRedesigned = () => {
     submissionStatus: submission?.status,
     advancedSettings: activity?.content?.advanced_settings
   });
+
+  const handleUploadAttachment = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || !activity || !currentUser) return;
+
+    try {
+      let currentSubmission = submission;
+
+      if (!currentSubmission) {
+        const { data: newSubmission, error: insertError } = await supabase
+          .from('submissions')
+          .insert({
+            activity_id: activityId,
+            student_id: currentUser.id,
+            content: { attachments: [] },
+            status: 'draft',
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        currentSubmission = newSubmission;
+        setSubmission(newSubmission);
+      }
+
+      const meta = await uploadSubmission(file, currentSubmission.id);
+
+      const nextAttachments = [
+        ...(Array.isArray(currentSubmission.content?.attachments) ? currentSubmission.content.attachments : []),
+        {
+          name: meta.name,
+          url: meta.url,
+          path: meta.path,
+          size: meta.size,
+          type: meta.type
+        }
+      ];
+
+      const { data: updated, error: updateError } = await supabase
+        .from('submissions')
+        .update({
+          content: {
+            ...(currentSubmission.content || {}),
+            attachments: nextAttachments
+          },
+          status: currentSubmission.status || 'draft',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', currentSubmission.id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      setSubmission(updated);
+      setAttachments(nextAttachments);
+
+      toast({
+        title: 'Arquivo anexado',
+        description: 'Seu arquivo foi enviado com sucesso.'
+      });
+    } catch (error) {
+      logger.error('Erro ao enviar anexo da atividade:', error);
+      toast({
+        title: 'Erro ao enviar arquivo',
+        description: error.message || 'Tente novamente em instantes.',
+        variant: 'destructive'
+      });
+    } finally {
+      event.target.value = '';
+    }
+  };
 
   if (loading) {
     return (
@@ -508,6 +617,35 @@ const StudentActivityDetailsPageRedesigned = () => {
                 className="prose dark:prose-invert max-w-none"
                 dangerouslySetInnerHTML={{ __html: activity?.description || 'Sem descrição' }}
               />
+
+              {Array.isArray(activity?.content?.attachments) && activity.content.attachments.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Download className="w-4 h-4 text-blue-600" />
+                    Arquivos da Atividade
+                  </h3>
+                  <ul className="space-y-2">
+                    {activity.content.attachments.map((file, index) => (
+                      <li key={file.path || file.url || index} className="flex items-center justify-between text-sm">
+                        <span className="truncate mr-2">{file.name}</span>
+                        {file.url && (
+                          <Button
+                            asChild
+                            size="sm"
+                            variant="outline"
+                            className="h-8 px-3"
+                          >
+                            <a href={file.url} target="_blank" rel="noopener noreferrer">
+                              <Download className="w-4 h-4 mr-1" />
+                              Baixar
+                            </a>
+                          </Button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </Card>
 
             {/* Critérios de Avaliação */}
@@ -621,8 +759,8 @@ const StudentActivityDetailsPageRedesigned = () => {
                   </div>
                 ) : (
                   <>
-                    {/* Textarea apenas para atividades dissertativas */}
-                    {activity?.type !== 'closed' && activity?.type !== 'quiz' && activity?.type !== 'multiple_choice' && (
+                    {/* Textarea apenas para atividades dissertativas (não objetivas, não project) */}
+                    {!isObjectiveActivity && !isProjectUploadOnly && (
                       <Textarea
                         value={answer}
                         onChange={(e) => setAnswer(e.target.value)}
@@ -644,8 +782,53 @@ const StudentActivityDetailsPageRedesigned = () => {
                       </div>
                     )}
 
+                    {/* Upload de arquivo apenas para atividades do tipo project (upload-only) */}
+                    {isProjectUploadOnly && (
+                      <div className="mb-4 space-y-2">
+                        <p className="text-sm text-slate-600 dark:text-slate-300">
+                          Envie sua resposta como arquivo (PDF, DOC, DOCX, ODT ou TXT).
+                        </p>
+                        <div className="flex items-center gap-3">
+                          <Input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.odt,.txt"
+                            onChange={handleUploadAttachment}
+                            disabled={isUploading || submitting}
+                          />
+                          {isUploading && (
+                            <span className="text-xs text-slate-500">
+                              Enviando... {uploadProgress}%
+                            </span>
+                          )}
+                        </div>
+                        {attachments.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs text-slate-500">Arquivos enviados:</p>
+                            {attachments.map((file, index) => (
+                              <div
+                                key={file.path || file.url || index}
+                                className="flex items-center justify-between text-xs border rounded px-3 py-1"
+                              >
+                                <span className="truncate mr-2">{file.name}</span>
+                                {file.url && (
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    Abrir
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex gap-3">
-                      {activity?.type !== 'closed' && activity?.type !== 'quiz' && activity?.type !== 'multiple_choice' && (
+                      {!isObjectiveActivity && !isProjectUploadOnly && (
                         <Button
                           variant="outline"
                           onClick={handleSaveDraft}

@@ -2,6 +2,7 @@ import { useRedisCache } from '@/shared/hooks/useRedisCache';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { useCallback } from 'react';
+import { logger } from '@/shared/utils/logger';
 
 /**
  * Hook granular para estatísticas do dashboard do professor
@@ -78,7 +79,7 @@ export const useDashboardStats = () => {
         todayCorrections: todayGraded?.length || 0,
       };
     } catch (error) {
-      console.error('[useDashboardStats] Error:', error);
+      logger.error('[useDashboardStats] Error:', error);
       throw error;
     }
   }, [user?.id]);

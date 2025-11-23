@@ -73,7 +73,7 @@ async function fetchEducationToken() {
     // logger.debug('[Agora] Successfully obtained and cached education token')
     return cachedToken;
   } catch (error) {
-    console.error('[Agora] Error in fetchEducationToken:', {
+    logger.error('[Agora] Error in fetchEducationToken:', {
       message: error.message,
       stack: error.stack,
       url: TOKEN_SERVICE_URL,

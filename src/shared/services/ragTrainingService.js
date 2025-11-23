@@ -125,6 +125,7 @@ export const RAGTrainingService = {
             description,
             instructions,
             activity_type,
+            type,
             status,
             schema
           )
@@ -144,19 +145,27 @@ export const RAGTrainingService = {
 
       const addedActivityIds = new Set(existingSources.map(s => s.activity_id));
 
-      // Filter out already added activities
+      // Filter out already added activities and any activity of type 'project'
       return classActivities
-        .filter(a => !addedActivityIds.has(a.activity_id) && a.activities)
+        .filter(a => {
+          if (!a.activities) return false;
+          if (addedActivityIds.has(a.activity_id)) return false;
+
+          const rawType = (a.activities.activity_type || a.activities.type || '').toLowerCase();
+          if (rawType === 'project') return false;
+
+          return true;
+        })
         .map(a => ({
           id: a.activities.id,
           title: a.activities.title,
           description: a.activities.description,
           instructions: a.activities.instructions,
-          activityType: a.activities.activity_type,
+          activityType: a.activities.activity_type || a.activities.type,
           status: a.activities.status,
           schema: a.activities.schema,
           sourceType: 'activity',
-          isDraft: a.activities.status === 'draft'
+          isDraft: a.activities.status === 'draft',
         }));
     } catch (error) {
       Logger.error('Error fetching available activities', error);
@@ -212,11 +221,16 @@ export const RAGTrainingService = {
       // Get activity details
       const { data: activity, error: activityError } = await supabase
         .from('activities')
-        .select('title, instructions, description, schema, activity_type')
+        .select('title, instructions, description, schema, activity_type, type')
         .eq('id', activityId)
         .single();
 
       if (activityError) throw activityError;
+
+      const rawType = (activity.activity_type || activity.type || '').toLowerCase();
+      if (rawType === 'project') {
+        throw new Error('Activities of type "project" cannot be used as chatbot training sources.');
+      }
 
       // Extract content for training
       const contentExtracted = JSON.stringify({

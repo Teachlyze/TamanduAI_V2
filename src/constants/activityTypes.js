@@ -3,6 +3,8 @@
  * Mantém consistência entre frontend e banco de dados
  */
 
+import { logger } from '@/shared/utils/logger';
+
 // Tipos usados no seletor visual (frontend)
 export const FRONTEND_ACTIVITY_TYPES = {
   OPEN: 'open',       // Atividades abertas (dissertativas)
@@ -48,7 +50,7 @@ export function mapFrontendTypeToDatabase(frontendType) {
   const mappedType = ACTIVITY_TYPE_MAPPING[frontendType];
   
   if (!mappedType) {
-    console.warn(`[Activity Type Mapping] Tipo desconhecido: ${frontendType}, usando 'assignment' como fallback`);
+    logger.warn(`[Activity Type Mapping] Tipo desconhecido: ${frontendType}, usando 'assignment' como fallback`);
     return DATABASE_ACTIVITY_TYPES.ASSIGNMENT;
   }
   
@@ -65,7 +67,7 @@ export function mapDatabaseTypeToFrontend(databaseType) {
   const mappedType = REVERSE_ACTIVITY_TYPE_MAPPING[databaseType];
   
   if (!mappedType) {
-    console.warn(`[Activity Type Mapping] Tipo do banco desconhecido: ${databaseType}, usando 'open' como fallback`);
+    logger.warn(`[Activity Type Mapping] Tipo do banco desconhecido: ${databaseType}, usando 'open' como fallback`);
     return FRONTEND_ACTIVITY_TYPES.OPEN;
   }
   
