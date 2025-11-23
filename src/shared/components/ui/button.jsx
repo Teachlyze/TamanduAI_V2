@@ -152,9 +152,16 @@ const Button = React.forwardRef(({
     );
   }
 
+  if (asChild) {
+    return (
+      <Slot {...buttonProps}>
+        {children}
+      </Slot>
+    );
+  }
+
   return (
-    <Comp {...buttonProps}>
-      {/* Left icon with proper spacing and accessibility */}
+    <button {...buttonProps}>
       {leftIcon && (
         <span
           className="flex-shrink-0"
@@ -165,12 +172,10 @@ const Button = React.forwardRef(({
         </span>
       )}
 
-      {/* Button content */}
       <span className="flex items-center justify-center gap-2 flex-1 min-w-0">
         {children}
       </span>
 
-      {/* Right icon with proper spacing and accessibility */}
       {rightIcon && (
         <span
           className="flex-shrink-0"
@@ -181,7 +186,6 @@ const Button = React.forwardRef(({
         </span>
       )}
 
-      {/* Loading spinner for visual feedback */}
       {loading && (
         <span
           className="loading loading-spinner loading-xs ml-2"
@@ -189,7 +193,7 @@ const Button = React.forwardRef(({
           role="status"
         />
       )}
-    </Comp>
+    </button>
   );
 });
 

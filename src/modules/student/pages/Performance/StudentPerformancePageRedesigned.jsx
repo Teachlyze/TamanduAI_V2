@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
+import { useStudentEvolutionData } from '@/modules/student/hooks/useStudentEvolutionData';
+import { useStudentPerformanceData } from '@/modules/student/hooks/useStudentPerformanceData';
 import { StatCard, EmptyState } from '@/modules/student/components/redesigned';
 import { GradeCard } from '@/modules/student/components/redesigned/GradeCard';
 import { Star, TrendingUp, Target, Trophy, BookOpen, Filter, Sparkles, Loader2, CheckCircle, AlertCircle, Lightbulb } from 'lucide-react';
@@ -13,37 +15,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/shared/components/ui/use-toast';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { LineChart, Line, BarChart, Bar, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 const StudentPerformancePageRedesigned = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
   const [generatingAI, setGeneratingAI] = useState(false);
   const [aiRecommendations, setAiRecommendations] = useState(null);
   const [dailyAIUsageCount, setDailyAIUsageCount] = useState(0);
   const [loadingUsageCount, setLoadingUsageCount] = useState(true);
-  const [stats, setStats] = useState({
+  const { data: evolutionRaw } = useStudentEvolutionData();
+  const {
+    data: performanceData,
+    loading: performanceLoading,
+  } = useStudentPerformanceData();
+  const [selectedClass, setSelectedClass] = useState('all');
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const stats = performanceData?.stats || {
     avgGrade: 0,
     totalActivities: 0,
     completedActivities: 0,
-    ranking: null
-  });
-  const [recentGrades, setRecentGrades] = useState([]);
-  const [evolutionData, setEvolutionData] = useState([]);
-  const [classPerformance, setClassPerformance] = useState([]);
-  const [radarData, setRadarData] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [selectedPeriod, setSelectedPeriod] = useState('all');
-  const [classes, setClasses] = useState([]);
+    ranking: null,
+  };
+  const recentGrades = performanceData?.recentGrades || [];
+  const classPerformance = performanceData?.classPerformance || [];
+  const radarData = performanceData?.radarData || [];
+  const classes = performanceData?.classes || [];
 
   useEffect(() => {
     if (user?.id) {
-      loadPerformanceData();
       loadDailyAIUsageCount();
     }
   }, [user]);
@@ -71,326 +72,6 @@ const StudentPerformancePageRedesigned = () => {
       setDailyAIUsageCount(0);
     } finally {
       setLoadingUsageCount(false);
-    }
-  };
-
-  const loadPerformanceData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        loadStats(),
-        loadRecentGrades(),
-        loadEvolutionData(),
-        loadClassPerformance(),
-        loadRadarData(),
-        loadClasses()
-      ]);
-    } catch (error) {
-      logger.error('Erro ao carregar dados de desempenho:', error);
-    } finally {
-      setLoading(false);
-      if (initialLoad) {
-        setInitialLoad(false);
-      }
-    }
-  };
-
-  const loadClasses = async () => {
-    try {
-      const { data: memberships } = await supabase
-        .from('class_members')
-        .select('class_id')
-        .eq('user_id', user.id)
-        .eq('role', 'student');
-
-      const classIds = memberships?.map(m => m.class_id) || [];
-
-      const { data: classList } = await supabase
-        .from('classes')
-        .select('id, name, subject')
-        .in('id', classIds);
-
-      setClasses(classList || []);
-    } catch (error) {
-      logger.error('Erro ao carregar turmas:', error);
-    }
-  };
-
-  const loadStats = async () => {
-    try {
-      const { data: memberships } = await supabase
-        .from('class_members')
-        .select('class_id')
-        .eq('user_id', user.id)
-        .eq('role', 'student');
-
-      let classIds = memberships?.map(m => m.class_id) || [];
-
-      if (selectedClass !== 'all') {
-        classIds = classIds.filter(id => id === selectedClass);
-      }
-
-      if (classIds.length === 0) {
-        setStats({ avgGrade: 0, totalActivities: 0, completedActivities: 0, ranking: null });
-        return;
-      }
-
-      // Buscar atividades
-      const { data: assignments } = await supabase
-        .from('activity_class_assignments')
-        .select('activity_id')
-        .in('class_id', classIds);
-
-      const activityIds = assignments?.map(a => a.activity_id) || [];
-      const totalActivities = activityIds.length;
-
-      // Buscar submissões
-      let submissionsQuery = supabase
-        .from('submissions')
-        .select('activity_id, status, grade, submitted_at')
-        .eq('student_id', user.id)
-        .in('activity_id', activityIds);
-
-      // Filtro de período
-      if (selectedPeriod !== 'all') {
-        const now = new Date();
-        let startDate = new Date();
-        
-        if (selectedPeriod === 'week') {
-          startDate.setDate(now.getDate() - 7);
-        } else if (selectedPeriod === 'month') {
-          startDate.setMonth(now.getMonth() - 1);
-        } else if (selectedPeriod === 'semester') {
-          startDate.setMonth(now.getMonth() - 6);
-        }
-
-        submissionsQuery = submissionsQuery.gte('submitted_at', startDate.toISOString());
-      }
-
-      const { data: submissions } = await submissionsQuery;
-
-      const completedActivities = submissions?.length || 0;
-
-      // Calcular média
-      const gradesData = submissions?.filter(s => s.grade !== null) || [];
-      const avgGrade = gradesData.length > 0
-        ? gradesData.reduce((sum, s) => sum + parseFloat(s.grade), 0) / gradesData.length
-        : 0;
-
-      setStats({
-        avgGrade,
-        totalActivities,
-        completedActivities,
-        ranking: null // TODO: Implementar ranking real
-      });
-    } catch (error) {
-      logger.error('Erro ao carregar stats:', error);
-    }
-  };
-
-  const loadRecentGrades = async () => {
-    try {
-      const { data: submissions } = await supabase
-        .from('submissions')
-        .select('id, grade, feedback, submitted_at, status, activity_id')
-        .eq('student_id', user.id)
-        .not('grade', 'is', null)
-        .order('submitted_at', { ascending: false })
-        .limit(10);
-
-      const activityIds = submissions?.map(s => s.activity_id) || [];
-
-      // Buscar atividades
-      const { data: activities } = await supabase
-        .from('activities')
-        .select('id, title, max_score')
-        .in('id', activityIds);
-
-      const activitiesMap = {};
-      activities?.forEach(a => { activitiesMap[a.id] = a; });
-
-      // Buscar nomes das turmas
-      const { data: assignments } = await supabase
-        .from('activity_class_assignments')
-        .select('activity_id, class_id')
-        .in('activity_id', activityIds);
-
-      const classIds = assignments?.map(a => a.class_id).filter(Boolean) || [];
-      const { data: classes } = await supabase
-        .from('classes')
-        .select('id, name')
-        .in('id', classIds);
-
-      const classesMap = {};
-      classes?.forEach(c => { classesMap[c.id] = c; });
-
-      const assignmentsMap = {};
-      const classIdMap = {};
-      assignments?.forEach(a => {
-        assignmentsMap[a.activity_id] = classesMap[a.class_id]?.name;
-        classIdMap[a.activity_id] = a.class_id;
-      });
-
-      const gradesWithClass = (submissions || []).map(s => ({
-        ...s,
-        activity_title: activitiesMap[s.activity_id]?.title,
-        max_score: activitiesMap[s.activity_id]?.max_score,
-        class_name: assignmentsMap[s.activity_id],
-        class_id: classIdMap[s.activity_id]
-      }));
-
-      setRecentGrades(gradesWithClass);
-    } catch (error) {
-      logger.error('Erro ao carregar notas recentes:', error);
-    }
-  };
-
-  const loadEvolutionData = async () => {
-    try {
-      const { data: submissions } = await supabase
-        .from('submissions')
-        .select('grade, submitted_at, activity_id, activity:activities(max_score)')
-        .eq('student_id', user.id)
-        .not('grade', 'is', null)
-        .order('submitted_at', { ascending: true })
-        .limit(20);
-
-      // Buscar class_id de cada atividade
-      const activityIds = submissions?.map(s => s.activity_id) || [];
-      const { data: assignments } = await supabase
-        .from('activity_class_assignments')
-        .select('activity_id, class_id')
-        .in('activity_id', activityIds);
-      
-      const activityClassMap = {};
-      assignments?.forEach(a => {
-        activityClassMap[a.activity_id] = a.class_id;
-      });
-
-      const data = (submissions || []).map(s => ({
-        date: format(new Date(s.submitted_at), 'dd/MM', { locale: ptBR }),
-        fullDate: s.submitted_at,
-        nota: parseFloat(s.grade) || 0,
-        maxScore: s.activity?.max_score || 10,
-        activity_id: s.activity_id,
-        class_id: activityClassMap[s.activity_id]
-      }));
-
-      setEvolutionData(data);
-    } catch (error) {
-      logger.error('Erro ao carregar evolução:', error);
-    }
-  };
-
-  const loadClassPerformance = async () => {
-    try {
-      const { data: memberships } = await supabase
-        .from('class_members')
-        .select('class_id')
-        .eq('user_id', user.id)
-        .eq('role', 'student');
-
-      const classIds = memberships?.map(m => m.class_id) || [];
-
-      const { data: classList } = await supabase
-        .from('classes')
-        .select('id, name, subject')
-        .in('id', classIds);
-
-      const classesMap = {};
-      classList?.forEach(c => { classesMap[c.id] = c; });
-
-      const classesData = await Promise.all(
-        (memberships || []).map(async (m) => {
-          // Buscar atividades
-          const { data: assignments } = await supabase
-            .from('activity_class_assignments')
-            .select('activity_id')
-            .eq('class_id', m.class_id);
-
-          const activityIds = assignments?.map(a => a.activity_id) || [];
-
-          // Buscar submissões com notas
-          const { data: submissions } = await supabase
-            .from('submissions')
-            .select('id, grade, submitted_at, activity_id')
-            .eq('student_id', user.id)
-            .in('activity_id', activityIds)
-            .not('grade', 'is', null)
-            .order('submitted_at', { ascending: true });
-
-          // Buscar dados das atividades
-          const submissionActivityIds = submissions?.map(s => s.activity_id) || [];
-          const { data: activities } = await supabase
-            .from('activities')
-            .select('id, title, max_score')
-            .in('id', submissionActivityIds);
-
-          const activitiesMap = {};
-          activities?.forEach(a => { activitiesMap[a.id] = a; });
-
-          const grades = submissions?.map(s => parseFloat(s.grade)) || [];
-          const avgGrade = grades.length > 0
-            ? grades.reduce((sum, g) => sum + g, 0) / grades.length
-            : 0;
-
-          const history = (submissions || []).map(s => ({
-            date: format(new Date(s.submitted_at), 'dd/MM', { locale: ptBR }),
-            grade: parseFloat(s.grade)
-          }));
-
-          const classInfo = classesMap[m.class_id];
-          
-          return {
-            name: classInfo?.name || 'Turma',
-            media: avgGrade,
-            history
-          };
-        })
-      );
-
-      setClassPerformance(classesData.sort((a, b) => b.media - a.media));
-    } catch (error) {
-      logger.error('Erro ao carregar desempenho por turma:', error);
-    }
-  };
-
-  const loadRadarData = async () => {
-    try {
-      const { data: submissions } = await supabase
-        .from('submissions')
-        .select(`
-          grade,
-          submitted_at,
-          activity_id,
-          activity:activities(type, max_score)
-        `)
-        .eq('student_id', user.id)
-        .not('grade', 'is', null);
-
-      // Buscar class_id de cada atividade
-      const activityIds = submissions?.map(s => s.activity_id) || [];
-      const { data: assignments } = await supabase
-        .from('activity_class_assignments')
-        .select('activity_id, class_id')
-        .in('activity_id', activityIds);
-      
-      const activityClassMap = {};
-      assignments?.forEach(a => {
-        activityClassMap[a.activity_id] = a.class_id;
-      });
-
-      const dataWithClass = (submissions || []).map(s => ({
-        grade: parseFloat(s.grade),
-        maxScore: parseFloat(s.activity?.max_score),
-        type: s.activity?.type,
-        submitted_at: s.submitted_at,
-        class_id: activityClassMap[s.activity_id]
-      }));
-
-      setRadarData(dataWithClass);
-    } catch (error) {
-      logger.error('Erro ao carregar radar de habilidades:', error);
     }
   };
 
@@ -637,6 +318,8 @@ const StudentPerformancePageRedesigned = () => {
     };
   }, [stats, recentGrades, selectedClass, selectedPeriod]);
 
+  const evolutionData = Array.isArray(evolutionRaw) ? evolutionRaw : [];
+
   const filteredEvolutionData = useMemo(() => {
     let filtered = [...evolutionData];
     
@@ -766,7 +449,8 @@ const StudentPerformancePageRedesigned = () => {
       
       const percentage = (grade / maxScore) * 100;
       
-      if (type === 'objective') {
+      // closed = objetivas, open = abertas, mixed = mistas
+      if (type === 'closed') {
         skills[0].value += percentage;
         skills[0].count++;
       } else if (type === 'open') {
@@ -784,7 +468,7 @@ const StudentPerformancePageRedesigned = () => {
     }));
   }, [radarData, selectedClass, selectedPeriod]);
 
-  if (loading && initialLoad) {
+  if (performanceLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner size="lg" />

@@ -33,6 +33,8 @@ import { format, formatDistanceToNow, isPast, isFuture, isToday, isTomorrow } fr
 import { ptBR } from 'date-fns/locale';
 import PostExistingActivityModal from '../components/PostExistingActivityModal';
 import ConfirmDialog from '@/shared/components/ui/ConfirmDialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
+import { Label } from '@/shared/components/ui/label';
 
 /**
  * TAB 5: ATIVIDADES - Core do Sistema
@@ -64,6 +66,13 @@ const ActivitiesTab = ({ classId }) => {
     overdue: 0,
     pendingCorrections: 0
   });
+  const [editDeadline, setEditDeadline] = useState({
+    isOpen: false,
+    activityId: null,
+    dueDate: '',
+    dueTime: '23:59'
+  });
+  const [savingDeadline, setSavingDeadline] = useState(false);
 
   useEffect(() => {
     loadActivities();
@@ -168,8 +177,14 @@ const ActivitiesTab = ({ classId }) => {
       const now = new Date();
       const statsData = {
         total: activitiesWithMetrics.length,
-        published: activitiesWithMetrics.filter(a => a.activity?.is_published).length,
-        draft: activitiesWithMetrics.filter(a => !a.activity?.is_published).length,
+        published: activitiesWithMetrics.filter(a => {
+          const status = a.activity?.status;
+          return status === 'published' || status === 'active';
+        }).length,
+        draft: activitiesWithMetrics.filter(a => {
+          const status = a.activity?.status;
+          return !status || status === 'draft';
+        }).length,
         overdue: activitiesWithMetrics.filter(a => 
           a.activity?.due_date && isPast(new Date(a.activity.due_date)) && !isToday(new Date(a.activity.due_date))
         ).length,
@@ -208,8 +223,14 @@ const ActivitiesTab = ({ classId }) => {
 
     if (filterStatus !== 'all') {
       filtered = filtered.filter(a => {
-        if (filterStatus === 'published') return a.activity?.status === 'active';
-        if (filterStatus === 'draft') return a.activity?.status === 'draft';
+        const status = a.activity?.status;
+        if (filterStatus === 'published') {
+          // Considerar published (novo padrão) e active (legado) como publicadas
+          return status === 'published' || status === 'active';
+        }
+        if (filterStatus === 'draft') {
+          return !status || status === 'draft';
+        }
         if (filterStatus === 'pending_correction') return a.pendingCorrections > 0;
         return true;
       });
@@ -284,6 +305,82 @@ const ActivitiesTab = ({ classId }) => {
     if (isPast(date)) return `Atrasado - ${format(date, 'dd/MM/yyyy')}`;
     
     return formatDistanceToNow(date, { locale: ptBR, addSuffix: true });
+  };
+
+  const openEditDeadline = (activity) => {
+    if (!activity) return;
+
+    try {
+      let dateStr = '';
+      let timeStr = '23:59';
+
+      if (activity.due_date) {
+        const current = new Date(activity.due_date);
+        const iso = current.toISOString();
+        dateStr = iso.split('T')[0];
+        timeStr = iso.substring(11, 16);
+      } else {
+        const today = new Date();
+        const iso = today.toISOString();
+        dateStr = iso.split('T')[0];
+      }
+
+      setEditDeadline({
+        isOpen: true,
+        activityId: activity.id,
+        dueDate: dateStr,
+        dueTime: timeStr || '23:59'
+      });
+    } catch (error) {
+      logger.error('Erro ao preparar edição de prazo:', error);
+      toast({
+        title: 'Erro ao carregar prazo',
+        description: 'Não foi possível carregar a data de entrega atual.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSaveDeadline = async () => {
+    if (!editDeadline.activityId || !editDeadline.dueDate) {
+      toast({
+        title: 'Data obrigatória',
+        description: 'Defina uma data de entrega para salvar.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      setSavingDeadline(true);
+
+      const dueTime = editDeadline.dueTime || '23:59';
+      const dueDatetime = `${editDeadline.dueDate}T${dueTime}:00`;
+
+      const { error } = await supabase
+        .from('activities')
+        .update({ due_date: dueDatetime })
+        .eq('id', editDeadline.activityId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Prazo atualizado',
+        description: 'A data de entrega da atividade foi atualizada.',
+      });
+
+      setEditDeadline(prev => ({ ...prev, isOpen: false }));
+      await loadActivities();
+    } catch (error) {
+      logger.error('Erro ao salvar novo prazo da atividade:', error);
+      toast({
+        title: 'Erro ao atualizar prazo',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setSavingDeadline(false);
+    }
   };
 
   const handleExportGrades = async (activity) => {
@@ -619,7 +716,7 @@ const ActivitiesTab = ({ classId }) => {
                             <h3 className="text-lg font-semibold">
                               {activity?.title || 'Sem título'}
                             </h3>
-                            {!activity?.is_published && (
+                            {activity && (!activity.status || activity.status === 'draft') && (
                               <Badge variant="secondary" className="text-xs">Rascunho</Badge>
                             )}
                           </div>
@@ -696,9 +793,13 @@ const ActivitiesTab = ({ classId }) => {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate(`/dashboard/activities/${activity?.activity?.id}/edit`)}>
+                          <DropdownMenuItem onClick={() => navigate(`/dashboard/activities/${activity?.id}/edit`)}>
                             <Edit className="w-4 h-4 mr-2" />
                             Editar Atividade
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDeadline(activity)}>
+                            <Calendar className="w-4 h-4 mr-2" />
+                            Editar Prazo
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleExportGrades(activity)}>
                             <Download className="w-4 h-4 mr-2" />
@@ -739,6 +840,67 @@ const ActivitiesTab = ({ classId }) => {
         classId={classId}
         onSuccess={loadActivities}
       />
+
+      {/* Modal para editar prazo da atividade */}
+      <Dialog
+        open={editDeadline.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditDeadline(prev => ({ ...prev, isOpen: false }));
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar prazo da atividade</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="edit-due-date">
+                <Calendar className="w-4 h-4 inline mr-1" />
+                Data de Entrega
+              </Label>
+              <Input
+                id="edit-due-date"
+                type="date"
+                value={editDeadline.dueDate}
+                onChange={(e) => setEditDeadline(prev => ({ ...prev, dueDate: e.target.value }))}
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-due-time">
+                <Clock className="w-4 h-4 inline mr-1" />
+                Hora
+              </Label>
+              <Input
+                id="edit-due-time"
+                type="time"
+                value={editDeadline.dueTime}
+                onChange={(e) => setEditDeadline(prev => ({ ...prev, dueTime: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDeadline(prev => ({ ...prev, isOpen: false }))}
+              disabled={savingDeadline}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSaveDeadline}
+              disabled={savingDeadline || !editDeadline.dueDate}
+            >
+              {savingDeadline ? 'Salvando...' : 'Salvar Prazo'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de Confirmação de Exclusão */}
       <ConfirmDialog

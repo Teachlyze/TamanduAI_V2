@@ -472,6 +472,7 @@ const TeacherClassDetailsPage = () => {
           <OverviewTab 
             classId={classId} 
             classData={classData}
+            onTabChange={handleTabChange}
           />
         )}
         {activeTab === 'content' && (

@@ -91,8 +91,7 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
                 instructions: additionalInstructions || activity.instructions,
                 plagiarism_enabled: plagiarismForThisActivity,
                 status: 'published',
-                created_by: activity.created_by,
-                teacher_id: activity.teacher_id
+                created_by: activity.created_by
               })
               .select()
               .single();
@@ -125,6 +124,18 @@ const PostActivityModal = ({ activities, classes, onClose, onSuccess }) => {
             });
 
           if (assignError) throw assignError;
+
+          // Atualizar data de atualização da turma para refletir nova atividade postada
+          const { error: classUpdateError } = await supabase
+            .from('classes')
+            .update({
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', classId);
+
+          if (classUpdateError) {
+            logger.warn('Erro ao atualizar updated_at da turma ao postar atividade:', classUpdateError);
+          }
 
           // Notificar alunos se marcado
           if (notifyStudents) {

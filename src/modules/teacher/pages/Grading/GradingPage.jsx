@@ -34,6 +34,47 @@ const GradingPage = () => {
     loadSubmission();
   }, [submissionId]);
 
+  const handleOpenAttachment = async (file) => {
+    if (!file) return;
+
+    try {
+      if (file.path) {
+        const { data, error } = await supabase.storage
+          .from('submissions')
+          .download(file.path);
+
+        if (error) throw error;
+
+        const blobUrl = URL.createObjectURL(data);
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      } else if (file.url) {
+        window.open(file.url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      logger.error('Erro ao abrir anexo da submissao (GradingPage):', error);
+      toast({
+        title: 'Erro ao abrir arquivo',
+        description: error?.message || 'Nao foi possivel abrir o arquivo. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const isProjectSubmission = () => {
+    if (!submission) return false;
+
+    const content = submission.content;
+    const attachments = Array.isArray(content?.attachments)
+      ? content.attachments
+      : [];
+
+    return (
+      activity?.type === 'project' ||
+      activity?.content?.advanced_settings?.submissionMode === 'file_upload' ||
+      attachments.length > 0
+    );
+  };
+
   // Função para renderizar conteúdo da submissão de forma legível
   const renderSubmissionContent = () => {
     if (!submission?.content) {
@@ -44,8 +85,99 @@ const GradingPage = () => {
       );
     }
 
+    const content = submission.content;
+
+    const attachments = Array.isArray(content?.attachments)
+      ? content.attachments
+      : [];
+    const isProjectUploadOnly = isProjectSubmission();
+
+    // Para atividades de projeto/upload de arquivo, mostrar apenas enunciado + anexos
+    if (isProjectUploadOnly) {
+      return (
+        <div className="space-y-4">
+          {activity?.description && (
+            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-l-4 border-indigo-500 rounded">
+              <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2">
+                ENUNCIADO DA ATIVIDADE
+              </p>
+              <div
+                className="text-sm text-slate-800 dark:text-slate-100"
+                style={{
+                  whiteSpace: 'pre-wrap',
+                  wordBreak: 'break-word',
+                  overflowWrap: 'break-word',
+                  lineHeight: '1.5'
+                }}
+              >
+                {activity.description}
+              </div>
+            </div>
+          )}
+
+          {attachments.length > 0 ? (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 rounded-lg">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div>
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                    ARQUIVOS ENVIADOS PELO ALUNO
+                  </p>
+                  <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 mt-1">
+                    Revise o arquivo antes de definir a nota e o feedback.
+                  </p>
+                </div>
+                <Badge className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200">
+                  {attachments.length === 1
+                    ? '1 arquivo'
+                    : `${attachments.length} arquivos`}
+                </Badge>
+              </div>
+
+              <div className="space-y-3">
+                {attachments.map((file, index) => (
+                  <div
+                    key={file.path || file.url || index}
+                    className="flex items-center justify-between gap-4 rounded-md bg-white/70 dark:bg-slate-950/50 border border-amber-100 dark:border-amber-900 px-3 py-2.5"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-200 flex-shrink-0">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-slate-900 dark:text-slate-50 truncate">
+                          {file.name || `Arquivo ${index + 1}`}
+                        </p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                          {typeof file.size === 'number'
+                            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+                            : 'Tamanho desconhecido'}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="gradientOutline"
+                      size="sm"
+                      className="shrink-0 min-w-[130px]"
+                      onClick={() => handleOpenAttachment(file)}
+                    >
+                      Abrir arquivo
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Nenhum arquivo enviado nesta submissao.
+            </p>
+          )}
+        </div>
+      );
+    }
+
     // Se for string, mostrar como texto
-    if (typeof submission.content === 'string') {
+    if (typeof content === 'string') {
       return (
         <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
           <div style={{
@@ -58,7 +190,7 @@ const GradingPage = () => {
             fontSize: '0.875rem',
             lineHeight: '1.5'
           }}>
-            {submission.content}
+            {content}
           </div>
         </div>
       );
@@ -66,9 +198,9 @@ const GradingPage = () => {
 
     // Se for objeto (respostas objetivas), renderizar questões
     try {
-      const rawContent = typeof submission.content === 'string'
-        ? JSON.parse(submission.content)
-        : (submission.content || {});
+      const rawContent = typeof content === 'string'
+        ? JSON.parse(content)
+        : (content || {});
 
       // Formatos suportados:
       // - { selectedAnswers: { [questionId]: answer } }  (novo para quizzes)
@@ -318,10 +450,10 @@ const GradingPage = () => {
         }
       }
 
-      // Load all submissions for this activity (for navigation)
+      // Load all submissions for this activity (for navigation and progress)
       const { data: allSubs, error: allSubsError } = await supabase
         .from('submissions')
-        .select('id, student_id, status')
+        .select('id, student_id, status, submitted_at, grade')
         .eq('activity_id', submissionData.activity_id)
         .order('submitted_at', { ascending: true });
 
@@ -457,6 +589,8 @@ const GradingPage = () => {
     );
   }
 
+  const isProjectUploadOnly = isProjectSubmission();
+
   const totalSubmissions = allSubmissions.length || 0;
   const gradedCount = allSubmissions.filter(s => s.status === 'graded').length;
   const gradingProgress = totalSubmissions ? (gradedCount / totalSubmissions) * 100 : 0;
@@ -478,36 +612,110 @@ const GradingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
-      {/* Back Button */}
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/dashboard/corrections')}
-        className="mb-4"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Voltar para Submissões
-      </Button>
+      <div className="sticky top-0 z-20 -mx-6 mb-6 border-b border-slate-200/60 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        <div className="px-6 pt-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => navigate('/dashboard/corrections')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar para Submissões
+              </Button>
 
-      <Breadcrumb items={breadcrumbItems} className="mb-4" />
+              <Breadcrumb items={breadcrumbItems} />
+            </div>
 
-      {/* Header */}
-      <DashboardHeader
-        title={`Corrigir Submissão${submission?.student?.full_name ? ` - ${submission.student.full_name}` : ''}`}
-        subtitle={`${activity?.title || 'Atividade'}${classInfo?.name ? ` • Turma: ${classInfo.name}` : ''} • ${currentIndex + 1} de ${allSubmissions.length}`}
-        role="teacher"
-      />
+            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+              <span>
+                Submissão {currentIndex + 1} de {totalSubmissions || 0}
+              </span>
+              <span>•</span>
+              <span>
+                {gradedCount} de {totalSubmissions || 0} corrigidas
+              </span>
+            </div>
+          </div>
 
-      <div className="mt-4 mb-6">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-            Progresso da correção
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            {gradedCount} de {totalSubmissions} corrigidas
-          </span>
+          <div className="mt-4">
+            <DashboardHeader
+              title={`Corrigir Submissão${submission?.student?.full_name ? ` - ${submission.student.full_name}` : ''}`}
+              subtitle={`${activity?.title || 'Atividade'}${classInfo?.name ? ` • Turma: ${classInfo.name}` : ''} • ${currentIndex + 1} de ${allSubmissions.length}`}
+              role="teacher"
+            />
+          </div>
+
+          <div className="mt-4 pb-4">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                Progresso da correção desta atividade
+              </span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {gradedCount} de {totalSubmissions} corrigidas
+              </span>
+            </div>
+            <Progress value={gradingProgress} />
+          </div>
         </div>
-        <Progress value={gradingProgress} />
       </div>
+
+      {totalSubmissions > 0 && (
+        <div className="mb-6">
+          <Card className="p-4 bg-white dark:bg-slate-900">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100 mb-2">
+              Linha do tempo das submissões
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              Histórico de envios desta atividade. Clique para navegar entre as submissões.
+            </p>
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+              {allSubmissions.map((s, index) => {
+                const isCurrent = s.id === submissionId;
+                const isGraded = s.status === 'graded';
+
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => {
+                      if (!isCurrent) {
+                        navigate(`/dashboard/grading/${s.id}`);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between rounded-md border px-3 py-2 text-left text-xs transition-colors ${
+                      isCurrent
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100'
+                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        Submissão {index + 1}
+                        {isCurrent ? ' • atual' : ''}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {s.submitted_at
+                          ? new Date(s.submitted_at).toLocaleString('pt-BR')
+                          : 'Sem data de envio'}
+                      </span>
+                    </div>
+                    <Badge
+                      className={
+                        isGraded
+                          ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300'
+                          : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                      }
+                    >
+                      {isGraded ? 'Corrigida' : 'Pendente'}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Student Info & Submission Content */}
@@ -592,11 +800,11 @@ const GradingPage = () => {
             initialFeedback={submission?.feedback || ''}
             onSave={handleSaveGrade}
             onCancel={() => navigate('/dashboard/corrections')}
-            onAutoGrade={handleAutoGrade}
-            onAISuggestion={handleAISuggestion}
+            onAutoGrade={isProjectUploadOnly ? undefined : handleAutoGrade}
+            onAISuggestion={isProjectUploadOnly ? undefined : handleAISuggestion}
             loading={saving}
-            canUseAutoGrade={canUseAutoGrade}
-            canUseAI={true}
+            canUseAutoGrade={isProjectUploadOnly ? false : canUseAutoGrade}
+            canUseAI={!isProjectUploadOnly}
           />
 
           {/* Navigation */}

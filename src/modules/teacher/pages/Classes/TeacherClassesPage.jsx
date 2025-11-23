@@ -8,22 +8,23 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { useAuth } from '@/shared/hooks/useAuth';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
-import { redisCache } from '@/shared/services/redisCache';
+import { useRedisCache } from '@/shared/hooks/useRedisCache';
 import ClassCard from './components/ClassCard';
 import CreateClassModal from './components/CreateClassModal';
 
+const initialStats = {
+  totalActive: 0,
+  totalStudents: 0,
+  avgGrade: 0,
+  totalArchived: 0
+};
+
 const TeacherClassesPage = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [classes, setClasses] = useState([]);
   const [filteredClasses, setFilteredClasses] = useState([]);
-  const [stats, setStats] = useState({
-    totalActive: 0,
-    totalStudents: 0,
-    avgGrade: 0,
-    totalArchived: 0
-  });
+  const [stats, setStats] = useState(initialStats);
   
   const [showArchived, setShowArchived] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -35,157 +36,176 @@ const TeacherClassesPage = () => {
     sortBy: 'recent'
   });
 
-  useEffect(() => {
-    if (user?.id) {
-      loadClasses();
-      loadStats();
+  const cacheKey = user?.id ? `teacher:classes:${user.id}` : null;
+
+  const fetchClassesAndStats = useCallback(async () => {
+    if (!user?.id) {
+      return {
+        classes: [],
+        stats: initialStats
+      };
     }
-  }, [user, showArchived]);
 
-  useEffect(() => {
-    applyFilters();
-  }, [classes, filters]);
-
-  const loadClasses = useCallback(async () => {
     try {
-      setLoading(true);
+      // Buscar turmas do professor
+      const { data: classesData, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('created_by', user.id)
+        .order('updated_at', { ascending: false });
 
-      // Usar cache Redis para lista de turmas
-      const cachedClasses = await redisCache.cacheQuery(
-        `teacher:${user.id}:classes`,
-        async () => {
-          // Buscar turmas
-          const { data: classesData, error } = await supabase
-            .from('classes')
-            .select('*')
-            .eq('created_by', user.id)
-            .order('updated_at', { ascending: false });
+      if (error) throw error;
 
-          if (error) throw error;
+      const classIds = classesData.map((c) => c.id);
 
-          const classIds = classesData.map(c => c.id);
+      if (classIds.length === 0) {
+        return {
+          classes: [],
+          stats: initialStats
+        };
+      }
 
-          // Buscar todas estatísticas em paralelo (mais eficiente)
-          const [membersResult, activitiesResult] = await Promise.all([
-            // Contar alunos de todas turmas
-            supabase
-              .from('class_members')
-              .select('class_id')
-              .in('class_id', classIds)
-              .eq('role', 'student'),
-            
-            // Contar atividades de todas turmas
-            supabase
-              .from('activity_class_assignments')
-              .select('class_id, activity_id')
-              .in('class_id', classIds)
-          ]);
+      // Buscar todas estatísticas em paralelo (mais eficiente)
+      const [membersResult, activitiesResult] = await Promise.all([
+        supabase
+          .from('class_members')
+          .select('class_id, user_id')
+          .in('class_id', classIds)
+          .eq('role', 'student'),
+        supabase
+          .from('activity_class_assignments')
+          .select('class_id, activity_id')
+          .in('class_id', classIds)
+      ]);
 
-          // Agrupar contagens por turma
-          const studentCounts = {};
-          const activityCounts = {};
+      const members = membersResult.data || [];
+      const activities = activitiesResult.data || [];
 
-          membersResult.data?.forEach(member => {
-            studentCounts[member.class_id] = (studentCounts[member.class_id] || 0) + 1;
-          });
+      const studentCounts = {};
+      const activityCounts = {};
+      const uniqueStudentIds = new Set();
 
-          activitiesResult.data?.forEach(activity => {
-            activityCounts[activity.class_id] = (activityCounts[activity.class_id] || 0) + 1;
-          });
-
-          // Combinar dados
-          const classesWithStats = classesData.map(classItem => ({
-            ...classItem,
-            studentCount: studentCounts[classItem.id] || 0,
-            activityCount: activityCounts[classItem.id] || 0,
-            avgGrade: 0 // Mock - calcular depois se necessário
-          }));
-
-          return classesWithStats;
-        },
-        300 // Cache de 5 minutos
+      const activeClassIds = new Set(
+        classesData.filter((c) => c.is_active).map((c) => c.id)
       );
 
-      setClasses(cachedClasses);
+      members.forEach((member) => {
+        if (!member.class_id) return;
+        studentCounts[member.class_id] =
+          (studentCounts[member.class_id] || 0) + 1;
+        if (member.user_id) {
+          uniqueStudentIds.add(member.user_id);
+        }
+      });
+
+      const activeActivityIds = new Set();
+
+      activities.forEach((activity) => {
+        if (!activity.class_id) return;
+        activityCounts[activity.class_id] =
+          (activityCounts[activity.class_id] || 0) + 1;
+
+        if (activeClassIds.has(activity.class_id) && activity.activity_id) {
+          activeActivityIds.add(activity.activity_id);
+        }
+      });
+
+      let avgGrade = 0;
+
+      if (activeActivityIds.size > 0) {
+        const { data: submissions } = await supabase
+          .from('submissions')
+          .select('grade')
+          .in('activity_id', Array.from(activeActivityIds))
+          .not('grade', 'is', null);
+
+        if (submissions && submissions.length > 0) {
+          const sum = submissions.reduce(
+            (acc, s) => acc + (s.grade || 0),
+            0
+          );
+          avgGrade = sum / submissions.length;
+        }
+      }
+
+      const classesWithStats = classesData.map((classItem) => ({
+        ...classItem,
+        studentCount: studentCounts[classItem.id] || 0,
+        activityCount: activityCounts[classItem.id] || 0,
+        avgGrade: 0 // Mock - calcular depois se necessário
+      }));
+
+      const statsData = {
+        totalActive: activeClassIds.size,
+        totalStudents: uniqueStudentIds.size,
+        avgGrade: Number(avgGrade.toFixed(1) || 0),
+        totalArchived: classesData.length - activeClassIds.size
+      };
+
+      return {
+        classes: classesWithStats,
+        stats: statsData
+      };
     } catch (error) {
-      logger.error('Erro ao carregar turmas:', error)
+      logger.error('Erro ao carregar turmas/estatísticas:', error);
+      throw error;
+    }
+  }, [user?.id]);
+
+  const {
+    data: cachedData,
+    loading,
+    refetch
+  } = useRedisCache(cacheKey, fetchClassesAndStats, {
+    ttl: 5 * 60, // 5 minutos
+    enabled: !!cacheKey,
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    onError: () => {
       toast({
         title: 'Erro ao carregar turmas',
         description: 'Não foi possível carregar suas turmas.',
         variant: 'destructive'
       });
-    } finally {
-      setLoading(false);
-      if (initialLoad) {
-        setInitialLoad(false);
-      }
     }
-  }, [user?.id]);
+  });
+
+  useEffect(() => {
+    if (cachedData) {
+      const safeClasses = Array.isArray(cachedData.classes)
+        ? cachedData.classes
+        : [];
+      setClasses(safeClasses);
+
+      const statsData = cachedData.stats || initialStats;
+      setStats({
+        totalActive: statsData.totalActive || 0,
+        totalStudents: statsData.totalStudents || 0,
+        avgGrade:
+          typeof statsData.avgGrade === 'number'
+            ? statsData.avgGrade
+            : 0,
+        totalArchived: statsData.totalArchived || 0
+      });
+    }
+  }, [cachedData]);
+
+  useEffect(() => {
+    if (!loading && initialLoad) {
+      setInitialLoad(false);
+    }
+  }, [loading, initialLoad]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [classes, filters, showArchived]);
 
   const refreshClasses = useCallback(async () => {
     try {
-      if (user?.id) {
-        await redisCache.delete(`teacher:${user.id}:classes`);
-      }
+      await refetch();
     } catch (e) {
-      logger.warn('Falha ao invalidar cache de turmas:', e)
-    } finally {
-      await loadClasses();
-      await loadStats();
+      logger.warn('Falha ao recarregar turmas:', e);
     }
-  }, [user?.id, loadClasses]);
-
-  const loadStats = async () => {
-    try {
-      const { data: classesData } = await supabase
-        .from('classes')
-        .select('id, is_active')
-        .eq('created_by', user.id);
-
-      const activeClasses = classesData?.filter(c => c.is_active) || [];
-      const archivedClasses = classesData?.filter(c => !c.is_active) || [];
-
-      // Total de alunos únicos
-      const { data: students } = await supabase
-        .from('class_members')
-        .select('user_id')
-        .in('class_id', classesData?.map(c => c.id) || [])
-        .eq('role', 'student');
-
-      const uniqueStudents = new Set(students?.map(s => s.user_id) || []);
-
-      // Média geral
-      const { data: activities } = await supabase
-        .from('activity_class_assignments')
-        .select('activity_id')
-        .in('class_id', activeClasses.map(c => c.id));
-
-      const activityIds = activities?.map(a => a.activity_id) || [];
-      let avgGrade = 0;
-
-      if (activityIds.length > 0) {
-        const { data: submissions } = await supabase
-          .from('submissions')
-          .select('grade')
-          .in('activity_id', activityIds)
-          .not('grade', 'is', null);
-
-        if (submissions && submissions.length > 0) {
-          const sum = submissions.reduce((acc, s) => acc + s.grade, 0);
-          avgGrade = sum / submissions.length;
-        }
-      }
-
-      setStats({
-        totalActive: activeClasses.length,
-        totalStudents: uniqueStudents.size,
-        avgGrade: Number(avgGrade.toFixed(1)),
-        totalArchived: archivedClasses.length
-      });
-    } catch (error) {
-      logger.error('Erro ao carregar estatísticas:', error)
-    }
-  };
+  }, [refetch]);
 
   const applyFilters = () => {
     let filtered = [...classes];

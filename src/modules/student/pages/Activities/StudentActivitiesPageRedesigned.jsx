@@ -146,8 +146,16 @@ const StudentActivitiesPageRedesigned = () => {
           const hoursLeft = differenceInHours(dueDate, now);
 
           let status = 'pending';
+
           if (submission) {
-            status = submission.status === 'graded' ? 'completed' : 'submitted';
+            if (submission.status === 'graded') {
+              status = 'completed';
+            } else if (submission.status === 'submitted') {
+              status = 'submitted';
+            } else {
+              // Submissão em rascunho ou outro estado intermediário
+              status = dueDate < now ? 'late' : 'pending';
+            }
           } else if (dueDate < now) {
             status = 'late';
           }
@@ -171,6 +179,7 @@ const StudentActivitiesPageRedesigned = () => {
       const statsData = {
         total: activitiesWithStatus.length,
         pending: activitiesWithStatus.filter(a => a.status === 'pending').length,
+        // Considerar como "concluídas" apenas entregas finais (submitted ou graded)
         completed: activitiesWithStatus.filter(a => a.status === 'completed' || a.status === 'submitted').length,
         late: activitiesWithStatus.filter(a => a.status === 'late').length,
         urgent: activitiesWithStatus.filter(a => a.is_urgent).length

@@ -123,6 +123,27 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
   }, [getBucket]);
 
   /**
+   * Remove um arquivo de submissão de aluno (bucket SUBMISSIONS)
+   * @param {string} filePath - Caminho do arquivo no storage
+   * @returns {Promise<boolean>}
+   */
+  const removeSubmissionFile = useCallback(async (filePath) => {
+    if (!filePath) return false;
+
+    try {
+      const bucket = BUCKETS.SUBMISSIONS;
+      const { error } = await removeFile(bucket, filePath);
+
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      logger.error('Erro ao remover arquivo da submissão:', err)
+      setError(err.message || 'Erro ao remover o arquivo da submissão');
+      throw err;
+    }
+  }, []);
+
+  /**
    * Move os arquivos de rascunho para a pasta de atividades publicadas
    * @param {string} newActivityId - Novo ID da atividade (se for uma nova publicação)
    * @returns {Promise<Array>} Lista de arquivos movidos com as novas URLs
@@ -204,7 +225,12 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
     
     try {
       const bucket = BUCKETS.SUBMISSIONS;
-      const filePath = `${userId}/${activityId}/${submissionId}/${file.name}`;
+
+      // Gerar um nome de arquivo seguro para o storage (evita problemas com acentos/espacos)
+      const ext = file.name.includes('.') ? file.name.split('.').pop() : '';
+      const safeBaseName = `${Date.now()}-${uuidv4()}`;
+      const safeFileName = ext ? `${safeBaseName}.${ext}` : safeBaseName;
+      const filePath = `${userId}/${activityId}/${submissionId}/${safeFileName}`;
       
       // Configura o progresso do upload
       const uploadOptions = {
@@ -264,6 +290,7 @@ const useActivityFiles = (activityId, userId, isDraft = false) => {
     removeActivityFile,
     publishActivityFiles,
     uploadSubmission,
+    removeSubmissionFile,
     resetError: () => setError(null)
   };
 };

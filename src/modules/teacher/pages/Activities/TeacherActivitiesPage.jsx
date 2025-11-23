@@ -18,6 +18,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { DashboardHeader, StatsCard, EmptyState, gradients } from '@/shared/design';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
+import { useTeacherActivities } from '@/modules/teacher/hooks/useTeacherActivities';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { cn } from '@/lib/utils';
 import Breadcrumb from '@/shared/components/ui/Breadcrumb';
@@ -31,7 +32,6 @@ const TeacherActivitiesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-
 
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState([]);
@@ -60,78 +60,35 @@ const TeacherActivitiesPage = () => {
   const [expandedActivityId, setExpandedActivityId] = useState(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
+  // Hook com cache Redis/Upstash para atividades do professor
+  const {
+    data: cachedActivities = [],
+    loading: activitiesLoading,
+    refetch: refetchActivities,
+  } = useTeacherActivities(showArchived);
+
+  // Sincronizar estado local com o hook cacheado
+  useEffect(() => {
+    const safeActivities = Array.isArray(cachedActivities) ? cachedActivities : [];
+    setActivities(safeActivities);
+    setLoading(activitiesLoading);
+    calculateStats(safeActivities);
+  }, [cachedActivities, activitiesLoading]);
+
   useEffect(() => {
     if (user) {
-      loadActivities();
       loadClasses();
     } else {
-      logger.warn('[TeacherActivitiesPage] ⚠️ User not found!')
+      logger.warn('[TeacherActivitiesPage] ⚠️ User not found!');
     }
-  }, [user, showArchived]);
+  }, [user]);
 
   const loadActivities = async () => {
     try {
-      setLoading(true);
-      
-      let query = supabase
-        .from('activities')
-        .select(`
-          *,
-          assignments:activity_class_assignments(
-            id, class_id, assigned_at,
-            class:classes(id, name)
-          ),
-          submissions:submissions(id, status, grade)
-        `)
-        .eq('created_by', user.id)
-        .is('deleted_at', null);
-      
-      // Excluir arquivadas por padrão
-      if (!showArchived) {
-        query = query.neq('status', 'archived');
-      }
-      
-      const { data, error } = await query.order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const rawActivities = data || [];
-
-      const hasNewerVersionMap = new Map();
-      rawActivities.forEach((activity) => {
-        const prevId = activity.content?.advanced_settings?.previousActivityId;
-        if (prevId) {
-          hasNewerVersionMap.set(prevId, true);
-        }
-      });
-
-      const processedActivities = rawActivities.map(activity => {
-        const submittedCount = activity.submissions?.filter(s => s.status === 'submitted' || s.status === 'graded').length || 0;
-        const avgGrade = activity.submissions?.filter(s => s.grade !== null).reduce((acc, s) => acc + parseFloat(s.grade), 0) / submittedCount || 0;
-
-        const version = activity.content?.advanced_settings?.version || 1;
-        const previousActivityId = activity.content?.advanced_settings?.previousActivityId || null;
-        const hasNewerVersion = hasNewerVersionMap.has(activity.id);
-        
-        return {
-          ...activity,
-          timesUsed: activity.assignments?.length || 0,
-          submittedCount,
-          avgGrade: avgGrade.toFixed(2),
-          classNames: activity.assignments?.map(a => a.class?.name).filter(Boolean) || [],
-          version,
-          previousActivityId,
-          hasNewerVersion,
-        };
-      });
-
-      setActivities(processedActivities);
-      calculateStats(processedActivities);
+      await refetchActivities();
     } catch (error) {
-      logger.error('Erro ao carregar atividades:', error)
-      toast({ title: 'Erro', description: 'Não foi possível carregar as atividades.', variant: 'destructive' });
-    } finally {
-      setLoading(false);
+      logger.error('Erro ao recarregar atividades:', error);
+      toast({ title: 'Erro', description: 'Não foi possível atualizar as atividades.', variant: 'destructive' });
     }
   };
 
@@ -149,7 +106,8 @@ const TeacherActivitiesPage = () => {
     }
   };
 
-  const calculateStats = (activitiesData) => {
+  const calculateStats = (activitiesDataRaw) => {
+    const activitiesData = Array.isArray(activitiesDataRaw) ? activitiesDataRaw : [];
     const total = activitiesData.length;
     const byType = {
       open: activitiesData.filter(a => a.type === 'open').length,
@@ -261,8 +219,12 @@ const TeacherActivitiesPage = () => {
       
       toast({ title: 'Atividade arquivada' });
       
-      // Atualizar lista localmente
-      setActivities(prev => prev.filter(a => a.id !== activityId));
+      // Atualizar lista localmente + stats
+      setActivities(prev => {
+        const next = prev.filter(a => a.id !== activityId);
+        calculateStats(next);
+        return next;
+      });
     } catch (error) {
       logger.error('Erro ao arquivar:', error)
       toast({ title: 'Erro ao arquivar', variant: 'destructive' });

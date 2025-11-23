@@ -656,17 +656,126 @@ export const ClassService = {
    * @returns {Promise<Object>} - The class object
    */
   async joinClassByCode(inviteCode, userId) {
-    // Find class by invite code
-    const { data: classData, error: classError } = await supabase
-      .from('classes')
-      .select('*')
-      .eq('invite_code', inviteCode)
-      .eq('is_active', true)
-      .single();
+    // Normalizar código (remover espaços e garantir maiúsculas)
+    const normalizedCode = (inviteCode || '')
+      .toString()
+      .replace(/\s/g, '')
+      .trim()
+      .toUpperCase();
 
-    if (classError || !classData) {
+    if (!normalizedCode) {
       throw new Error('Código de turma inválido ou turma não encontrada');
     }
+
+    // Log duplo para garantir visibilidade
+    console.log('🔍 [ClassService] Tentando entrar com código:', normalizedCode);
+    logger.debug('[ClassService.joinClassByCode] Tentando entrar com código:', {
+      inviteCode,
+      normalizedCode
+    });
+
+    let classData = null;
+
+    // 1) Buscar TODAS as turmas ativas e comparar em memória (mais confiável que .ilike())
+    const { data: allClasses, error: allClassesError } = await supabase
+      .from('classes')
+      .select('*')
+      .or('is_active.is.null,is_active.eq.true');
+
+    if (allClassesError) {
+      logger.error('[ClassService.joinClassByCode] Erro ao buscar turmas:', allClassesError);
+    }
+
+    // Procurar classe com invite_code matching (normalizado)
+    if (allClasses && allClasses.length > 0) {
+      // Log de todos os códigos disponíveis para debug
+      const availableCodes = allClasses
+        .filter(cls => cls.invite_code)
+        .map(cls => ({
+          id: cls.id,
+          name: cls.name,
+          originalCode: cls.invite_code,
+          normalizedCode: cls.invite_code.toString().replace(/\s/g, '').trim().toUpperCase()
+        }));
+
+      logger.debug('[ClassService.joinClassByCode] Códigos disponíveis:', availableCodes);
+      console.log('📋 Códigos disponíveis:', availableCodes.map(c => c.normalizedCode));
+
+      classData = allClasses.find(cls => {
+        if (!cls.invite_code) return false;
+        const classCodeNormalized = cls.invite_code.toString().replace(/\s/g, '').trim().toUpperCase();
+        const matches = classCodeNormalized === normalizedCode;
+        
+        if (matches) {
+          console.log('✅ CÓDIGO ENCONTRADO!', { código: normalizedCode, turma: cls.name });
+          logger.debug('[ClassService.joinClassByCode] ✓ Código encontrado!', {
+            searchedCode: normalizedCode,
+            foundCode: classCodeNormalized,
+            className: cls.name
+          });
+        }
+        
+        return matches;
+      });
+
+      logger.debug('[ClassService.joinClassByCode] Resultado busca em classes.invite_code:', {
+        hasClass: !!classData,
+        totalClassesChecked: allClasses.length,
+        foundClass: classData ? { id: classData.id, name: classData.name } : null
+      });
+    }
+
+    // 2) Fallback: procurar em class_settings.join_code se não encontrou em classes
+    if (!classData) {
+      const { data: allSettings, error: settingsError } = await supabase
+        .from('class_settings')
+        .select('class_id, join_code, is_join_code_active')
+        .eq('is_join_code_active', true);
+
+      if (settingsError) {
+        logger.error('[ClassService.joinClassByCode] Erro ao buscar class_settings:', settingsError);
+      }
+
+      if (allSettings && allSettings.length > 0) {
+        const matchingSetting = allSettings.find(setting => {
+          if (!setting.join_code) return false;
+          const settingCodeNormalized = setting.join_code.toString().replace(/\s/g, '').trim().toUpperCase();
+          return settingCodeNormalized === normalizedCode;
+        });
+
+        logger.debug('[ClassService.joinClassByCode] Resultado busca em class_settings.join_code:', {
+          hasSettings: !!matchingSetting,
+          totalSettingsChecked: allSettings.length
+        });
+
+        if (matchingSetting && matchingSetting.class_id) {
+          const { data: classFromSettings, error: classFromSettingsError } = await supabase
+            .from('classes')
+            .select('*')
+            .eq('id', matchingSetting.class_id)
+            .or('is_active.is.null,is_active.eq.true')
+            .maybeSingle();
+
+          if (classFromSettings) {
+            classData = classFromSettings;
+          } else if (classFromSettingsError) {
+            logger.error('Erro ao buscar turma a partir de class_settings:', classFromSettingsError);
+          }
+        }
+      }
+    }
+
+    if (!classData) {
+      console.log('❌ CÓDIGO NÃO ENCONTRADO:', normalizedCode);
+      logger.warn('[ClassService.joinClassByCode] Código não encontrado:', { normalizedCode });
+      throw new Error('Código de turma inválido ou turma não encontrada');
+    }
+
+    logger.debug('[ClassService.joinClassByCode] Turma encontrada:', {
+      classId: classData.id,
+      className: classData.name,
+      inviteCode: classData.invite_code
+    });
 
     // Check if user is already a member
     const { data: existingMember } = await supabase
@@ -765,6 +874,169 @@ export const ClassService = {
     }
 
     return data;
+  },
+
+  /**
+   * Clone a class structure
+   * @param {string} sourceClassId - The ID of the class to clone
+   * @param {Object} options - Options for cloning
+   * @param {string} [options.name] - New name for the cloned class
+   * @param {boolean} [options.copyStudents] - Whether to copy students
+   * @param {boolean} [options.copyActivities] - Whether to copy activities
+   * @returns {Promise<Object>} - The cloned class object
+   */
+  async cloneClassStructure(sourceClassId, options = {}) {
+    const {
+      name,
+      copyStudents = false,
+      copyActivities = false
+    } = options;
+
+    try {
+      const { data: sourceClass, error: sourceError } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', sourceClassId)
+        .single();
+
+      if (sourceError || !sourceClass) {
+        logger.error('Erro ao buscar turma de origem para clonagem:', sourceError);
+        throw new Error('Turma de origem não encontrada para clonagem.');
+      }
+
+      let studentIds = [];
+      if (copyStudents) {
+        const { data: members, error: membersError } = await supabase
+          .from('class_members')
+          .select('user_id')
+          .eq('class_id', sourceClassId)
+          .eq('role', 'student');
+
+        if (membersError) {
+          logger.error('Erro ao buscar alunos da turma de origem para clonagem:', membersError);
+          throw new Error('Erro ao buscar alunos da turma de origem.');
+        }
+
+        studentIds = (members || []).map(m => m.user_id);
+      }
+
+      const className = name || `${sourceClass.name} - Cópia`;
+      const newClassData = {
+        name: className,
+        description: sourceClass.description,
+        teacher_id: sourceClass.created_by,
+        subject: sourceClass.subject,
+        course: sourceClass.course,
+        period: sourceClass.period,
+        grade_level: sourceClass.grade_level,
+        academic_year: sourceClass.academic_year,
+        color: sourceClass.color,
+        student_capacity: sourceClass.student_capacity,
+        school_id: sourceClass.school_id,
+        is_school_managed: sourceClass.is_school_managed,
+        grading_system: sourceClass.grading_system,
+        room_number: sourceClass.room_number,
+        is_online: sourceClass.is_online,
+        meeting_link: sourceClass.meeting_link,
+        chatbot_enabled: sourceClass.chatbot_enabled
+      };
+
+      const clonedClass = await this.createClass(newClassData, studentIds);
+
+      if (copyActivities) {
+        try {
+          const { data: assignments, error: assignmentsError } = await supabase
+            .from('activity_class_assignments')
+            .select('activity_id, assigned_at')
+            .eq('class_id', sourceClassId);
+
+          if (assignmentsError) {
+            throw assignmentsError;
+          }
+
+          const activityIds = Array.from(new Set((assignments || []).map(a => a.activity_id)));
+
+          if (activityIds.length > 0) {
+            const { data: activities, error: activitiesError } = await supabase
+              .from('activities')
+              .select('*')
+              .in('id', activityIds);
+
+            if (activitiesError) {
+              throw activitiesError;
+            }
+
+            const activitiesById = (activities || []).reduce((acc, act) => {
+              acc[act.id] = act;
+              return acc;
+            }, {});
+
+            const activityIdMap = {};
+
+            for (const activityId of activityIds) {
+              const sourceActivity = activitiesById[activityId];
+              if (!sourceActivity) continue;
+
+              const {
+                id: _oldId,
+                created_at: _createdAt,
+                updated_at: _updatedAt,
+                deleted_at: _deletedAt,
+                ...rest
+              } = sourceActivity;
+
+              const { data: newActivity, error: newActivityError } = await supabase
+                .from('activities')
+                .insert({
+                  ...rest,
+                  title: `${sourceActivity.title} - Cópia`,
+                  status: 'draft',
+                  is_draft: true,
+                  is_published: false,
+                  deleted_at: null
+                })
+                .select()
+                .single();
+
+              if (newActivityError) {
+                throw newActivityError;
+              }
+
+              activityIdMap[activityId] = newActivity.id;
+            }
+
+            const newAssignments = (assignments || [])
+              .map(a => {
+                const newActivityId = activityIdMap[a.activity_id];
+                if (!newActivityId) return null;
+                return {
+                  activity_id: newActivityId,
+                  class_id: clonedClass.id,
+                  assigned_at: a.assigned_at || new Date().toISOString()
+                };
+              })
+              .filter(Boolean);
+
+            if (newAssignments.length > 0) {
+              const { error: insertAssignmentsError } = await supabase
+                .from('activity_class_assignments')
+                .insert(newAssignments);
+
+              if (insertAssignmentsError) {
+                throw insertAssignmentsError;
+              }
+            }
+          }
+        } catch (activitiesError) {
+          logger.error('Erro ao clonar atividades da turma:', activitiesError);
+        }
+      }
+
+      return clonedClass;
+    } catch (error) {
+      logger.error('Erro ao clonar estrutura de turma:', error);
+      throw error;
+    }
   },
 
   /**

@@ -327,8 +327,11 @@ const TeacherProjectActivitiesPage = () => {
         <NewProjectActivityModal
           open={showNewModal}
           onClose={() => setShowNewModal(false)}
-          onCreated={() => {
+          onCreated={(activity) => {
             setShowNewModal(false);
+            if (activity) {
+              setEditingActivity(activity);
+            }
             loadActivities();
           }}
           userId={user?.id}
@@ -389,7 +392,7 @@ const NewProjectActivityModal = ({ open, onClose, onCreated, userId }) => {
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
-      const { error } = await supabase.from('activities').insert({
+      const { data, error } = await supabase.from('activities').insert({
         title: title.trim(),
         description: description.trim(),
         type: 'project',
@@ -408,7 +411,9 @@ const NewProjectActivityModal = ({ open, onClose, onCreated, userId }) => {
             shuffleQuestions: false
           }
         }
-      });
+      })
+      .select()
+      .single();
 
       if (error) throw error;
 
@@ -417,7 +422,7 @@ const NewProjectActivityModal = ({ open, onClose, onCreated, userId }) => {
         description: 'Agora você pode adicionar arquivos de enunciado e postar nas turmas.'
       });
 
-      onCreated();
+      onCreated && onCreated(data);
     } catch (error) {
       logger.error('Erro ao criar tarefa por arquivo:', error);
       toast({
@@ -505,7 +510,7 @@ const EditProjectActivityModal = ({ activity, open, onClose, onSaved, userId }) 
   const [title, setTitle] = useState(activity.title || '');
   const [description, setDescription] = useState(activity.description || '');
   const [tags, setTags] = useState(activity.content?.tags || []);
-  const [dueDate, setDueDate] = useState(activity.due_date || '');
+  const [dueDate, setDueDate] = useState(activity.due_date ? activity.due_date.substring(0, 16) : '');
   const [maxScore, setMaxScore] = useState(activity.max_score || 10);
   const [attachments, setAttachments] = useState(activity.content?.attachments || []);
   const [saving, setSaving] = useState(false);

@@ -19,17 +19,29 @@ export const useDashboardStats = () => {
       // Buscar turmas ativas do professor
       const { data: classes, error: classesError } = await supabase
         .from('classes')
-        .select('id, class_members(count)')
+        .select('id')
         .eq('created_by', user.id)
         .eq('is_active', true);
 
       if (classesError) throw classesError;
 
-      // Calcular total de alunos
-      const totalStudents = (classes || []).reduce(
-        (sum, cls) => sum + (cls.class_members?.[0]?.count || 0),
-        0
-      );
+      let totalStudents = 0;
+
+      // Contar alunos únicos (role = 'student') em todas as turmas do professor
+      if (classes && classes.length > 0) {
+        const classIds = classes.map((cls) => cls.id);
+
+        const { data: members, error: membersError } = await supabase
+          .from('class_members')
+          .select('user_id')
+          .in('class_id', classIds)
+          .eq('role', 'student');
+
+        if (membersError) throw membersError;
+
+        const uniqueStudentIds = new Set((members || []).map((m) => m.user_id));
+        totalStudents = uniqueStudentIds.size;
+      }
 
       // Buscar atividades do professor
       const activityIds = await supabase

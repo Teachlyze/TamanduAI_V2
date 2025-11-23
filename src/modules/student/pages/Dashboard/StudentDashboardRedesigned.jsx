@@ -28,6 +28,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { LineChart, Line, ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
 import { format, startOfDay, endOfDay, isToday, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useStudentEvolutionData } from '@/modules/student/hooks/useStudentEvolutionData';
 
 const StudentDashboardRedesigned = () => {
   const { user } = useAuth();
@@ -46,9 +47,11 @@ const StudentDashboardRedesigned = () => {
   });
   const [pendingActivities, setPendingActivities] = useState([]);
   const [todayEvents, setTodayEvents] = useState([]);
-  const [performanceData, setPerformanceData] = useState([]);
+  const { data: evolutionRaw } = useStudentEvolutionData(10);
   const [topClasses, setTopClasses] = useState([]);
   const [alerts, setAlerts] = useState([]);
+
+  const evolutionData = Array.isArray(evolutionRaw) ? evolutionRaw : [];
 
   useEffect(() => {
     if (user?.id) {
@@ -63,7 +66,6 @@ const StudentDashboardRedesigned = () => {
         loadStats(),
         loadPendingActivities(),
         loadTodayEvents(),
-        loadPerformanceData(),
         loadTopClasses(),
         loadAlerts()
       ]);
@@ -114,9 +116,12 @@ const StudentDashboardRedesigned = () => {
         .eq('student_id', user.id)
         .in('activity_id', activityIds);
 
-      const submittedIds = new Set(submissions?.map(s => s.activity_id) || []);
-      const pendingActivities = activityIds.length - submittedIds.size;
-      const completedActivities = submittedIds.size;
+      const finalSubmissions = (submissions || []).filter(
+        (s) => s.status === 'submitted' || s.status === 'graded'
+      );
+      const submittedIds = new Set(finalSubmissions.map(s => s.activity_id));
+      const pendingActivities = activityIds.filter(id => !submittedIds.has(id)).length;
+      const completedActivities = finalSubmissions.length;
 
       // Calcular média geral
       const gradesData = submissions?.filter(s => s.grade !== null) || [];
@@ -222,7 +227,10 @@ const StudentDashboardRedesigned = () => {
         .eq('student_id', user.id)
         .in('activity_id', activityIds);
 
-      const submittedIds = new Set(submissions?.map(s => s.activity_id) || []);
+      const finalSubmissions = (submissions || []).filter(
+        (s) => s.status === 'submitted' || s.status === 'graded'
+      );
+      const submittedIds = new Set(finalSubmissions.map(s => s.activity_id));
 
       // Filtrar não submetidas e mapear
       const pending = (assignments || [])
@@ -306,31 +314,7 @@ const StudentDashboardRedesigned = () => {
     }
   };
 
-  const loadPerformanceData = async () => {
-    try {
-      // Buscar últimas 10 notas
-      const { data: submissions } = await supabase
-        .from('submissions')
-        .select(`
-          id, grade, submitted_at,
-          activity:activities(title, max_score)
-        `)
-        .eq('student_id', user.id)
-        .not('grade', 'is', null)
-        .order('submitted_at', { ascending: true })
-        .limit(10);
-
-      const data = (submissions || []).map(s => ({
-        date: format(new Date(s.submitted_at), 'dd/MM', { locale: ptBR }),
-        avgGrade: parseFloat(s.grade) || 0,
-        activity: s.activity?.title
-      }));
-
-      setPerformanceData(data);
-    } catch (error) {
-      logger.error('Erro ao carregar dados de desempenho:', error);
-    }
-  };
+  // Dados de evolução agora vêm do hook useStudentEvolutionData (com Redis/Upstash)
 
   const loadTopClasses = async () => {
     try {
@@ -410,11 +394,14 @@ const StudentDashboardRedesigned = () => {
 
       const { data: submissions } = await supabase
         .from('submissions')
-        .select('activity_id')
+        .select('activity_id, status')
         .eq('student_id', user.id)
         .in('activity_id', activityIds);
 
-      const submittedIds = new Set(submissions?.map(s => s.activity_id) || []);
+      const finalSubmissions = (submissions || []).filter(
+        (s) => s.status === 'submitted' || s.status === 'graded'
+      );
+      const submittedIds = new Set(finalSubmissions.map(s => s.activity_id) || []);
 
       const lateActivities = (assignments || [])
         .filter(a => 
@@ -555,8 +542,8 @@ const StudentDashboardRedesigned = () => {
             )}
           </Card>
 
-          {/* Gráfico de Desempenho */}
-          {performanceData.length > 0 && (
+          {/* Gráfico de Desempenho (Sua Evolução) */}
+          {evolutionData.length > 0 && (
             <Card className="p-6">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                 <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -564,7 +551,7 @@ const StudentDashboardRedesigned = () => {
               </h2>
               <div className="overflow-x-auto">
                 <ResponsiveContainer width="100%" height={300} className="min-w-[400px]">
-                  <LineChart data={performanceData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                  <LineChart data={evolutionData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="date" stroke="#64748b" tick={{ fontSize: 12 }} />
                     <YAxis stroke="#64748b" domain={[0, 10]} tick={{ fontSize: 12 }} />
@@ -577,7 +564,7 @@ const StudentDashboardRedesigned = () => {
                     />
                     <Line
                       type="monotone"
-                      dataKey="avgGrade"
+                      dataKey="nota"
                       stroke="#3b82f6"
                       strokeWidth={3}
                       dot={{ fill: '#3b82f6', r: 6 }}

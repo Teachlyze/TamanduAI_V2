@@ -55,7 +55,7 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
         .from('class_settings')
         .select('*')
         .eq('class_id', classData.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setSettings({
@@ -102,25 +102,89 @@ const ClassSettingsModal = ({ isOpen, onClose, onSuccess, classData }) => {
   const handleGenerateNewCode = async () => {
     const newCode = generateNewCode();
     
-    // Salvar código antigo no histórico
-    if (settings.invite_code) {
-      try {
-        await supabase.from('invite_code_history').insert([{
-          class_id: classData.id,
-          code: settings.invite_code,
-          uses_count: settings.code_uses_count,
-          deactivated_at: new Date().toISOString()
-        }]);
-      } catch (error) {
-        logger.error('Erro ao salvar histórico:', error)
-      }
-    }
-
-    setSettings({ ...settings, invite_code: newCode, code_uses_count: 0 });
-    toast({
-      title: 'Novo código gerado!',
-      description: 'O código anterior foi desativado.'
+    // Log duplo para garantir visibilidade
+    console.log('🔑 [ClassSettingsModal] Gerando novo código:', newCode);
+    logger.debug('[ClassSettingsModal] Gerando novo código:', {
+      classId: classData.id,
+      className: classData.name,
+      oldCode: settings.invite_code,
+      newCode: newCode
     });
+    
+    try {
+      setLoading(true);
+
+      // Salvar código antigo no histórico
+      if (settings.invite_code) {
+        try {
+          await supabase.from('invite_code_history').insert([{
+            class_id: classData.id,
+            code: settings.invite_code,
+            uses_count: settings.code_uses_count,
+            deactivated_at: new Date().toISOString()
+          }]);
+        } catch (error) {
+          logger.error('Erro ao salvar histórico:', error)
+        }
+      }
+
+      // Salvar novo código IMEDIATAMENTE no banco
+      const { error: classError } = await supabase
+        .from('classes')
+        .update({
+          invite_code: newCode,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', classData.id);
+
+      if (classError) throw classError;
+
+      // Atualizar também em class_settings
+      const { error: settingsError } = await supabase
+        .from('class_settings')
+        .upsert({
+          class_id: classData.id,
+          join_code: newCode,
+          join_code_uses_count: 0,
+          is_join_code_active: true
+        }, {
+          onConflict: 'class_id'
+        });
+
+      if (settingsError) throw settingsError;
+
+      // Log duplo para garantir visibilidade
+      console.log('✅ [ClassSettingsModal] Código salvo no banco:', newCode);
+      logger.debug('[ClassSettingsModal] ✓ Código salvo com sucesso no banco!', {
+        newCode: newCode,
+        classId: classData.id
+      });
+
+      // Atualizar estado local
+      setSettings({ ...settings, invite_code: newCode, code_uses_count: 0 });
+
+      // Recarregar histórico
+      await loadCodeHistory();
+
+      // Atualizar lista de turmas no componente pai
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      toast({
+        title: '✓ Novo código gerado e ativado!',
+        description: `O código ${newCode} já está pronto para uso. O código anterior foi desativado.`
+      });
+    } catch (error) {
+      logger.error('Erro ao gerar novo código:', error);
+      toast({
+        title: 'Erro ao gerar código',
+        description: 'Não foi possível gerar um novo código. Tente novamente.',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAddSchedule = () => {

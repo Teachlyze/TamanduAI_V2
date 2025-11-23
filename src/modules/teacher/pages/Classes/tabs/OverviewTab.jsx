@@ -19,6 +19,7 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
     onTimeRate: 0,
     openActivities: 0
   });
+  const [recentActivities, setRecentActivities] = useState([]);
 
   const handleQuickAction = (actionLabel) => {
     switch (actionLabel) {
@@ -55,13 +56,28 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
 
       // Usar cache Redis para estatísticas
       const cachedStats = await redisCache.getClassStats(classId, async () => {
-        // Buscar IDs das atividades desta turma
+        // Buscar atividades desta turma (com dados básicos) para métricas e lista recente
         const { data: assignments } = await supabase
           .from('activity_class_assignments')
-          .select('activity_id')
-          .eq('class_id', classId);
+          .select(`
+            id,
+            assigned_at,
+            activity:activities(
+              id,
+              title,
+              type,
+              due_date,
+              max_score,
+              status,
+              created_at
+            )
+          `)
+          .eq('class_id', classId)
+          .order('assigned_at', { ascending: false });
 
-        const activityIds = (assignments || []).map(a => a.activity_id);
+        const activityIds = (assignments || [])
+          .map(a => a.activity?.id)
+          .filter(Boolean);
 
         // Total de alunos na turma
         const { count: studentsCount } = await supabase
@@ -77,6 +93,7 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
             avgGrade: 0,
             onTimeRate: 0,
             openActivities: 0,
+            recentActivities: [],
             timestamp: new Date().toISOString()
           };
         }
@@ -99,16 +116,46 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
           ? Math.round((onTimeSubmissions.length / subsCount) * 100)
           : 0;
 
+        // Montar lista das últimas atividades postadas (até 3)
+        const recent = (assignments || [])
+          .filter(a => a.activity)
+          .slice(0, 3)
+          .map(a => ({
+            id: a.activity.id,
+            title: a.activity.title,
+            type: a.activity.type,
+            due_date: a.activity.due_date,
+            status: a.activity.status,
+            assigned_at: a.assigned_at
+          }));
+
         return {
           totalStudents: studentsCount || 0,
           avgGrade: Number(avgGrade.toFixed(1)),
           onTimeRate,
           openActivities: activityIds.length,
+          recentActivities: recent,
           timestamp: new Date().toISOString()
         };
       });
 
-      setStats(cachedStats);
+      if (cachedStats) {
+        setStats({
+          totalStudents: cachedStats.totalStudents || 0,
+          avgGrade: typeof cachedStats.avgGrade === 'number' ? cachedStats.avgGrade : 0,
+          onTimeRate: cachedStats.onTimeRate || 0,
+          openActivities: cachedStats.openActivities || 0
+        });
+        setRecentActivities(Array.isArray(cachedStats.recentActivities) ? cachedStats.recentActivities : []);
+      } else {
+        setStats({
+          totalStudents: 0,
+          avgGrade: 0,
+          onTimeRate: 0,
+          openActivities: 0
+        });
+        setRecentActivities([]);
+      }
 
     } catch (error) {
       logger.error('Erro ao carregar estatísticas:', error)
@@ -119,6 +166,7 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
         onTimeRate: 0,
         openActivities: 0
       });
+      setRecentActivities([]);
     } finally {
       setLoading(false);
     }
@@ -138,28 +186,42 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
       value: stats.totalStudents,
       icon: Users,
       color: 'blue',
-      change: '+2 esta semana'
+      description:
+        stats.totalStudents === 0
+          ? 'Nenhum aluno matriculado ainda'
+          : stats.totalStudents === 1
+          ? '1 aluno matriculado na turma'
+          : `${stats.totalStudents} alunos matriculados na turma`
     },
     {
       title: 'Nota Média da Turma',
       value: stats.avgGrade.toFixed(1),
       icon: TrendingUp,
       color: stats.avgGrade >= 7 ? 'green' : stats.avgGrade >= 5 ? 'yellow' : 'red',
-      change: '+0.3 vs mês anterior'
+      description:
+        stats.avgGrade === 0
+          ? 'Ainda não há notas lançadas para esta turma'
+          : 'Baseada nas notas das atividades corrigidas'
     },
     {
       title: 'Taxa de Entrega no Prazo',
       value: `${stats.onTimeRate}%`,
       icon: CheckCircle,
       color: stats.onTimeRate >= 80 ? 'green' : stats.onTimeRate >= 60 ? 'yellow' : 'red',
-      change: '+5% vs período anterior'
+      description:
+        stats.onTimeRate === 0
+          ? 'Nenhuma submissão com prazo registrada ainda'
+          : 'Entre todas as submissões desta turma'
     },
     {
       title: 'Atividades em Aberto',
       value: stats.openActivities,
       icon: Clock,
       color: stats.openActivities > 10 ? 'red' : stats.openActivities > 5 ? 'yellow' : 'blue',
-      change: '3 aguardando correção'
+      description:
+        stats.openActivities === 0
+          ? 'Nenhuma atividade aberta no momento'
+          : 'Atividades já postadas para esta turma'
     }
   ];
 
@@ -191,7 +253,9 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
                 </div>
                 <div className="text-3xl font-bold mb-1">{stat.value}</div>
                 <div className="text-sm font-medium mb-2">{stat.title}</div>
-                <div className="text-xs opacity-75">{stat.change}</div>
+                {stat.description && (
+                  <div className="text-xs opacity-75">{stat.description}</div>
+                )}
               </Card>
             </motion.div>
           );
@@ -228,10 +292,40 @@ const OverviewTab = ({ classId, classData, onTabChange }) => {
           </h3>
           <Button variant="link" size="sm" onClick={() => onTabChange?.('activities')}>Ver todas</Button>
         </div>
-        <div className="text-center py-6">
-          <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-600 dark:text-slate-400">Nenhuma atividade postada</p>
-        </div>
+        {recentActivities.length === 0 ? (
+          <div className="text-center py-6">
+            <FileText className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+            <p className="text-slate-600 dark:text-slate-400">Nenhuma atividade postada para esta turma.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentActivities.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex items-center justify-between py-2 border-b last:border-b-0 border-slate-100 dark:border-slate-800"
+              >
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-900 dark:text-slate-50">
+                    {activity.title || 'Sem título'}
+                  </p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {activity.due_date
+                      ? `Prazo: ${new Date(activity.due_date).toLocaleDateString('pt-BR')}`
+                      : 'Sem prazo definido'}
+                  </p>
+                </div>
+                <div className="ml-4 text-xs text-slate-500 dark:text-slate-400 flex flex-col items-end">
+                  <span>
+                    Postada{' '}
+                    {activity.assigned_at
+                      ? new Date(activity.assigned_at).toLocaleDateString('pt-BR')
+                      : '—'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* ========== SEÇÃO 4: ALUNOS EM ALERTA ========== */}

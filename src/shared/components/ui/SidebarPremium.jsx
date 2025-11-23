@@ -34,7 +34,7 @@ const teacherNavigation = [
   { name: 'Alunos', href: '/dashboard/students', icon: GraduationCap },
   { name: 'Agenda', href: '/dashboard/calendar', icon: Calendar },
   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Relatórios', href: '/dashboard/reports', icon: BarChart3 },
+  { name: 'Relatórios', href: '/dashboard/reports', icon: FileText },
   { name: 'Chatbot', href: '/dashboard/chatbot', icon: MessageCircle },
 ];
 

@@ -79,8 +79,21 @@ const PostExistingActivityModal = ({ isOpen, onClose, classId, onSuccess }) => {
     try {
       setLoading(true);
 
+      // Garantir que a atividade está marcada como publicada (não rascunho)
+      const { error: updateActivityError } = await supabase
+        .from('activities')
+        .update({
+          is_published: true,
+          is_draft: false,
+          status: selectedActivity.status === 'archived' ? selectedActivity.status : 'active',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedActivity.id);
+
+      if (updateActivityError) throw updateActivityError;
+
       // Criar assignment
-      const { error } = await supabase
+      const { error: assignError } = await supabase
         .from('activity_class_assignments')
         .insert({
           activity_id: selectedActivity.id,
@@ -88,7 +101,19 @@ const PostExistingActivityModal = ({ isOpen, onClose, classId, onSuccess }) => {
           assigned_at: new Date().toISOString()
         });
 
-      if (error) throw error;
+      if (assignError) throw assignError;
+
+      // Atualizar data de atualização da turma
+      const { error: classUpdateError } = await supabase
+        .from('classes')
+        .update({
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', classId);
+
+      if (classUpdateError) {
+        logger.warn('Erro ao atualizar updated_at da turma ao postar atividade existente:', classUpdateError);
+      }
 
       toast({
         title: '✅ Atividade postada!',

@@ -68,7 +68,8 @@ serve(async (req) => {
         description,
         color,
         banner_color,
-        created_at
+        created_at,
+        teacher:profiles!created_by(id, full_name, email, avatar_url)
       `)
       .eq('id', classId)
       .eq('is_active', true)

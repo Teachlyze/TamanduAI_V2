@@ -1,6 +1,7 @@
 import { logger } from '@/shared/utils/logger';
 import { supabase } from './supabaseClient';
-import { convertToDatabase } from '../utils/gradeConverter';
+import { convertToDatabase, convertFromDatabase, GRADING_SYSTEMS } from '../utils/gradeConverter';
+import NotificationService from '@/shared/services/notificationService';
 
 /**
  * Serviço para gerenciar correções de submissões
@@ -24,7 +25,10 @@ export const getSubmissionsForCorrection = async (filters = {}) => {
           plagiarism_enabled,
           created_by,
           activity_class_assignments(
+            class_id,
             class:classes(
+              id,
+              name,
               grading_system
             )
           )
@@ -341,22 +345,144 @@ export const getCorrectionDraft = async (submissionId, teacherId) => {
 
 /**
  * Correção em lote
+ * Agora aceita um array de objetos de submissão completos (com activity/grading_system)
+ * para permitir modos mais ricos como "ajuste proporcional".
  */
-export const bulkCorrect = async (submissionIds, correctionData, teacherId) => {
+export const bulkCorrect = async (submissions, correctionData, teacherId) => {
   try {
     const results = [];
     const errors = [];
 
-    for (const submissionId of submissionIds) {
-      const result = await saveCorrection(submissionId, {
-        ...correctionData,
-        teacherId
-      });
+    const method = correctionData?.method || 'same_grade';
+    const baseFeedback = correctionData?.feedback || '';
 
-      if (result.error) {
-        errors.push({ submissionId, error: result.error });
-      } else {
-        results.push(result.data);
+    for (const submission of submissions) {
+      const submissionId = submission.id;
+
+      try {
+        const perCorrection = {
+          feedback: baseFeedback,
+          teacherId
+        };
+
+        if (method === 'same_grade') {
+          // Já validado no modal
+          perCorrection.grade = correctionData.grade;
+        } else if (method === 'adjust') {
+          const gradingSystem =
+            submission.activity?.activity_class_assignments?.[0]?.class?.grading_system || '0-10';
+          const system = GRADING_SYSTEMS[gradingSystem];
+
+          if (!system || system.type !== 'numeric') {
+            throw new Error(`Sistema de notas ${gradingSystem} não suporta ajuste numérico em lote.`);
+          }
+
+          const currentDisplayRaw = convertFromDatabase(
+            submission.grade ?? 0,
+            gradingSystem
+          );
+          const currentDisplay = Number(currentDisplayRaw) || 0;
+
+          const adjustValue = Number(correctionData.adjustValue || 0);
+          const adjustType = correctionData.adjustType || 'add';
+
+          let newDisplay = currentDisplay;
+
+          if (adjustType === 'add') {
+            newDisplay = currentDisplay + adjustValue;
+          } else if (adjustType === 'subtract') {
+            newDisplay = currentDisplay - adjustValue;
+          } else if (adjustType === 'multiply') {
+            newDisplay = currentDisplay * adjustValue;
+          }
+
+          // Respeitar limites da escala configurada
+          const min = system.min ?? 0;
+          const max = system.max ?? 10;
+
+          if (newDisplay > max) newDisplay = max;
+          if (newDisplay < min) newDisplay = min;
+
+          perCorrection.grade = newDisplay;
+        } else {
+          throw new Error(`Método de correção em lote não suportado: ${method}`);
+        }
+
+        const result = await saveCorrection(submissionId, perCorrection);
+
+        if (result.error) {
+          errors.push({ submissionId, error: result.error });
+        } else {
+          results.push(result.data);
+
+          // Notificar aluno: atividade corrigida (em lote)
+          try {
+            const activityTitle = submission.activity?.title || 'Atividade';
+            const maxScore = submission.activity?.max_score || 10;
+            const numericGrade = typeof perCorrection.grade === 'number'
+              ? perCorrection.grade
+              : parseFloat(perCorrection.grade);
+
+            await NotificationService.sendCorrectionNotification({
+              submissionId,
+              studentId: submission.student_id,
+              activityTitle,
+              grade: Number.isFinite(numericGrade) ? numericGrade : 0,
+              maxScore
+            });
+          } catch (notifError) {
+            logger.warn('Falha ao enviar notificação de correção em lote:', notifError);
+          }
+        }
+      } catch (innerError) {
+        logger.error('Erro ao processar submissão em lote:', innerError)
+        errors.push({ submissionId: submission.id, error: innerError });
+      }
+    }
+
+    // Atualizar prazo da(s) atividade(s), se solicitado
+    const newDueDate = correctionData?.newDueDate;
+    if (newDueDate) {
+      try {
+        const classScope = correctionData?.classScope || 'all';
+
+        const activityIdSet = new Set();
+
+        if (classScope === 'all') {
+          (submissions || []).forEach((s) => {
+            if (s.activity_id) {
+              activityIdSet.add(s.activity_id);
+            }
+          });
+        } else {
+          (submissions || []).forEach((s) => {
+            const assignments = s.activity?.activity_class_assignments || [];
+            const belongsToClass = assignments.some((aca) =>
+              aca.class_id === classScope || aca.class?.id === classScope
+            );
+            if (belongsToClass && s.activity_id) {
+              activityIdSet.add(s.activity_id);
+            }
+          });
+        }
+
+        const activityIds = Array.from(activityIdSet);
+
+        if (activityIds.length > 0) {
+          const { error: dueDateError } = await supabase
+            .from('activities')
+            .update({
+              due_date: newDueDate,
+              updated_at: new Date().toISOString()
+            })
+            .in('id', activityIds);
+
+          if (dueDateError) {
+            logger.error('Erro ao atualizar prazo de atividades em lote:', dueDateError);
+          }
+        }
+      } catch (deadlineError) {
+        logger.error('Erro inesperado ao atualizar prazos em lote:', deadlineError);
       }
     }
 

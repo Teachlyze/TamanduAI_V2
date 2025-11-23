@@ -39,6 +39,7 @@ const TeacherAnalyticsPage = () => {
   const [initialLoad, setInitialLoad] = useState(true);
   const [period, setPeriod] = useState('30'); // dias
   const [selectedClasses, setSelectedClasses] = useState([]);
+  const [comparisonClassIds, setComparisonClassIds] = useState([]);
   const [activityTypes, setActivityTypes] = useState(['all']);
   const [statusFilter, setStatusFilter] = useState(['graded']);
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -56,6 +57,7 @@ const TeacherAnalyticsPage = () => {
   });
   const [gradeEvolution, setGradeEvolution] = useState([]);
   const [classComparison, setClassComparison] = useState([]);
+  const [classComparisonInfo, setClassComparisonInfo] = useState(null);
   const [gradeDistribution, setGradeDistribution] = useState([]);
   const [weeklyTrends, setWeeklyTrends] = useState([]);
   const [topStudents, setTopStudents] = useState([]);
@@ -67,6 +69,13 @@ const TeacherAnalyticsPage = () => {
     loadAllData();
   }, [user, period, selectedClasses, activityTypes, statusFilter]);
 
+  // Recarrega apenas a comparação entre turmas quando o filtro próprio muda
+  useEffect(() => {
+    if (!user?.id) return;
+    if (initialLoad) return;
+    loadClassComparison();
+  }, [comparisonClassIds]);
+
   useEffect(() => {
     let interval;
     if (autoRefresh) {
@@ -77,45 +86,59 @@ const TeacherAnalyticsPage = () => {
 
   const loadAllData = async () => {
     if (!user?.id) return;
-    
+
     setLoading(true);
     try {
-      // Primeiro carregar turmas
-      await loadClasses();
-      
+      // Primeiro carregar turmas e obter a lista completa para uso global
+      const classesData = await loadClasses();
+      const allClassIds = (classesData && classesData.length ? classesData : classes).map(c => c.id);
+
       if (useEdgeFunction) {
-        // Usar Edge Function com cache Redis
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
+        // Usar Edge Function com cache Redis APENAS para dados globais (ex: top alunos)
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-teacher-analytics`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ 
-              period,
-              selectedClasses: selectedClasses.length > 0 ? selectedClasses : classes.map(c => c.id)
-            })
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-teacher-analytics`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              // Aqui sempre enviamos TODAS as turmas para que topStudents seja global
+              body: JSON.stringify({ 
+                period,
+                selectedClasses: allClassIds
+              })
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            const data = result.data || {};
+
+            // Atualizar top students como dado global
+            setTopStudents(Array.isArray(data.topStudents) ? data.topStudents : []);
+
+            if (result.cached) {
+              toast({ 
+                title: '⚡ Cache', 
+                description: 'Top alunos carregados do cache (5min)',
+                duration: 2000
+              });
+            }
+          } else {
+            logger.error('Erro ao carregar analytics (edge):', response.status);
           }
-        );
+        } catch (edgeError) {
+          logger.error('Erro na Edge Function de analytics:', edgeError);
+        }
 
-        if (!response.ok) throw new Error('Erro ao carregar analytics');
-
-        const result = await response.json();
-        const data = result.data;
-
-        // Atualizar KPIs
-        setKpis(data.kpis);
-        
-        // Atualizar top students
-        setTopStudents(data.topStudents || []);
-
-        // Carregar dados adicionais em paralelo (não cacheaveis)
+        // Sempre calcular KPIs e gráficos com base nos filtros atuais de turma/período
         await Promise.all([
+          loadKPIs(),
           loadGradeEvolution(),
           loadClassComparison(),
           loadGradeDistribution(),
@@ -123,16 +146,8 @@ const TeacherAnalyticsPage = () => {
           loadPlagiarismStats(),
           loadEngagementStats()
         ]);
-
-        if (result.cached) {
-          toast({ 
-            title: '⚡ Cache', 
-            description: 'Dados carregados do cache (5min)',
-            duration: 2000
-          });
-        }
       } else {
-        // Fallback: carregar direto do Supabase
+        // Fallback: tudo calculado direto no Supabase, inclusive top alunos (respeitando filtros)
         await Promise.all([
           loadKPIs(),
           loadGradeEvolution(),
@@ -177,9 +192,12 @@ const TeacherAnalyticsPage = () => {
       if (selectedClasses.length === 0 && classesData.length > 0) {
         setSelectedClasses(classesData.map(c => c.id));
       }
+
+      return classesData;
     } catch (error) {
       logger.error('Erro ao carregar turmas:', error);
       setClasses([]);
+      return [];
     }
   };
 
@@ -245,14 +263,20 @@ const TeacherAnalyticsPage = () => {
       ? (gradesData.reduce((sum, s) => sum + (s.grade || 0), 0) / gradesData.length).toFixed(1)
       : 0;
 
-    // Taxa de entrega no prazo
-    const { data: onTimeData } = await supabase
+    // Taxa de entrega no prazo (considera envios entregues ou corrigidos, respeitando o período)
+    let onTimeQuery = supabase
       .from('submissions')
       .select('submitted_at, activity_id, activities!inner(due_date, activity_class_assignments!inner(class_id))')
-      .eq('status', 'submitted')
+      .in('status', ['submitted', 'graded'])
       .in('activities.activity_class_assignments.class_id', selectedClasses)
       .not('submitted_at', 'is', null)
       .not('activities.due_date', 'is', null);
+
+    if (dateFilter) {
+      onTimeQuery = onTimeQuery.gte('submitted_at', dateFilter);
+    }
+
+    const { data: onTimeData } = await onTimeQuery;
 
     const onTime = onTimeData?.filter(s => 
       new Date(s.submitted_at) <= new Date(s.activities.due_date)
@@ -344,13 +368,24 @@ const TeacherAnalyticsPage = () => {
   };
 
   const loadClassComparison = async () => {
-    if (selectedClasses.length === 0) {
+    // Se não há turmas suficientes cadastradas, não há o que comparar
+    if (!classes || classes.length < 2) {
       setClassComparison([]);
+      setClassComparisonInfo({ type: 'not_enough_total' });
+      return;
+    }
+
+    const manualIds = (comparisonClassIds || []).filter(Boolean);
+    const uniqueIds = Array.from(new Set(manualIds));
+
+    if (uniqueIds.length === 0 || uniqueIds.length === 1) {
+      setClassComparison([]);
+      setClassComparisonInfo({ type: 'need_two' });
       return;
     }
 
     try {
-      // Buscar submissões com eager loading, limitando quantidade para performance
+      // Buscar submissões com eager loading apenas das turmas escolhidas
       const { data: allData, error: submissionsError } = await supabase
         .from('submissions')
         .select(`
@@ -361,7 +396,7 @@ const TeacherAnalyticsPage = () => {
           )
         `)
         .not('grade', 'is', null)
-        .in('activities.activity_class_assignments.class_id', selectedClasses)
+        .in('activities.activity_class_assignments.class_id', uniqueIds)
         .limit(2000);
 
       if (submissionsError) {
@@ -372,7 +407,7 @@ const TeacherAnalyticsPage = () => {
       const { data: membersData, error: membersError } = await supabase
         .from('class_members')
         .select('class_id, user_id')
-        .in('class_id', selectedClasses)
+        .in('class_id', uniqueIds)
         .eq('role', 'student');
 
       if (membersError) {
@@ -383,7 +418,7 @@ const TeacherAnalyticsPage = () => {
       const { data: activitiesData, error: activitiesError } = await supabase
         .from('activity_class_assignments')
         .select('class_id, activity_id')
-        .in('class_id', selectedClasses);
+        .in('class_id', uniqueIds);
 
       if (activitiesError) {
         throw activitiesError;
@@ -411,18 +446,18 @@ const TeacherAnalyticsPage = () => {
         return acc;
       }, {});
 
-      for (const classId of selectedClasses) {
+      uniqueIds.forEach(classId => {
         const classItem = classesById[classId];
-        if (!classItem) continue;
+        if (!classItem) return;
 
         // Filtrar grades desta turma
         const grades = (allData || []).filter(g =>
           g.activities?.activity_class_assignments?.some(aca => aca.class_id === classId)
         );
 
-        const avgGrade = grades.length > 0
-          ? grades.reduce((sum, s) => sum + (s.grade || 0), 0) / grades.length
-          : 0;
+        if (grades.length === 0) return;
+
+        const avgGrade = grades.reduce((sum, s) => sum + (s.grade || 0), 0) / grades.length;
 
         comparison.push({
           name: classItem.name,
@@ -431,12 +466,19 @@ const TeacherAnalyticsPage = () => {
           atividades: activityCountMap[classId] || 0,
           color: classItem.color || '#3B82F6'
         });
-      }
+      });
 
-      setClassComparison(comparison.sort((a, b) => b.media - a.media));
+      if (comparison.length === 0) {
+        setClassComparison([]);
+        setClassComparisonInfo({ type: 'no_grades' });
+      } else {
+        setClassComparison(comparison.sort((a, b) => b.media - a.media));
+        setClassComparisonInfo(null);
+      }
     } catch (error) {
       logger.error('Erro ao carregar comparação entre turmas:', error);
       setClassComparison([]);
+      setClassComparisonInfo({ type: 'error' });
     }
   };
 
@@ -914,6 +956,9 @@ const TeacherAnalyticsPage = () => {
     setSelectedClasses(classes.map(c => c.id));
     setActivityTypes(['all']);
     setStatusFilter(['graded']);
+     setComparisonClassIds([]);
+     setClassComparison([]);
+     setClassComparisonInfo(null);
     toast({ title: 'Filtros limpos' });
   };
 
@@ -987,79 +1032,48 @@ const TeacherAnalyticsPage = () => {
               <Users className="w-4 h-4 inline mr-2" />
               Turmas
             </label>
-            <div className="relative">
-              <Select 
-                value={selectedClasses.length === classes.length ? "all" : "custom"}
-                onValueChange={(value) => {
-                  if (value === "all") {
-                    setSelectedClasses(classes.map(c => c.id));
-                  } else {
-                    // Keep current selection when switching to custom
-                    if (selectedClasses.length === classes.length) {
-                      setSelectedClasses([]);
-                    }
+            <Select
+              value={
+                classes.length === 0
+                  ? 'all'
+                  : selectedClasses.length === classes.length || selectedClasses.length === 0
+                  ? 'all'
+                  : selectedClasses[0]
+              }
+              onValueChange={(value) => {
+                if (value === 'all') {
+                  setSelectedClasses(classes.map(c => c.id));
+                } else {
+                  setSelectedClasses([value]);
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    classes.length === 0
+                      ? 'Nenhuma turma ativa'
+                      : 'Todas as turmas'
                   }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue>
-                    {selectedClasses.length === classes.length 
-                      ? "Todas as turmas" 
-                      : selectedClasses.length === 0 
-                      ? "Selecione turmas"
-                      : `${selectedClasses.length} turma(s)`
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">
-                    <div className="flex items-center">
-                      <Users className="w-4 h-4 mr-2" />
-                      Todas as turmas
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="custom">
-                    <div className="flex items-center">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Selecionar turmas específicas
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              
-              {/* Multi-select dropdown for custom selection */}
-              {selectedClasses.length < classes.length && selectedClasses.length > 0 && (
-                <div className="absolute top-full mt-1 w-full z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg p-2">
-                  <div className="max-h-40 overflow-y-auto">
-                    {classes.map(cls => (
-                      <div key={cls.id} className="flex items-center p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded">
-                        <Checkbox
-                          id={`class-${cls.id}`}
-                          checked={selectedClasses.includes(cls.id)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedClasses([...selectedClasses, cls.id]);
-                            } else {
-                              setSelectedClasses(selectedClasses.filter(id => id !== cls.id));
-                            }
-                          }}
-                        />
-                        <label htmlFor={`class-${cls.id}`} className="ml-2 text-sm cursor-pointer flex-1">
-                          {cls.name} {cls.subject && `- ${cls.subject}`}
-                        </label>
-                      </div>
-                    ))}
+                />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">
+                  <div className="flex items-center">
+                    <Users className="w-4 h-4 mr-2" />
+                    Todas as turmas
                   </div>
-                </div>
-              )}
-            </div>
+                </SelectItem>
+                {classes.map((cls) => (
+                  <SelectItem key={cls.id} value={cls.id}>
+                    {cls.name} {cls.subject && `- ${cls.subject}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={applyFilters}>
-              <Filter className="w-4 h-4 mr-2" />
-              Aplicar Filtros
-            </Button>
             <Button variant="outline" onClick={clearFilters}>
               Limpar
             </Button>
@@ -1136,10 +1150,11 @@ const TeacherAnalyticsPage = () => {
         />
         <StatsCard
           title="Taxa Entrega no Prazo"
-          value={`${kpis.onTimeRate}%`}
+          value={`${kpis.onTimeRate.toFixed(1)}%`}
           icon={CheckCircle}
           gradient={gradients.success}
           bgColor="bg-green-50 dark:bg-green-950/30"
+          format="text"
         />
       </div>
 
@@ -1267,6 +1282,53 @@ const TeacherAnalyticsPage = () => {
                 <p className="text-xs text-slate-500 dark:text-slate-400">Média geral por turma</p>
               </div>
             </div>
+            {classes.length >= 2 && (
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Turmas para comparar
+                </span>
+                <Select
+                  value={comparisonClassIds[0] || ''}
+                  onValueChange={(value) => {
+                    setComparisonClassIds((prev) => {
+                      const [, second] = prev || [];
+                      return [value, second || ''];
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs">
+                    <SelectValue placeholder="Turma 1" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={comparisonClassIds[1] || ''}
+                  onValueChange={(value) => {
+                    setComparisonClassIds((prev) => {
+                      const [first] = prev || [];
+                      return [first || '', value];
+                    });
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-32 text-xs">
+                    <SelectValue placeholder="Turma 2" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           {classComparison.length > 0 ? (
             <div className="h-56 overflow-x-auto">
@@ -1287,7 +1349,38 @@ const TeacherAnalyticsPage = () => {
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-500">Selecione pelo menos uma turma para ver a comparação.</p>
+            <div className="flex flex-col items-center justify-center h-40 text-xs text-slate-500 dark:text-slate-400 text-center">
+              <BarChart3 className="w-6 h-6 mb-2 text-purple-400" />
+              {classComparisonInfo?.type === 'not_enough_total' ? (
+                <>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">Poucas turmas cadastradas</p>
+                  <p>Crie pelo menos duas turmas para visualizar a comparação.</p>
+                </>
+              ) : classComparisonInfo?.type === 'need_two' ? (
+                <>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">Selecione duas turmas</p>
+                  <p>Use os seletores acima para escolher duas turmas para comparar.</p>
+                </>
+              ) : classComparisonInfo?.type === 'no_grades' ? (
+                <>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">Sem notas registradas</p>
+                  <p>
+                    Ainda não há notas lançadas para as turmas selecionadas no período escolhido
+                    para montar a comparação.
+                  </p>
+                </>
+              ) : classComparisonInfo?.type === 'error' ? (
+                <>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">Erro ao carregar dados</p>
+                  <p>Tente atualizar a página ou ajustar os filtros.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium text-slate-700 dark:text-slate-200">Sem dados suficientes</p>
+                  <p>Configure as turmas de comparação acima para visualizar o gráfico.</p>
+                </>
+              )}
+            </div>
           )}
         </Card>
 
@@ -1328,7 +1421,15 @@ const TeacherAnalyticsPage = () => {
               </div>
             </div>
           ) : (
-            <p className="text-xs text-slate-500">Nenhuma verificação de plágio registrada neste período.</p>
+            <div className="space-y-2 text-xs text-slate-500 dark:text-slate-400">
+              <p>
+                Nenhuma verificação de plágio registrada neste período para as turmas selecionadas.
+              </p>
+              <p>
+                Quando você utilizar o detector de plágio nas correções, um resumo com originalidade e casos
+                críticos aparecerá aqui.
+              </p>
+            </div>
           )}
         </Card>
       </div>

@@ -171,6 +171,14 @@ const TeacherDashboard = () => {
   const weeklySubmissions = submissions?.weeklySubmissions || [];
   const weeklyTotal = submissions?.weeklyTotal || 0;
 
+  const isActivityPublished = (activity) => {
+    if (!activity) return false;
+    if (activity.is_published) return true;
+    if (activity.is_draft === false) return true;
+    if (activity.status && activity.status !== 'draft') return true;
+    return false;
+  };
+
   // Loading inicial apenas se TODOS os hooks estão carregando
   const isInitialLoading = statsLoading && eventsLoading && submissionsLoading && recentLoading;
 
@@ -730,7 +738,7 @@ const TeacherDashboard = () => {
                   transition={{ delay: index * 0.05 }}
                   className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                 >
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold text-xl">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white font-bold">
                     {student.name?.[0] || 'A'}
                   </div>
                   <div>
@@ -978,8 +986,8 @@ const TeacherDashboard = () => {
                   >
                     <div className="flex items-start justify-between mb-2">
                       <h4 className="font-semibold text-gray-900 dark:text-white flex-1">{activity.title}</h4>
-                      <Badge variant={activity.is_published ? 'default' : 'secondary'} className="ml-2">
-                        {activity.is_published ? 'Postada' : 'Rascunho'}
+                      <Badge variant={isActivityPublished(activity) ? 'default' : 'secondary'} className="ml-2">
+                        {isActivityPublished(activity) ? 'Postada' : 'Rascunho'}
                       </Badge>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{activity.class_name}</p>
@@ -1020,8 +1028,8 @@ const TeacherDashboard = () => {
               </Link>
             </div>
             <div className="space-y-3">
-              {recentActivities.filter(a => !a.is_published).length > 0 ? (
-                recentActivities.filter(a => !a.is_published).slice(0, 3).map((activity, index) => (
+              {recentActivities.filter(a => !isActivityPublished(a)).length > 0 ? (
+                recentActivities.filter(a => !isActivityPublished(a)).slice(0, 3).map((activity, index) => (
                   <motion.div
                     key={activity.id}
                     initial={{ opacity: 0, x: -20 }}

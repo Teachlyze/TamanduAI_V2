@@ -6,6 +6,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useToast } from '@/shared/components/ui/use-toast';
 import { ClassCard, EmptyState } from '@/modules/student/components/redesigned';
+import { ClassService } from '@/shared/services/classService';
 import { BookOpen, Search, Grid3x3, List, Star, LogIn, X } from 'lucide-react';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
@@ -204,7 +205,7 @@ const StudentClassesPageRedesigned = () => {
     }
 
     if (code.length !== 8) {
-      setJoinError('O código deve ter 8 caracteres');
+      setJoinError('O código deve ter exatamente 8 caracteres');
       return;
     }
 
@@ -217,47 +218,126 @@ const StudentClassesPageRedesigned = () => {
       setJoiningClass(true);
       setJoinError('');
 
-      // Buscar turma pelo código (case-insensitive, como na tela antiga)
-      const { data: classData, error: searchError } = await supabase
+      const normalizedCode = code;
+
+      // 1) Buscar turma ativa pelo invite_code exatamente igual ao código digitado
+      const { data: classData, error: classError } = await supabase
         .from('classes')
-        .select('id, name')
-        .ilike('invite_code', code)
+        .select('id, name, is_active')
+        .eq('invite_code', normalizedCode)
         .maybeSingle();
 
-      if (searchError || !classData) {
-        logger.error('Erro ao buscar turma:', searchError);
-        setJoinError('Código inválido! Verifique se digitou corretamente.');
-        return;
+      // Logs de debug para entender o retorno do Supabase
+      console.log('[StudentClassesPageRedesigned] Resultado busca por código:', {
+        normalizedCode,
+        classData,
+        classError,
+      });
+
+      if (classError) {
+        logger.error('[StudentClassesPageRedesigned] Erro ao buscar turma por código:', classError);
+        throw new Error('Código de turma inválido ou turma não encontrada');
       }
 
-      // Verificar se já é membro
-      const { data: existingMembership } = await supabase
+      // Permitir fallback para class_settings.join_code caso não encontre em classes.invite_code
+      let resolvedClass = classData;
+
+      // Fallback: tentar localizar o código em class_settings.join_code
+      if (!resolvedClass) {
+        const { data: settingsMatch, error: settingsError } = await supabase
+          .from('class_settings')
+          .select('class_id, is_join_code_active')
+          .eq('join_code', normalizedCode)
+          .eq('is_join_code_active', true)
+          .maybeSingle();
+
+        console.log('[StudentClassesPageRedesigned] Resultado busca em class_settings.join_code:', {
+          normalizedCode,
+          settingsMatch,
+          settingsError,
+        });
+
+        if (settingsError && settingsError.code !== 'PGRST116') {
+          logger.error('[StudentClassesPageRedesigned] Erro ao buscar código em class_settings:', settingsError);
+          throw new Error('Código de turma inválido ou turma não encontrada');
+        }
+
+        if (settingsMatch?.class_id) {
+          const { data: classFromSettings, error: classFromSettingsError } = await supabase
+            .from('classes')
+            .select('id, name, is_active')
+            .eq('id', settingsMatch.class_id)
+            .maybeSingle();
+
+          console.log('[StudentClassesPageRedesigned] Resultado busca turma via class_settings:', {
+            classFromSettings,
+            classFromSettingsError,
+          });
+
+          if (classFromSettingsError) {
+            logger.error('[StudentClassesPageRedesigned] Erro ao buscar turma a partir de class_settings:', classFromSettingsError);
+            throw new Error('Código de turma inválido ou turma não encontrada');
+          }
+
+          resolvedClass = classFromSettings;
+        }
+      }
+
+      // Tratar também o caso em que resolvedClass venha como {} em vez de null
+      const hasValidClass = !!(resolvedClass && Object.keys(resolvedClass).length > 0);
+
+      if (!hasValidClass || resolvedClass.is_active === false) {
+        throw new Error('Código de turma inválido ou turma não encontrada');
+      }
+
+      // 2) Verificar se o aluno já é membro da turma
+      const { data: existingMember, error: memberCheckError } = await supabase
         .from('class_members')
         .select('id')
-        .eq('class_id', classData.id)
+        .eq('class_id', resolvedClass.id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (existingMembership) {
-        setJoinError('Você já está nesta turma!');
-        return;
+      console.log('[StudentClassesPageRedesigned] Verificação de membro existente:', {
+        classId: resolvedClass.id,
+        userId: user.id,
+        existingMember,
+        memberCheckError,
+      });
+
+      if (memberCheckError && memberCheckError.code !== 'PGRST116') {
+        logger.error('[StudentClassesPageRedesigned] Erro ao verificar participação na turma:', memberCheckError);
+        throw new Error('Não foi possível verificar sua participação na turma');
       }
 
-      // Adicionar como membro
-      const { data: inserted, error: insertError } = await supabase
+      if (existingMember) {
+        throw new Error('Você já é membro desta turma');
+      }
+
+      // 3) Adicionar aluno como membro da turma
+      const { data: newMember, error: joinError } = await supabase
         .from('class_members')
         .insert({
-          class_id: classData.id,
+          class_id: resolvedClass.id,
           user_id: user.id,
           role: 'student',
-          joined_at: new Date().toISOString(),
+          joined_at: new Date().toISOString()
         })
-        .select();
+        .select()
+        .single();
 
-      if (insertError) throw insertError;
+      console.log('[StudentClassesPageRedesigned] Resultado insert em class_members:', {
+        newMember,
+        joinError,
+      });
 
-      if (!inserted || inserted.length === 0) {
-        throw new Error('Falha ao adicionar você à turma');
+      if (joinError) {
+        logger.error('[StudentClassesPageRedesigned] Erro ao inserir aluno na turma:', joinError);
+        throw new Error('Erro ao entrar na turma');
+      }
+
+      if (!newMember) {
+        throw new Error('Erro ao entrar na turma');
       }
 
       setShowJoinModal(false);
@@ -268,11 +348,24 @@ const StudentClassesPageRedesigned = () => {
 
       toast({
         title: '🎉 Bem-vindo(a)!',
-        description: `Você entrou na turma "${classData.name}" com sucesso!`,
+        description: `Você entrou na turma "${resolvedClass.name}" com sucesso!`,
       });
+
+      // Redirecionar automaticamente para a página da turma
+      navigate(`/students/classes/${resolvedClass.id}`);
     } catch (error) {
       logger.error('Erro ao entrar na turma:', error);
-      setJoinError('Erro ao entrar na turma. Tente novamente.');
+      
+      // Mensagens de erro específicas e orientadas ao usuário
+      const errorMessage = error?.message || '';
+      
+      if (errorMessage.includes('já é membro')) {
+        setJoinError('Você já faz parte desta turma!');
+      } else if (errorMessage.includes('inválido') || errorMessage.includes('não encontrada')) {
+        setJoinError('Código inválido! Verifique se digitou corretamente e tente novamente.');
+      } else {
+        setJoinError('Não foi possível entrar na turma. Tente novamente ou contate o professor.');
+      }
     } finally {
       setJoiningClass(false);
     }
@@ -468,35 +561,73 @@ const StudentClassesPageRedesigned = () => {
                 </button>
               </div>
 
-              <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                Digite o código fornecido pelo professor
-              </p>
+              <div className="mb-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                  Digite o código fornecido pelo professor
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-500">
+                  O código tem 8 caracteres (letras e números)
+                </p>
+              </div>
 
               <div className="mb-6">
-                <Input
-                  value={joinCode}
-                  onChange={(e) => {
-                    const value = e.target.value.toUpperCase();
-                    if (value.length <= 8) {
-                      setJoinCode(value);
-                      setJoinError('');
-                    }
-                  }}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      handleJoinClass();
-                    }
-                  }}
-                  placeholder="CÓDIGO DA TURMA"
-                  maxLength={8}
-                  className="text-center text-2xl font-mono tracking-widest uppercase h-14 border-2 focus:border-blue-500"
-                  autoFocus
-                  disabled={joiningClass}
-                />
+                <div className="relative">
+                  <Input
+                    value={joinCode}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                      if (value.length <= 8) {
+                        setJoinCode(value);
+                        setJoinError('');
+                      }
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && joinCode.trim().length === 8 && !joiningClass) {
+                        handleJoinClass();
+                      }
+                    }}
+                    placeholder="CÓDIGO DA TURMA"
+                    maxLength={8}
+                    className={`text-center text-2xl font-mono tracking-widest uppercase h-14 border-2 transition-colors ${
+                      joinError 
+                        ? 'border-red-500 focus:border-red-600 dark:border-red-600 dark:focus:border-red-500' 
+                        : joinCode.length === 8
+                        ? 'border-green-500 focus:border-green-600 dark:border-green-600 dark:focus:border-green-500'
+                        : 'border-slate-300 focus:border-blue-500 dark:border-slate-700 dark:focus:border-blue-500'
+                    }`}
+                    autoFocus
+                    disabled={joiningClass}
+                  />
+                  {/* Contador de caracteres */}
+                  <div className="absolute -bottom-6 right-0 text-xs text-slate-500">
+                    {joinCode.length}/8
+                  </div>
+                </div>
+                
+                {/* Mensagem de erro ou sucesso */}
                 {joinError && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-400 text-center">
-                    {joinError}
-                  </p>
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-8 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg"
+                  >
+                    <p className="text-sm text-red-700 dark:text-red-400 font-medium text-center">
+                      {joinError}
+                    </p>
+                  </motion.div>
+                )}
+                
+                {/* Feedback positivo quando código está completo */}
+                {!joinError && joinCode.length === 8 && !joiningClass && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-8 p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg"
+                  >
+                    <p className="text-sm text-green-700 dark:text-green-400 font-medium text-center">
+                      ✓ Código completo! Clique em "Entrar" ou pressione Enter
+                    </p>
+                  </motion.div>
                 )}
               </div>
 

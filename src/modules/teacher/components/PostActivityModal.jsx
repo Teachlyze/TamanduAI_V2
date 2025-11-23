@@ -84,11 +84,12 @@ const PostActivityModal = ({ open, onClose, activity, onSuccess }) => {
       // Combinar data e hora para due_date
       const dueDatetime = `${dueDate}T${dueTime}:00`;
 
-      // 1. Atualizar a atividade com due_date
+      // 1. Atualizar a atividade com due_date e marcar como publicada
       const { error: activityError } = await supabase
         .from('activities')
         .update({
-          due_date: dueDatetime
+          due_date: dueDatetime,
+          status: 'published'
         })
         .eq('id', activity.id);
 
@@ -109,6 +110,18 @@ const PostActivityModal = ({ open, onClose, activity, onSuccess }) => {
         .single();
 
       if (assignmentError) throw assignmentError;
+
+      // Atualizar data de atualização da turma para refletir a nova postagem
+      const { error: classUpdateError } = await supabase
+        .from('classes')
+        .update({
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedClass);
+
+      if (classUpdateError) {
+        logger.warn('Erro ao atualizar updated_at da turma ao postar atividade (dashboard):', classUpdateError);
+      }
 
       toast({
         title: '✅ Atividade postada!',

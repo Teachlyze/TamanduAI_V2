@@ -14,6 +14,25 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useAuth } from '@/shared/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/shared/components/ui/dialog';
+import { Input } from '@/shared/components/ui/input';
+import { Checkbox } from '@/shared/components/ui/checkbox';
+import { Label } from '@/shared/components/ui/label';
+import { ClassService } from '@/shared/services/classService';
 
 // Importar tabs
 import OverviewTab from './tabs/OverviewTab';
@@ -35,6 +54,12 @@ const ClassDetailsPage = () => {
   const [classData, setClassData] = useState(null);
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [studentCount, setStudentCount] = useState(0);
+  const [isTeacher, setIsTeacher] = useState(false);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [cloneName, setCloneName] = useState('');
+  const [copyStudents, setCopyStudents] = useState(true);
+  const [copyActivities, setCopyActivities] = useState(true);
+  const [cloning, setCloning] = useState(false);
 
   useEffect(() => {
     // Guard: evitar UUID inválido (ex: 'new')
@@ -86,6 +111,22 @@ const ClassDetailsPage = () => {
 
       setStudentCount(count || 0);
 
+      // Verificar se usuário é professor da turma
+      if (user?.id) {
+        const { data: membership, error: membershipError } = await supabase
+          .from('class_members')
+          .select('role')
+          .eq('class_id', classId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (membershipError) {
+          logger.warn('Erro ao verificar papel do usuário na turma:', membershipError);
+        } else {
+          setIsTeacher(membership?.role === 'teacher');
+        }
+      }
+
     } catch (error) {
       logger.error('Erro ao carregar turma:', error);
       toast({
@@ -114,6 +155,44 @@ const ClassDetailsPage = () => {
     }
   };
 
+  const handleOpenCloneModal = () => {
+    if (!classData) return;
+    setCloneName(`${classData.name} - Cópia`);
+    setCopyStudents(true);
+    setCopyActivities(true);
+    setCloneModalOpen(true);
+  };
+
+  const handleCloneClass = async () => {
+    if (!classId || !classData) return;
+    try {
+      setCloning(true);
+
+      const clonedClass = await ClassService.cloneClassStructure(classId, {
+        name: cloneName || `${classData.name} - Cópia`,
+        copyStudents,
+        copyActivities,
+      });
+
+      toast({
+        title: 'Turma clonada com sucesso',
+        description: 'Redirecionando para a nova turma...',
+      });
+
+      setCloneModalOpen(false);
+      navigate(`/dashboard/classes/${clonedClass.id}`);
+    } catch (error) {
+      logger.error('Erro ao clonar turma:', error);
+      toast({
+        title: 'Erro ao clonar turma',
+        description: error.message || 'Não foi possível clonar a turma.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCloning(false);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Visão Geral', icon: LayoutDashboard },
     { id: 'content', label: 'Mural de Conteúdo', icon: FileText },
@@ -134,6 +213,7 @@ const ClassDetailsPage = () => {
   }
 
   const bannerGradient = classData?.color || 'from-blue-600 to-cyan-500';
+  const canClone = !loading && isTeacher;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -172,14 +252,33 @@ const ClassDetailsPage = () => {
           >
             <Edit className="w-4 h-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-white hover:bg-white/20"
-            onClick={() => {}}
-          >
-            <MoreVertical className="w-4 h-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-white hover:bg-white/20"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {classData?.invite_code && (
+                <DropdownMenuItem onClick={handleCopyInviteCode}>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Ver Código de Convite
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={handleOpenCloneModal} disabled={!canClone}>
+                <Copy className="w-4 h-4 mr-2" />
+                {canClone ? 'Clonar Turma' : 'Clonar Turma (apenas professor)'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                Arquivar Turma (em breve)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Informações Principais */}
@@ -291,6 +390,73 @@ const ClassDetailsPage = () => {
         {activeTab === 'metrics' && <MetricsTab classId={classId} />}
         {activeTab === 'chatbot' && <ChatbotTab classId={classId} classData={classData} />}
       </div>
+
+      <Dialog open={cloneModalOpen} onOpenChange={setCloneModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Clonar Turma</DialogTitle>
+            <DialogDescription>
+              Crie uma nova turma a partir de {classData?.name}. As atividades serão copiadas como rascunhos e não serão publicadas automaticamente. Apenas professores podem clonar turmas.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div>
+              <Label htmlFor="clone-name" className="text-sm font-medium">
+                Nome da nova turma
+              </Label>
+              <Input
+                id="clone-name"
+                type="text"
+                value={cloneName}
+                onChange={(e) => setCloneName(e.target.value)}
+                className="mt-1"
+                placeholder={`${classData?.name || 'Turma'} - Cópia`}
+              />
+            </div>
+
+            <Card className="p-4 space-y-3">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="copy-students"
+                  checked={copyStudents}
+                  onCheckedChange={(checked) => setCopyStudents(Boolean(checked))}
+                />
+                <Label htmlFor="copy-students" className="cursor-pointer">
+                  Copiar alunos da turma original
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="copy-activities"
+                  checked={copyActivities}
+                  onCheckedChange={(checked) => setCopyActivities(Boolean(checked))}
+                />
+                <Label htmlFor="copy-activities" className="cursor-pointer">
+                  Copiar atividades (como rascunhos) para a nova turma
+                </Label>
+              </div>
+            </Card>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setCloneModalOpen(false)}
+              disabled={cloning}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCloneClass}
+              disabled={cloning || loading || !isTeacher}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {cloning ? 'Clonando...' : 'Clonar Turma'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

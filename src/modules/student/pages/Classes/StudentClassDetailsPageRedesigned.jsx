@@ -1,9 +1,9 @@
 import { logger } from '@/shared/utils/logger';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/shared/hooks/useAuth';
-import { supabase } from '@/shared/services/supabaseClient';
+import { useStudentClassDetails } from '@/modules/student/hooks/useStudentClassDetails';
 import { ActivityCard, EmptyState, StatCard, GradeCard, MaterialCardPreview } from '@/modules/student/components/redesigned';
 import { BookOpen, FileText, Users, Star, ArrowLeft, Megaphone, Calendar, MessageCircle } from 'lucide-react'; 
 import { Card } from '@/shared/components/ui/card';
@@ -21,289 +21,37 @@ const StudentClassDetailsPageRedesigned = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('feed');
-  const [classData, setClassData] = useState(null);
-  const [announcements, setAnnouncements] = useState([]);
-  const [activities, setActivities] = useState([]);
-  const [materials, setMaterials] = useState([]);
-  const [grades, setGrades] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [stats, setStats] = useState({
+
+  const {
+    data: classPayload,
+    loading,
+    refetch,
+  } = useStudentClassDetails(classId);
+
+  const classData = classPayload?.classData || null;
+  const announcements = classPayload?.announcements || [];
+  const activities = classPayload?.activities || [];
+  const materials = classPayload?.materials || [];
+  const grades = classPayload?.grades || [];
+  const students = classPayload?.students || [];
+  const stats = classPayload?.stats || {
     pendingActivities: 0,
     avgGrade: 0,
-    studentsCount: 0
-  });
-
-  // Fallback: buscar via Edge Function (usa service role no backend)
-  const fetchFromEdgeFunction = async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-class-data-optimized`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ classId })
-        }
-      );
-
-      if (!response.ok) throw new Error('Edge Function falhou');
-
-      const result = await response.json();
-      const data = result.data;
-
-      // Combinar posts e discussions como feed
-      const allPosts = [
-        ...(data.posts || []),
-        ...(data.discussions || []).map(d => ({
-          ...d,
-          title: d.title,
-          description: d.description,
-          content: d.description,
-          creator: d.author,
-          created_at: d.created_at
-        }))
-      ];
-
-      const publishedActivities = (data.activities || []).filter(a => a.status === 'published');
-
-      setClassData({
-        ...data.classInfo,
-        teacher_name: data.classInfo?.teacher?.full_name || 'Professor',
-        teacher_avatar: data.classInfo?.teacher?.avatar_url,
-        teacher_email: data.classInfo?.teacher?.email
-      });
-
-      setAnnouncements(allPosts);
-      setMaterials(data.library || []);
-      setActivities(publishedActivities);
-      setStudents((data.members || []).filter(m => m.role === 'student'));
-      setGrades([]); // Edge original não retornava notas detalhadas
-
-      setStats(s => ({
-        ...s,
-        studentsCount: (data.members || []).filter(m => m.role === 'student').length,
-        pendingActivities: publishedActivities.length
-      }));
-
-      logger.debug('[ClassDetails][Fallback EF] Dados aplicados', {
-        posts: allPosts.length,
-        materials: (data.library || []).length,
-        activities: publishedActivities.length,
-        students: (data.members || []).filter(m => m.role === 'student').length,
-      });
-    } catch (e) {
-      logger.error('[ClassDetails][Fallback EF] Erro ao buscar:', e);
-    }
+    studentsCount: 0,
   };
-
-  useEffect(() => {
-    if (user?.id && classId) {
-      loadClassData();
-    }
-  }, [user, classId]);
-
-  const loadClassData = async () => {
-    try {
-      setLoading(true);
-
-      // Buscar dados da turma DIRETO do Supabase (como era antes)
-      const { data: classInfo, error: classError } = await supabase
-        .from('classes')
-        .select(`
-          *,
-          teacher:profiles!created_by(id, full_name, avatar_url, email)
-        `)
-        .eq('id', classId)
-        .single();
-
-      if (classError) {
-        logger.error('[ClassDetails] Erro classes:', classError);
-        throw classError;
-      }
-
-      // Buscar membros da turma (apenas não arquivados)
-      const { data: membersData, error: membersError } = await supabase
-        .from('class_members')
-        .select(`
-          id,
-          user_id,
-          is_archived,
-          user:profiles!user_id(id, full_name, email, avatar_url, role)
-        `)
-        .eq('class_id', classId);
-
-      // Filtrar arquivados no JS (mais confiável)
-      const activeMembers = membersData?.filter(m => !m.is_archived) || [];
-
-      if (membersError) {
-        logger.error('[ClassDetails] Erro members:', membersError);
-        throw membersError;
-      }
-
-
-      // Transformar dados dos alunos (apenas ativos)
-      // Critérios:
-      // - Preferir profiles.role === 'student'
-      // - Se role indisponível (RLS), excluir o professor da turma usando teacher.id
-      const teacherId = classInfo?.teacher?.id;
-      
-      const students = activeMembers
-        .filter(m => {
-          // Filtrar apenas alunos (não professores)
-          if (m.user?.role) return m.user.role === 'student';
-          return m.user_id !== teacherId;
-        })
-        .map(m => ({
-          id: m.user?.id || m.user_id,
-          full_name: m.user?.full_name || null,
-          email: m.user?.email || null,
-          avatar_url: m.user?.avatar_url || null,
-        }))
-        .filter(s => !!s.id);
-
-
-      // Buscar posts
-      const { data: postsData, error: postsError } = await supabase
-        .from('class_posts')
-        .select(`
-          *,
-          creator:profiles!created_by(id, full_name, avatar_url)
-        `)
-        .eq('class_id', classId)
-        .order('created_at', { ascending: false });
-      if (postsError) logger.error('[ClassDetails] Erro posts:', postsError);
-
-      // Buscar materiais
-      const { data: materialsData, error: materialsError } = await supabase
-        .from('class_materials')
-        .select('*')
-        .eq('class_id', classId)
-        .order('created_at', { ascending: false });
-      if (materialsError) logger.error('[ClassDetails] Erro materials:', materialsError);
-
-      // Buscar atividades atribuídas à turma
-      const { data: assignmentsData, error: assignmentsError } = await supabase
-        .from('activity_class_assignments')
-        .select(`
-          activity_id,
-          assigned_at,
-          activity:activities(*)
-        `)
-        .eq('class_id', classId);
-      if (assignmentsError) logger.error('[ClassDetails] Erro assignments:', assignmentsError);
-
-      const activities = assignmentsData?.map(a => a.activity).filter(Boolean) || [];
-      const publishedActivities = activities.filter(act => act.status === 'published');
-
-      // Buscar submissões do aluno nesta turma
-      const activityIds = publishedActivities.map(a => a.id);
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('submissions')
-        .select('activity_id, status, grade, submitted_at')
-        .eq('student_id', user.id)
-        .in('activity_id', activityIds);
-      if (submissionsError) logger.error('[ClassDetails] Erro submissions:', submissionsError);
-
-      // Criar mapa de submissões por activity_id
-      const submissionsMap = new Map(
-        (submissions || []).map(s => [s.activity_id, s])
-      );
-
-      // Montar lista de notas por atividade (usar dados da activity)
-      const gradesList = (submissions || [])
-        .filter(s => s.grade !== null && s.grade !== undefined)
-        .map(s => {
-          const act = publishedActivities.find(a => a.id === s.activity_id) || {};
-          return {
-            id: `${s.activity_id}`,
-            activity_title: act.title || 'Atividade',
-            grade: Number(s.grade),
-            max_score: Number(act.max_score) || 100,
-            feedback: act.feedback || null,
-          };
-        });
-
-      // Calcular média das notas
-      const gradesData = gradesList;
-      const avgGrade = gradesData.length > 0
-        ? gradesData.reduce((sum, g) => sum + Number(g.grade), 0) / gradesData.length
-        : null;
-
-      // Adicionar status de submissão em cada atividade
-      const activitiesWithStatus = publishedActivities.map(activity => {
-        const submission = submissionsMap.get(activity.id);
-        const hasSubmission = !!submission;
-        const isLate = !hasSubmission && activity.due_date && new Date(activity.due_date) < new Date();
-        
-        return {
-          ...activity,
-          submission,
-          hasSubmission,
-          isCompleted: hasSubmission && submission.status === 'graded',
-          isPending: !hasSubmission && !isLate,
-          isLate,
-          status: hasSubmission 
-            ? (submission.status === 'graded' ? 'completed' : 'submitted')
-            : (isLate ? 'late' : 'pending')
-        };
-      });
-
-      // Contar pendentes (não entregues e não atrasadas)
-      const pendingActivities = activitiesWithStatus.filter(a => a.isPending).length;
-
-
-      // Se tudo veio vazio (provável RLS), acionar Fallback por Edge Function
-      const allEmpty =
-        (activeMembers.length === 0) &&
-        ((postsData?.length || 0) === 0) &&
-        ((materialsData?.length || 0) === 0) &&
-        (publishedActivities.length === 0);
-      if (allEmpty) {
-        logger.warn('[ClassDetails] Dados vazios possivelmente por RLS, usando fallback Edge Function');
-        await fetchFromEdgeFunction();
-        return;
-      }
-
-      // Atualizar estados
-      setClassData({
-        ...classInfo,
-        teacher_name: classInfo.teacher?.full_name || 'Professor',
-        teacher_avatar: classInfo.teacher?.avatar_url,
-        teacher_email: classInfo.teacher?.email
-      });
-
-      setAnnouncements(postsData || []);
-      setActivities(activitiesWithStatus);
-      setMaterials(materialsData || []);
-      setStudents(students);
-      setGrades(gradesList);
-
-      // Atualizar stats (usar alunos computados)
-      setStats({
-        pendingActivities,
-        avgGrade: avgGrade !== null ? avgGrade : 0,
-        studentsCount: students.length
-      });
-
-    } catch (error) {
-      logger.error('Erro ao carregar dados da turma:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Funções removidas - dados vêm da Edge Function
 
   const handleDownloadMaterial = async (material) => {
     if (material.file_url) {
       window.open(material.file_url, '_blank');
+    }
+  };
+
+  const handleRefresh = () => {
+    if (refetch) {
+      refetch().catch((err) => {
+        logger.error('[StudentClassDetails] Erro ao recarregar dados da turma:', err);
+      });
     }
   };
 
@@ -440,7 +188,7 @@ const StudentClassDetailsPageRedesigned = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                 >
-                  <PostCard post={post} onUpdate={loadClassData} />
+                  <PostCard post={post} onUpdate={handleRefresh} />
                 </motion.div>
               ))}
             </div>

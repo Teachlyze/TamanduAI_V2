@@ -9,6 +9,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Award, FileText, Upload, Save, Send, Download, AlertCircle, CheckCircle, User } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
 import { Card } from '@/shared/components/ui/card';
+import { Input } from '@/shared/components/ui/input';
 import { Textarea } from '@/shared/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/shared/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/shared/components/ui/radio-group';
@@ -24,13 +25,13 @@ import { ptBR } from 'date-fns/locale';
 import TextWithLineBreaks from '@/shared/components/ui/TextWithLineBreaks';
 import { calculateAutoGrade, generateAutoFeedback, canAutoGrade, shouldShowScoreImmediately } from '@/shared/services/autoGradingService';
 import useActivityFiles from '@/shared/hooks/useActivityFiles';
+import { useStudentActivityDetails } from '@/modules/student/hooks/useStudentActivityDetails';
 
 const StudentActivityDetailsPageRedesigned = () => {
   const { activityId } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [activity, setActivity] = useState(null);
   const [submission, setSubmission] = useState(null);
@@ -42,141 +43,48 @@ const StudentActivityDetailsPageRedesigned = () => {
   const [submissionAttempts, setSubmissionAttempts] = useState(0);
   const [isNewAttempt, setIsNewAttempt] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [uploadErrorMessage, setUploadErrorMessage] = useState(null);
 
   const {
     uploadSubmission,
     isUploading,
-    uploadProgress
+    uploadProgress,
+    removeSubmissionFile
   } = useActivityFiles(activityId, currentUser?.id, false);
 
+  const {
+    data: activityPayload,
+    loading,
+    refetch,
+  } = useStudentActivityDetails(activityId);
+
   useEffect(() => {
-    loadActivityAndSubmission();
-  }, [activityId]);
+    if (!activityPayload) return;
 
-  const loadActivityAndSubmission = async () => {
-    try {
-      setLoading(true);
-      const { data: user } = await supabase.auth.getUser();
+    const {
+      currentUser: fetchedUser,
+      activity: fetchedActivity,
+      submission: fetchedSubmission,
+      classStats: fetchedClassStats,
+      submissionAttempts: fetchedSubmissionAttempts,
+    } = activityPayload;
 
-      if (!user?.user?.id) {
-        throw new Error('Usuário não autenticado');
-      }
+    setCurrentUser(fetchedUser);
+    setActivity(fetchedActivity);
+    setSubmission(fetchedSubmission);
+    setClassStats(fetchedClassStats);
+    setSubmissionAttempts(fetchedSubmissionAttempts);
 
-      setCurrentUser(user.user);
-
-      // Buscar atividade
-      const { data: activityData, error: actError } = await supabase
-        .from('activities')
-        .select('*')
-        .eq('id', activityId)
-        .single();
-
-      if (actError) throw actError;
-
-      // Buscar assignment para pegar class_id
-      const { data: assignment } = await supabase
-        .from('activity_class_assignments')
-        .select('class_id')
-        .eq('activity_id', activityId)
-        .single();
-
-      let classData = null;
-      if (assignment) {
-        // Buscar dados da turma
-        const { data: cls } = await supabase
-          .from('classes')
-          .select('id, name, color')
-          .eq('id', assignment.class_id)
-          .single();
-        
-        classData = cls;
-      }
-
-      // Buscar dados do professor que criou a atividade
-      let teacherData = null;
-      if (activityData?.created_by) {
-        const { data: teacher } = await supabase
-          .from('profiles')
-          .select('id, full_name, name, email')
-          .eq('id', activityData.created_by)
-          .maybeSingle();
-
-        teacherData = teacher;
-      }
-
-      // Buscar submissão existente (há UNIQUE em activity_id + student_id, então só pode haver uma linha)
-      const { data: submissionsData, error: submissionsError } = await supabase
-        .from('submissions')
-        .select('*')
-        .eq('activity_id', activityId)
-        .eq('student_id', user.user.id)
-        .order('submitted_at', { ascending: false })
-        .limit(1);
-
-      if (submissionsError) throw submissionsError;
-
-      const submissionData = submissionsData?.[0] || null;
-
-      // Contar tentativas anteriores usando campo attemptNumber salvo no content
-      // Se não existir (submissões antigas), considerar pelo menos 1 tentativa
-      const attemptsCount = submissionData
-        ? (typeof submissionData.content?.attemptNumber === 'number'
-            ? submissionData.content.attemptNumber
-            : 1)
-        : 0;
-
-      setSubmissionAttempts(attemptsCount);
-
-      // Buscar estatísticas da turma (se corrigida)
-      if (submissionData?.status === 'graded') {
-        const { data: stats } = await supabase
-          .from('submissions')
-          .select('grade')
-          .eq('activity_id', activityId)
-          .eq('status', 'graded')
-          .not('grade', 'is', null);
-
-        if (stats && stats.length > 0) {
-          const grades = stats.map(s => parseFloat(s.grade));
-          const average = grades.reduce((a, b) => a + b, 0) / grades.length;
-          const max = Math.max(...grades);
-          
-          setClassStats({
-            average,
-            maxGrade: max,
-            totalSubmissions: stats.length
-          });
-        }
-      }
-
-      // Adicionar dados da turma à atividade
-      const activityWithClass = {
-        ...activityData,
-        class_name: classData?.name,
-        class_color: classData?.color,
-        class_id: classData?.id,
-        teacher_name: teacherData?.full_name || teacherData?.name || teacherData?.email || null,
-      };
-
-      setActivity(activityWithClass);
-      setSubmission(submissionData);
-
-      const submissionContent = submissionData?.content || {};
-      setAnswer(submissionContent.answer || '');
-      setSelectedAnswers(submissionContent.selectedAnswers || {});
-      setAttachments(Array.isArray(submissionContent.attachments) ? submissionContent.attachments : []);
-      setIsNewAttempt(false);
-    } catch (error) {
-      logger.error('Erro ao carregar atividade:', error)
-      toast({
-        title: '❌ Erro ao carregar',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    const submissionContent = fetchedSubmission?.content || {};
+    setAnswer(submissionContent.answer || '');
+    setSelectedAnswers(submissionContent.selectedAnswers || {});
+    setAttachments(
+      Array.isArray(submissionContent.attachments)
+        ? submissionContent.attachments
+        : [],
+    );
+    setIsNewAttempt(false);
+  }, [activityPayload]);
 
   const handleSaveDraft = async () => {
     try {
@@ -403,7 +311,7 @@ const StudentActivityDetailsPageRedesigned = () => {
         });
       }
 
-      loadActivityAndSubmission();
+      await refetch();
     } catch (error) {
       logger.error('Erro ao enviar:', error);
       logger.error('[confirmSubmit] Detalhes do erro:', {
@@ -461,6 +369,34 @@ const StudentActivityDetailsPageRedesigned = () => {
     if (!file || !activity || !currentUser) return;
 
     try {
+      const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50 MB
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        const limitMb = (MAX_FILE_SIZE_BYTES / (1024 * 1024)).toFixed(0);
+        const message = `O tamanho maximo permitido e de ${limitMb} MB por arquivo. Seu arquivo tem ${sizeMb} MB.`;
+
+        logger.warn('[handleUploadAttachment] Arquivo acima do limite', {
+          sizeMb,
+          limitMb,
+          fileName: file.name
+        });
+
+        setUploadErrorMessage(message);
+
+        toast({
+          title: 'Arquivo muito grande',
+          description: message,
+          variant: 'destructive'
+        });
+
+        event.target.value = '';
+        return;
+      }
+
+      // Limpar mensagem de erro anterior se o novo arquivo for valido
+      setUploadErrorMessage(null);
+
       let currentSubmission = submission;
 
       if (!currentSubmission) {
@@ -519,6 +455,9 @@ const StudentActivityDetailsPageRedesigned = () => {
       });
     } catch (error) {
       logger.error('Erro ao enviar anexo da atividade:', error);
+      setUploadErrorMessage(
+        error.message || 'Erro ao enviar o arquivo. Tente novamente em instantes.'
+      );
       toast({
         title: 'Erro ao enviar arquivo',
         description: error.message || 'Tente novamente em instantes.',
@@ -526,6 +465,90 @@ const StudentActivityDetailsPageRedesigned = () => {
       });
     } finally {
       event.target.value = '';
+    }
+  };
+
+  const handleOpenAttachment = async (file) => {
+    if (!file) return;
+
+    try {
+      if (file.path) {
+        const { data, error } = await supabase.storage
+          .from('submissions')
+          .download(file.path);
+
+        if (error) throw error;
+
+        const blobUrl = URL.createObjectURL(data);
+        window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      } else if (file.url) {
+        window.open(file.url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      logger.error('Erro ao abrir anexo da submiss e3o:', error);
+      toast({
+        title: 'Erro ao abrir arquivo',
+        description: error.message || 'N e3o foi poss edvel abrir o arquivo. Tente novamente.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleRemoveAttachment = async (file) => {
+    if (!file) return;
+
+    try {
+      if (file.path) {
+        await removeSubmissionFile(file.path);
+      }
+
+      const currentSubmission = submission;
+      const existingAttachments = Array.isArray(currentSubmission?.content?.attachments)
+        ? currentSubmission.content.attachments
+        : attachments;
+
+      const nextAttachments = existingAttachments.filter((att) => (
+        att.path !== file.path || att.name !== file.name
+      ));
+
+      if (currentSubmission) {
+        // Se todos os arquivos foram removidos, volta para rascunho
+        const nextStatus = nextAttachments.length === 0 ? 'draft' : (currentSubmission.status || 'draft');
+        const nextSubmittedAt = nextAttachments.length === 0 ? null : currentSubmission.submitted_at;
+
+        const { data: updated, error: updateError } = await supabase
+          .from('submissions')
+          .update({
+            content: {
+              ...(currentSubmission.content || {}),
+              attachments: nextAttachments
+            },
+            status: nextStatus,
+            submitted_at: nextSubmittedAt,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', currentSubmission.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+
+        setSubmission(updated);
+      }
+
+      setAttachments(nextAttachments);
+
+      toast({
+        title: 'Envio cancelado',
+        description: 'O arquivo foi removido. Voc ea pode enviar outro arquivo.',
+      });
+    } catch (error) {
+      logger.error('Erro ao remover anexo da submiss e3o:', error);
+      toast({
+        title: 'Erro ao cancelar envio',
+        description: error.message || 'N e3o foi poss edvel remover o arquivo. Tente novamente.',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -630,15 +653,13 @@ const StudentActivityDetailsPageRedesigned = () => {
                         <span className="truncate mr-2">{file.name}</span>
                         {file.url && (
                           <Button
-                            asChild
                             size="sm"
                             variant="outline"
                             className="h-8 px-3"
+                            onClick={() => window.open(file.url, '_blank', 'noopener,noreferrer')}
                           >
-                            <a href={file.url} target="_blank" rel="noopener noreferrer">
-                              <Download className="w-4 h-4 mr-1" />
-                              Baixar
-                            </a>
+                            <Download className="w-4 h-4 mr-1" />
+                            Baixar
                           </Button>
                         )}
                       </li>
@@ -786,12 +807,16 @@ const StudentActivityDetailsPageRedesigned = () => {
                     {isProjectUploadOnly && (
                       <div className="mb-4 space-y-2">
                         <p className="text-sm text-slate-600 dark:text-slate-300">
-                          Envie sua resposta como arquivo (PDF, DOC, DOCX, ODT ou TXT).
+                          Envie sua resposta como arquivo (PDF, DOC, DOCX, ODT, TXT, ZIP, RAR ou 7Z).
+                          <br />
+                          <span className="text-xs text-slate-500 dark:text-slate-400">
+                            Tamanho maximo por arquivo: 50 MB.
+                          </span>
                         </p>
                         <div className="flex items-center gap-3">
                           <Input
                             type="file"
-                            accept=".pdf,.doc,.docx,.odt,.txt"
+                            accept=".pdf,.doc,.docx,.odt,.txt,.zip,.rar,.7z"
                             onChange={handleUploadAttachment}
                             disabled={isUploading || submitting}
                           />
@@ -801,6 +826,11 @@ const StudentActivityDetailsPageRedesigned = () => {
                             </span>
                           )}
                         </div>
+                        {uploadErrorMessage && (
+                          <p className="text-xs text-red-600 dark:text-red-400">
+                            {uploadErrorMessage}
+                          </p>
+                        )}
                         {attachments.length > 0 && (
                           <div className="mt-2 space-y-1">
                             <p className="text-xs text-slate-500">Arquivos enviados:</p>
@@ -809,17 +839,35 @@ const StudentActivityDetailsPageRedesigned = () => {
                                 key={file.path || file.url || index}
                                 className="flex items-center justify-between text-xs border rounded px-3 py-1"
                               >
-                                <span className="truncate mr-2">{file.name}</span>
-                                {file.url && (
-                                  <a
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
+                                <div className="flex items-center gap-2 mr-2 min-w-0 flex-1">
+                                  <span className="truncate">{file.name}</span>
+                                  {typeof file.size === 'number' && (
+                                    <span className="text-[11px] text-slate-500 flex-shrink-0">
+                                      {(file.size / (1024 * 1024)).toFixed(1)} MB
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-blue-600 hover:text-blue-700"
+                                    onClick={() => handleOpenAttachment(file)}
                                   >
                                     Abrir
-                                  </a>
-                                )}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 px-2 text-red-600 hover:text-red-700"
+                                    onClick={() => handleRemoveAttachment(file)}
+                                    disabled={isUploading || submitting}
+                                  >
+                                    Cancelar envio
+                                  </Button>
+                                </div>
                               </div>
                             ))}
                           </div>
