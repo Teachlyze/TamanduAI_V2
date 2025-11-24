@@ -9,6 +9,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { redisCache } from '@/shared/services/redisCache';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
   const [loading, setLoading] = useState(false);
@@ -126,12 +127,15 @@ const EventDetailsModal = ({ isOpen, onClose, event, onEdit, onDelete }) => {
         if (onDelete) onDelete();
       }, 100);
     } catch (error) {
-      logger.error('Erro ao excluir evento:', error)
-      toast({
-        title: '❌ Erro ao excluir',
-        description: error.message || 'Não foi possível excluir o evento.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível excluir o evento.',
+        error,
+        {
+          logPrefix: '[EventDetailsModal] Erro ao excluir evento',
+          title: '❌ Erro ao excluir',
+        }
+      );
     } finally {
       setLoading(false);
     }

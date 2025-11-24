@@ -3,6 +3,7 @@ import { logger } from '@/shared/utils/logger';
 import { useState } from 'react';
 import { supabase } from '@/shared/services/supabaseClient';
 import { useToast } from '@/shared/components/ui/use-toast';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 export const useReportData = () => {
   const [loading, setLoading] = useState(false);
@@ -58,12 +59,12 @@ export const useReportData = () => {
       return result.data;
 
     } catch (error) {
-      logger.error('Erro ao gerar relatório:', error)
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível gerar o relatório',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível gerar o relatório.',
+        error,
+        { logPrefix: '[useReportData] Erro ao gerar relatório' }
+      );
       return null;
     } finally {
       setLoading(false);

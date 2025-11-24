@@ -11,6 +11,7 @@ import { Button } from '@/shared/components/ui/button';
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const ScheduleClassModal = ({ isOpen, onClose, onSuccess, teacherId }) => {
   const [loading, setLoading] = useState(false);
@@ -160,12 +161,15 @@ const ScheduleClassModal = ({ isOpen, onClose, onSuccess, teacherId }) => {
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      logger.error('Erro ao agendar aula:', error)
-      toast({
-        title: '❌ Erro ao agendar',
-        description: error.message,
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível agendar a aula.',
+        error,
+        {
+          logPrefix: '[ScheduleClassModal] Erro ao agendar aula',
+          title: '❌ Erro ao agendar',
+        }
+      );
     } finally {
       setLoading(false);
     }

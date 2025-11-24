@@ -15,6 +15,7 @@ import {
 import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { supabase } from '@/shared/services/supabaseClient';
 import { calculateAutoGrade, generateAutoFeedback, canAutoGrade } from '@/shared/services/autoGradingService';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const GradingPage = () => {
   const { submissionId } = useParams();
@@ -51,12 +52,12 @@ const GradingPage = () => {
         window.open(file.url, '_blank', 'noopener,noreferrer');
       }
     } catch (error) {
-      logger.error('Erro ao abrir anexo da submissao (GradingPage):', error);
-      toast({
-        title: 'Erro ao abrir arquivo',
-        description: error?.message || 'Nao foi possivel abrir o arquivo. Tente novamente.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível abrir o arquivo. Tente novamente.',
+        error,
+        { logPrefix: '[GradingPage] Erro ao abrir anexo da submissão' }
+      );
     }
   };
 
@@ -417,12 +418,12 @@ const GradingPage = () => {
         .single();
 
       if (submissionError) {
-        logger.error('Erro ao carregar submissão:', submissionError)
-        toast({ 
-          title: 'Erro ao carregar submissão', 
-          description: submissionError?.message || 'Não foi possível encontrar esta submissão.', 
-          variant: 'destructive' 
-        });
+        showErrorToast(
+          toast,
+          'Não foi possível encontrar esta submissão.',
+          submissionError,
+          { logPrefix: '[GradingPage] Erro ao carregar submissão' }
+        );
         navigate('/dashboard/corrections');
         return;
       }
@@ -464,11 +465,12 @@ const GradingPage = () => {
       }
 
     } catch (error) {
-      toast({ 
-        title: 'Erro ao carregar submissão', 
-        description: error?.message || 'Tente novamente.', 
-        variant: 'destructive' 
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar a submissão. Tente novamente.',
+        error,
+        { logPrefix: '[GradingPage] Erro inesperado ao carregar submissão' }
+      );
     } finally {
       setLoading(false);
     }
@@ -497,12 +499,12 @@ const GradingPage = () => {
         return { grade: result.grade, feedback };
       }
     } catch (error) {
-      logger.error('Erro na correção automática:', error);
-      toast({
-        title: 'Erro na correção automática',
-        description: 'Não foi possível corrigir automaticamente.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível corrigir automaticamente.',
+        error,
+        { logPrefix: '[GradingPage] Erro na correção automática' }
+      );
     }
     return null;
   };
@@ -522,12 +524,12 @@ const GradingPage = () => {
       
       return { feedback: suggestedFeedback };
     } catch (error) {
-      logger.error('Erro ao gerar sugestão por IA:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível gerar sugestão.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível gerar sugestão.',
+        error,
+        { logPrefix: '[GradingPage] Erro ao gerar sugestão por IA' }
+      );
     }
     return null;
   };
@@ -563,11 +565,12 @@ const GradingPage = () => {
       }
 
     } catch (error) {
-      toast({ 
-        title: 'Erro ao salvar nota', 
-        description: error?.message || 'Tente novamente em instantes.', 
-        variant: 'destructive' 
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível salvar a nota. Tente novamente em instantes.',
+        error,
+        { logPrefix: '[GradingPage] Erro ao salvar nota' }
+      );
     } finally {
       setSaving(false);
     }

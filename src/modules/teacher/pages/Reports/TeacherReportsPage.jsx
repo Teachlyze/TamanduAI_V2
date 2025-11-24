@@ -20,6 +20,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import reportService from '@/services/reportService';
 import ReportViewer from './components/ReportViewer';
 import { cacheService } from '@/shared/services/cacheService';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const REPORT_TEMPLATES = [
   {
@@ -239,12 +240,12 @@ const TeacherReportsPage = () => {
       }, 300);
       
     } catch (error) {
-      logger.error('Erro ao carregar dados:', error)
-      toast({
-        title: 'Erro ao carregar dados',
-        description: error.message,
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar os dados para relatórios.',
+        error,
+        { logPrefix: '[TeacherReportsPage] Erro ao carregar dados' }
+      );
     } finally {
       setLoadingData(false);
     }
@@ -400,12 +401,12 @@ const TeacherReportsPage = () => {
       ]);
 
     } catch (error) {
-      logger.error('Erro ao gerar relatório:', error)
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível gerar o relatório',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível gerar o relatório.',
+        error,
+        { logPrefix: '[TeacherReportsPage] Erro ao gerar relatório' }
+      );
     } finally {
       setGeneratingReport(false);
     }

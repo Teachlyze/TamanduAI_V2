@@ -7,6 +7,7 @@ import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import { useToast } from '@/shared/components/ui/use-toast';
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
 import { exportToPDF } from '@/shared/utils/exportUtils';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
@@ -152,7 +153,15 @@ const ReportViewer = ({ report, onClose }) => {
       
       toast({ title: 'Exportado (CSV)', description: 'Arquivo CSV baixado com sucesso.' });
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Falha na exportação', description: 'Tente novamente.' });
+      showErrorToast(
+        toast,
+        'Não foi possível exportar o relatório em CSV.',
+        e,
+        {
+          logPrefix: '[ReportViewer] Erro ao exportar relatório em CSV',
+          title: 'Falha na exportação',
+        }
+      );
     }
   };
 
@@ -178,7 +187,15 @@ const ReportViewer = ({ report, onClose }) => {
       
       toast({ title: 'Exportado (PDF)', description: 'Arquivo PDF baixado com sucesso.' });
     } catch (e) {
-      toast({ variant: 'destructive', title: 'Falha na exportação', description: 'Tente novamente.' });
+      showErrorToast(
+        toast,
+        'Não foi possível exportar o relatório em PDF.',
+        e,
+        {
+          logPrefix: '[ReportViewer] Erro ao exportar relatório em PDF',
+          title: 'Falha na exportação',
+        }
+      );
     }
   };
 
@@ -286,7 +303,15 @@ const ReportViewer = ({ report, onClose }) => {
                     toast({ title: 'Link copiado', description: 'Link do relatório copiado para a área de transferência.' });
                   }
                 } catch (e) {
-                  toast({ variant: 'destructive', title: 'Falha ao compartilhar', description: 'Tente novamente.' });
+                  showErrorToast(
+                    toast,
+                    'Não foi possível compartilhar o relatório.',
+                    e,
+                    {
+                      logPrefix: '[ReportViewer] Erro ao compartilhar relatório',
+                      title: 'Falha ao compartilhar',
+                    }
+                  );
                 }
               }}
             >

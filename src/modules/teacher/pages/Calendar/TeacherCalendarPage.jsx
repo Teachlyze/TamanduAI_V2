@@ -11,6 +11,7 @@ import { useAuth } from '@/shared/hooks/useAuth';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { redisCache } from '@/shared/services/redisCache';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 import CreateEventModal from './components/CreateEventModal';
 import EventDetailsModal from './components/EventDetailsModal';
 import CalendarFilters from './components/CalendarFilters';
@@ -127,12 +128,12 @@ const TeacherCalendarPage = () => {
 
       setEvents(cachedEvents);
     } catch (error) {
-      logger.error('Erro ao carregar eventos:', error)
-      toast({
-        title: 'Erro ao carregar eventos',
-        description: 'Não foi possível carregar seus eventos.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar seus eventos.',
+        error,
+        { logPrefix: '[TeacherCalendarPage] Erro ao carregar eventos' }
+      );
     } finally {
       setLoading(false);
     }

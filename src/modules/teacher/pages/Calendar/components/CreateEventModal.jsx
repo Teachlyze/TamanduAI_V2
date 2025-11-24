@@ -7,6 +7,7 @@ import LoadingSpinner from '@/shared/components/ui/LoadingSpinner';
 import { toast } from '@/shared/components/ui/use-toast';
 import { supabase } from '@/shared/services/supabaseClient';
 import { redisCache } from '@/shared/services/redisCache';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId, editEvent = null }) => {
   const [loading, setLoading] = useState(false);
@@ -157,12 +158,12 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId,
 
       setStudents(uniqueStudents);
     } catch (error) {
-      logger.error('Erro ao carregar alunos:', error)
-      toast({
-        title: 'Erro ao carregar alunos',
-        description: error.message,
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar os alunos.',
+        error,
+        { logPrefix: '[CreateEventModal] Erro ao carregar alunos' }
+      );
     } finally {
       setLoadingStudents(false);
     }
@@ -308,12 +309,15 @@ const CreateEventModal = ({ isOpen, onClose, onSuccess, selectedDate, teacherId,
       if (onSuccess) onSuccess();
       onClose();
     } catch (error) {
-      logger.error('Erro ao criar evento:', error)
-      toast({
-        title: '❌ Erro ao criar evento',
-        description: error.message || 'Não foi possível criar o evento. Tente novamente.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível criar o evento. Tente novamente.',
+        error,
+        {
+          logPrefix: '[CreateEventModal] Erro ao criar evento',
+          title: '❌ Erro ao criar evento',
+        }
+      );
     } finally {
       setLoading(false);
     }

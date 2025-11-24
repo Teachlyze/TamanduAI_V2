@@ -28,6 +28,7 @@ import { supabase } from '@/shared/services/supabaseClient';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { exportTeacherAnalyticsDashboardToPDF } from '@/shared/services/exportService';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const TeacherAnalyticsPage = () => {
   const { user } = useAuth();
@@ -160,12 +161,12 @@ const TeacherAnalyticsPage = () => {
         ]);
       }
     } catch (error) {
-      logger.error('Erro ao carregar analytics:', error)
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar os dados de analytics',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar os dados de analytics.',
+        error,
+        { logPrefix: '[TeacherAnalyticsPage] Erro ao carregar analytics' }
+      );
     } finally {
       setLoading(false);
       if (initialLoad) {
@@ -863,12 +864,15 @@ const TeacherAnalyticsPage = () => {
         description: 'Arquivo CSV baixado com sucesso'
       });
     } catch (error) {
-      logger.error('Erro ao exportar:', error)
-      toast({
-        title: '❌ Erro ao exportar',
-        description: error.message,
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível exportar o dashboard.',
+        error,
+        {
+          logPrefix: '[TeacherAnalyticsPage] Erro ao exportar CSV do dashboard',
+          title: '❌ Erro ao exportar',
+        }
+      );
     }
   };
 
@@ -890,12 +894,15 @@ const TeacherAnalyticsPage = () => {
         description: 'PDF gerado com sucesso'
       });
     } catch (error) {
-      logger.error('Erro ao exportar PDF:', error)
-      toast({
-        title: '❌ Erro ao exportar PDF',
-        description: error.message,
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível exportar o dashboard em PDF.',
+        error,
+        {
+          logPrefix: '[TeacherAnalyticsPage] Erro ao exportar PDF do dashboard',
+          title: '❌ Erro ao exportar PDF',
+        }
+      );
     }
   };
 
