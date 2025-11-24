@@ -43,6 +43,7 @@ import ActivitiesTab from './tabs/ActivitiesTab';
 import StudentsTab from './tabs/StudentsTab';
 import MetricsTab from './tabs/MetricsTab';
 import ChatbotTab from './tabs/ChatbotTab';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const ClassDetailsPage = () => {
   const { classId } = useParams();
@@ -128,12 +129,12 @@ const ClassDetailsPage = () => {
       }
 
     } catch (error) {
-      logger.error('Erro ao carregar turma:', error);
-      toast({
-        title: 'Erro ao carregar turma',
-        description: error.message || 'Não foi possível carregar os dados da turma.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar os dados da turma.',
+        error,
+        { logPrefix: '[ClassDetailsPage] Erro ao carregar turma' }
+      );
       navigate('/dashboard/classes');
     } finally {
       setLoading(false);
@@ -182,12 +183,12 @@ const ClassDetailsPage = () => {
       setCloneModalOpen(false);
       navigate(`/dashboard/classes/${clonedClass.id}`);
     } catch (error) {
-      logger.error('Erro ao clonar turma:', error);
-      toast({
-        title: 'Erro ao clonar turma',
-        description: error.message || 'Não foi possível clonar a turma.',
-        variant: 'destructive',
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível clonar a turma.',
+        error,
+        { logPrefix: '[ClassDetailsPage] Erro ao clonar turma' }
+      );
     } finally {
       setCloning(false);
     }

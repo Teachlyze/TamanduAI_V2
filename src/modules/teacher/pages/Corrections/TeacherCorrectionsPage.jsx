@@ -20,6 +20,7 @@ import SubmissionRow from './components/SubmissionRow';
 import BulkCorrectionModal from './components/BulkCorrectionModal';
 import AdvancedFilters from './components/AdvancedFilters';
 import CompareSubmissionsModal from './components/CompareSubmissionsModal';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const TeacherCorrectionsPage = () => {
   const { user } = useAuth();
@@ -79,12 +80,12 @@ const TeacherCorrectionsPage = () => {
         setSelectedClass(teacherClasses[0].id);
       }
     } catch (error) {
-      logger.error('Erro ao carregar turmas:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar as turmas.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar as turmas.',
+        error,
+        { logPrefix: '[TeacherCorrectionsPage] Erro ao carregar turmas do professor' }
+      );
     } finally {
       setLoadingClasses(false);
     }
@@ -124,12 +125,12 @@ const TeacherCorrectionsPage = () => {
         setSelectedActivity('all');
       }
     } catch (error) {
-      logger.error('Erro ao carregar atividades:', error);
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar as atividades desta turma.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar as atividades desta turma.',
+        error,
+        { logPrefix: '[TeacherCorrectionsPage] Erro ao carregar atividades da turma' }
+      );
     } finally {
       setLoadingActivities(false);
     }
@@ -239,12 +240,12 @@ const TeacherCorrectionsPage = () => {
       setStats(prev => ({ ...prev, totalPending: pending }));
 
     } catch (error) {
-      logger.error('Erro ao carregar submissões:', error)
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível carregar as submissões.',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível carregar as submissões.',
+        error,
+        { logPrefix: '[TeacherCorrectionsPage] Erro ao carregar submissões para correção' }
+      );
     } finally {
       setLoading(false);
     }

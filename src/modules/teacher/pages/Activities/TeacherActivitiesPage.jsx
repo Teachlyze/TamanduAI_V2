@@ -27,6 +27,8 @@ import ActivityGridCard from './components/ActivityGridCard';
 import PostActivityModal from './components/PostActivityModal';
 import ActivityPreview from './components/ActivityPreview';
 import ImportActivityModal from './components/ImportActivityModal';
+import BulkActivityEditModal from './components/BulkActivityEditModal';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const TeacherActivitiesPage = () => {
   const navigate = useNavigate();
@@ -54,6 +56,7 @@ const TeacherActivitiesPage = () => {
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewActivity, setPreviewActivity] = useState(null);
   const [currentActivity, setCurrentActivity] = useState(null);
@@ -87,8 +90,12 @@ const TeacherActivitiesPage = () => {
     try {
       await refetchActivities();
     } catch (error) {
-      logger.error('Erro ao recarregar atividades:', error);
-      toast({ title: 'Erro', description: 'Não foi possível atualizar as atividades.', variant: 'destructive' });
+      showErrorToast(
+        toast,
+        'Não foi possível atualizar as atividades.',
+        error,
+        { logPrefix: '[TeacherActivitiesPage] Erro ao recarregar atividades' }
+      );
     }
   };
 
@@ -102,7 +109,12 @@ const TeacherActivitiesPage = () => {
       if (error) throw error;
       setClasses(data || []);
     } catch (error) {
-      logger.error('Erro ao carregar turmas:', error)
+      showErrorToast(
+        toast,
+        'Não foi possível carregar suas turmas.',
+        error,
+        { logPrefix: '[TeacherActivitiesPage] Erro ao carregar turmas' }
+      );
     }
   };
 
@@ -193,8 +205,12 @@ const TeacherActivitiesPage = () => {
       loadActivities();
       navigate(`/dashboard/activities/${data.id}/edit`);
     } catch (error) {
-      logger.error('Erro ao duplicar:', error)
-      toast({ title: 'Erro', description: 'Não foi possível duplicar a atividade.', variant: 'destructive' });
+      showErrorToast(
+        toast,
+        'Não foi possível duplicar a atividade.',
+        error,
+        { logPrefix: '[TeacherActivitiesPage] Erro ao duplicar atividade' }
+      );
     }
   };
 
@@ -226,8 +242,12 @@ const TeacherActivitiesPage = () => {
         return next;
       });
     } catch (error) {
-      logger.error('Erro ao arquivar:', error)
-      toast({ title: 'Erro ao arquivar', variant: 'destructive' });
+      showErrorToast(
+        toast,
+        'Não foi possível arquivar a atividade.',
+        error,
+        { logPrefix: '[TeacherActivitiesPage] Erro ao arquivar atividade' }
+      );
     }
   };
   
@@ -245,8 +265,12 @@ const TeacherActivitiesPage = () => {
       toast({ title: 'Atividade desarquivada' });
       loadActivities();
     } catch (error) {
-      logger.error('Erro ao desarquivar:', error)
-      toast({ title: 'Erro ao desarquivar', variant: 'destructive' });
+      showErrorToast(
+        toast,
+        'Não foi possível desarquivar a atividade.',
+        error,
+        { logPrefix: '[TeacherActivitiesPage] Erro ao desarquivar atividade' }
+      );
     }
   };
 
@@ -258,7 +282,12 @@ const TeacherActivitiesPage = () => {
       setShowDeleteModal(false);
       loadActivities();
     } catch (error) {
-      logger.error('Erro ao excluir:', error)
+      showErrorToast(
+        toast,
+        'Não foi possível excluir a atividade.',
+        error,
+        { logPrefix: '[TeacherActivitiesPage] Erro ao excluir atividade' }
+      );
     }
   };
 
@@ -415,6 +444,13 @@ const TeacherActivitiesPage = () => {
             <Button size="sm" variant="secondary" onClick={() => setShowPostModal(true)}>
               <Share2 className="w-4 h-4 mr-2" />Postar
             </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => setShowBulkEditModal(true)}
+            >
+              <Calendar className="w-4 h-4 mr-2" />Editar prazos
+            </Button>
             <Button size="sm" variant="secondary" onClick={() => {
               toast({ title: 'Em breve', description: 'Função de exportação em massa será implementada em breve.' });
             }}>
@@ -428,8 +464,12 @@ const TeacherActivitiesPage = () => {
                 setSelectedActivities([]);
                 toast({ title: 'Sucesso', description: `${selectedActivities.length} atividade(s) arquivada(s).` });
               } catch (error) {
-                logger.error('Erro ao arquivar:', error)
-                toast({ title: 'Erro', description: 'Não foi possível arquivar as atividades.', variant: 'destructive' });
+                showErrorToast(
+                  toast,
+                  'Não foi possível arquivar as atividades.',
+                  error,
+                  { logPrefix: '[TeacherActivitiesPage] Erro ao arquivar atividades em lote' }
+                );
               }
             }}>
               <Archive className="w-4 h-4 mr-2" />Arquivar
@@ -507,6 +547,17 @@ const TeacherActivitiesPage = () => {
           classes={classes}
           onClose={() => setShowPostModal(false)}
           onSuccess={() => { setShowPostModal(false); loadActivities(); setSelectedActivities([]); }}
+        />
+      )}
+
+      {showBulkEditModal && (
+        <BulkActivityEditModal
+          activities={selectedActivities.map(id => activities.find(a => a.id === id))}
+          onClose={() => setShowBulkEditModal(false)}
+          onSuccess={() => {
+            setShowBulkEditModal(false);
+            loadActivities();
+          }}
         />
       )}
 

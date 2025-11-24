@@ -12,12 +12,13 @@ import { useToast } from '@/shared/components/ui/use-toast';
 import { saveCorrection, getCorrectionDraft, saveCorrectionDraft, updateCorrectionMetrics } from '@/shared/services/correctionService';
 import { getFeedbackTemplates, suggestFeedbackWithAI } from '@/shared/services/feedbackService';
 import NotificationService from '@/shared/services/notificationService';
-import { checkPlagiarismWithEdgeFunction } from '@/shared/services/plagiarismService';
+import { checkPlagiarismWithEdgeFunction, getPlagiarismCheckForSubmission } from '@/shared/services/plagiarismService';
 import FeedbackTemplatesSelector from './FeedbackTemplatesSelector';
 import RubricScoring from './RubricScoring';
 import SubmissionView from './SubmissionView';
 import InlineComments from './InlineComments';
 import { convertFromDatabase, getGradeOptions, isValidGrade as validateGrade, GRADING_SYSTEMS } from '@/shared/utils/gradeConverter';
+import { showErrorToast } from '@/shared/utils/toastUtils';
 
 const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClose, onSaved, onNavigate }) => {
   const { user } = useAuth();
@@ -43,6 +44,7 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
   const [templates, setTemplates] = useState([]);
   const [inlineComments, setInlineComments] = useState([]);
   const [startTime] = useState(Date.now());
+  const [plagiarismCheck, setPlagiarismCheck] = useState(null);
   
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex < submissions.length - 1;
@@ -55,6 +57,7 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
   useEffect(() => {
     loadTemplates();
     loadDraft();
+    loadPlagiarismCheck();
     
     // Auto-save a cada 30 segundos
     const autoSaveInterval = setInterval(() => {
@@ -77,6 +80,17 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
       setGrade(data.draft_data.grade || '');
       setFeedback(data.draft_data.feedback || '');
       setRubricScores(data.draft_data.rubricScores || []);
+    }
+  };
+
+  const loadPlagiarismCheck = async () => {
+    try {
+      const data = await getPlagiarismCheckForSubmission(submission.id);
+      if (data) {
+        setPlagiarismCheck(data);
+      }
+    } catch (error) {
+      logger.error('Erro ao carregar verificação de plágio:', error);
     }
   };
 
@@ -166,12 +180,12 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
 
       onSaved();
     } catch (error) {
-      logger.error('Erro ao salvar correção:', error)
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível salvar a correção',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível salvar a correção',
+        error,
+        { logPrefix: '[CorrectionModal] Erro ao salvar correção' }
+      );
     } finally {
       setLoading(false);
     }
@@ -225,11 +239,12 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
         });
       }
     } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível gerar feedback com IA',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível gerar feedback com IA',
+        error,
+        { logPrefix: '[CorrectionModal] Erro ao gerar feedback com IA' }
+      );
     } finally {
       setLoadingAI(false);
     }
@@ -265,23 +280,53 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
 
     setCheckingPlagiarism(true);
     try {
-      const { data, error } = await checkPlagiarismWithEdgeFunction(submission.id, text);
+      const { error } = await checkPlagiarismWithEdgeFunction(submission.id, text);
 
       if (error) throw error;
 
-      toast({
-        title: 'Verificação concluída',
-        description: `Originalidade: ${data.plagiarismScore}% - ${data.message}`,
-        variant: data.severity === 'high' ? 'destructive' : 'default'
-      });
+      const latest = await getPlagiarismCheckForSubmission(submission.id);
+
+      if (latest) {
+        setPlagiarismCheck(latest);
+        const plagPercent = typeof latest.plag_percent === 'number' ? Math.round(latest.plag_percent) : 0;
+        const severity = latest.severity || 'none';
+        const severityLabel = getSeverityLabel(severity);
+
+        toast({
+          title: 'Verificação concluída',
+          description: `Plágio estimado: ${plagPercent}%. Severidade: ${severityLabel}.`,
+          variant: severity === 'high' || severity === 'critical' ? 'destructive' : 'default'
+        });
+      } else {
+        toast({
+          title: 'Verificação concluída',
+          description: 'Verificação registrada, mas nenhum detalhe adicional foi retornado.',
+        });
+      }
     } catch (error) {
-      toast({
-        title: 'Erro',
-        description: 'Não foi possível verificar plágio',
-        variant: 'destructive'
-      });
+      showErrorToast(
+        toast,
+        'Não foi possível verificar plágio',
+        error,
+        { logPrefix: '[CorrectionModal] Erro ao verificar plágio' }
+      );
     } finally {
       setCheckingPlagiarism(false);
+    }
+  };
+
+  const getSeverityLabel = (severity) => {
+    switch (severity) {
+      case 'critical':
+        return 'Crítico';
+      case 'high':
+        return 'Alto';
+      case 'medium':
+        return 'Médio';
+      case 'low':
+        return 'Baixo';
+      default:
+        return 'Nenhum';
     }
   };
 
@@ -364,12 +409,60 @@ const CorrectionModal = ({ submission, submissions = [], currentIndex = 0, onClo
                       {checkingPlagiarism ? 'Verificando...' : '🔍 Verificar'}
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5 text-yellow-600" />
-                    <span>
-                      Originalidade: {submission.plagiarism_score || 'Não verificado'}%
-                    </span>
-                  </div>
+                  {plagiarismCheck ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-yellow-600" />
+                        <span>
+                          Plágio estimado:{' '}
+                          {Math.round(plagiarismCheck.plag_percent ?? 0)}% • Severidade:{' '}
+                          {getSeverityLabel(plagiarismCheck.severity)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                          Original único:{' '}
+                          {Math.round(
+                            plagiarismCheck.unique_percent ??
+                              (100 - (plagiarismCheck.plag_percent ?? 0))
+                          )}%
+                        </div>
+                        <div>
+                          Texto reescrito: {Math.round(plagiarismCheck.rephrased_percent ?? 0)}%
+                        </div>
+                        <div>
+                          Trechos idênticos: {Math.round(plagiarismCheck.exact_matched_percent ?? 0)}%
+                        </div>
+                      </div>
+                      {Array.isArray(plagiarismCheck.sources_detected) &&
+                        plagiarismCheck.sources_detected.length > 0 && (
+                          <div className="text-sm">
+                            <p className="font-medium mb-1">Fontes detectadas</p>
+                            <ul className="space-y-1 max-h-32 overflow-y-auto">
+                              {plagiarismCheck.sources_detected.map((source, index) => (
+                                <li key={index} className="flex flex-col">
+                                  <span className="font-medium">
+                                    {source?.title || source?.domain || `Fonte ${index + 1}`}
+                                  </span>
+                                  {source?.url && (
+                                    <span className="text-xs text-blue-600 break-all">
+                                      {source.url}
+                                    </span>
+                                  )}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                      <span>
+                        Originalidade: {submission.plagiarism_score || 'Não verificado'}%
+                      </span>
+                    </div>
+                  )}
                 </Card>
               )}
 
