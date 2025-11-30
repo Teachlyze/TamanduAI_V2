@@ -51,7 +51,6 @@ const FlashcardsPage = () => {
     reviews_today: 0,
   });
   const [searchQuery, setSearchQuery] = useState('');
-  const [deckDueCounts, setDeckDueCounts] = useState({});
   const [importing, setImporting] = useState(false);
   const [importingApkg, setImportingApkg] = useState(false);
   const [showImportMenu, setShowImportMenu] = useState(false);
@@ -121,49 +120,8 @@ const FlashcardsPage = () => {
     }
   };
 
-  useEffect(() => {
-    const loadDeckDueCounts = async () => {
-      if (!user?.id || !decks || decks.length === 0) return;
-
-      try {
-        const { data: userSettings } = await flashcardService.getUserSettings(user.id);
-
-        const results = await Promise.all(
-          decks.map(async (deck) => {
-            const { data: dueCards } = await flashcardService.getDueCardsForReview(
-              deck.id,
-              user.id,
-              {
-                include_new: true,
-                include_learning: true,
-                include_review: true,
-                max_new: userSettings?.new_cards_per_day || 20,
-                max_reviews: userSettings?.max_reviews_per_day || 200,
-                order: userSettings?.review_order || 'random',
-              }
-            );
-
-            return {
-              deckId: deck.id,
-              dueCount: dueCards?.length || 0,
-            };
-          })
-        );
-
-        const map = {};
-        results.forEach((item) => {
-          if (!item) return;
-          map[item.deckId] = item.dueCount;
-        });
-
-        setDeckDueCounts(map);
-      } catch (error) {
-        logger.error('Error loading deck due counts:', error);
-      }
-    };
-
-    loadDeckDueCounts();
-  }, [decks, user]);
+  // Não recalcula mais dueCards por deck via getDueCardsForReview aqui.
+  // Usamos apenas os dados agregados de deck_stats que já vêm de getUserStats.
 
   const handleCreateDeck = () => {
     navigate('/students/flashcards/decks/new');
@@ -649,7 +607,13 @@ const FlashcardsPage = () => {
     deck.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const aggregatedDueFromDecks = Object.keys(deckDueCounts).length
+  // Agregar cards devidos a partir de deck_stats, sem fazer novas queries pesadas.
+  const aggregatedDueFromDecks = decks.reduce((sum, deck) => {
+    const deckStats = deck.deck_stats?.[0] || null;
+    if (!deckStats) return sum;
+    const dueFromStats = (Number(deckStats.cards_due_today || 0) + Number(deckStats.new_cards || 0));
+    return sum + (Number.isFinite(dueFromStats) ? dueFromStats : 0);
+  }, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 p-6">
@@ -818,8 +782,6 @@ const FlashcardsPage = () => {
       {filteredDecks.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDecks.map((deck, index) => {
-            const deckDueCount = deckDueCounts[deck.id];
-
             return (
               <motion.div
                 key={deck.id}
@@ -829,7 +791,6 @@ const FlashcardsPage = () => {
               >
                 <DeckCard
                   deck={deck}
-                  dueCount={deckDueCount}
                   onStudy={() => handleStudyDeck(deck.id)}
                   onView={() => handleViewDeck(deck.id)}
                 />

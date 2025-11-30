@@ -226,12 +226,12 @@ const ReviewPage = () => {
     const retention = Math.round((sessionStats.correct / sessionStats.total) * 100);
 
     toast({
-      title: '🎉 Sessão concluída!',
+      title: '\ud83c\udf89 Sess\u00e3o conclu\u00edda!',
       description: `${sessionStats.reviewed} cards revisados em ${minutes}m ${seconds}s. Taxa de acerto: ${retention}%`,
       duration: 5000,
     });
 
-    navigate(`/students/flashcards/decks/${deckId}`);
+    navigate('/students/flashcards');
   };
 
   const handlePause = () => {
