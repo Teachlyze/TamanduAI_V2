@@ -1,1 +1,0 @@
-import{l as a}from"./main-CDwcRVbo.js";const n=(t,o,r,e={})=>{r&&a.error(e.logPrefix||"Unexpected error",r),t({title:e.title||"Erro",description:e.description||o||"Algo inesperado aconteceu. Tente novamente.",variant:e.variant||"destructive"})};export{n as s};

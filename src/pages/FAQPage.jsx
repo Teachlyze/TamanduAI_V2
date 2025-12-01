@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   HelpCircle, ChevronDown, Search, MessageCircle, Shield, 
@@ -10,7 +10,11 @@ import Footer from '@/shared/components/Footer';
 import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 const FAQPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const initialSearch = searchParams.get('search') || '';
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [activeCategory, setActiveCategory] = useState('all');
   const [openQuestion, setOpenQuestion] = useState(null);
   const isMobile = useIsMobile();
@@ -146,6 +150,30 @@ const FAQPage = () => {
       question: 'Como funciona a segurança da plataforma?',
       answer: 'Implementamos múltiplas camadas de segurança: criptografia SSL/TLS para transmissão de dados, senhas protegidas com hash bcrypt, autenticação de dois fatores (2FA) disponível, controle de acesso baseado em funções (RBAC), backups regulares, monitoramento 24/7 de segurança, proteção contra ataques DDoS e auditorias regulares de segurança.',
       keywords: ['segurança', 'criptografia', '2FA', 'proteção']
+    },
+    {
+      category: 'getting-started',
+      question: 'Como entrar em uma turma usando o código de convite?',
+      answer: 'Para entrar em uma turma, o aluno precisa criar uma conta gratuita em TamanduAI e, em seguida, acessar a área de “Entrar em uma turma”. Lá, basta informar o código de convite de 8 caracteres enviado pelo professor. Depois de confirmar o código, a turma aparece automaticamente no painel do aluno, com acesso às atividades, materiais e chatbot da turma.',
+      keywords: ['entrar em uma turma', 'como entrar em uma turma', 'código de convite', 'código de 8 caracteres', 'turma']
+    },
+    {
+      category: 'features',
+      question: 'Como usar o chatbot educacional da TamanduAI?',
+      answer: 'O chatbot educacional da TamanduAI fica disponível 24/7 para tirar dúvidas dos alunos com base nos materiais cadastrados pelo professor (apostilas, PDFs, slides, etc.). O aluno acessa o chatbot pela turma, escolhe o assunto e digita sua pergunta em linguagem natural. O sistema utiliza RAG (Retrieval-Augmented Generation) para buscar trechos relevantes nos documentos e gerar respostas alinhadas ao conteúdo da disciplina, reduzindo alucinações típicas de IAs genéricas.',
+      keywords: ['chatbot educacional', 'como usar chatbot', 'dúvidas com IA', 'chatbot da turma']
+    },
+    {
+      category: 'features',
+      question: 'O que é o sistema antiplágio da TamanduAI?',
+      answer: 'O sistema antiplágio da TamanduAI é integrado ao Winston AI e verifica automaticamente se textos enviados pelos alunos contêm trechos copiados da internet ou gerados por outras IAs, como ChatGPT e Gemini. Professores podem ativar a verificação de plágio em cada atividade. O relatório mostra percentual de similaridade, trechos suspeitos e possíveis fontes, ajudando a garantir autoria e honestidade acadêmica.',
+      keywords: ['antiplágio', 'detecção de plágio', 'sistema antiplágio', 'winston ai']
+    },
+    {
+      category: 'pricing',
+      question: 'Quais são os planos e preços da TamanduAI?',
+      answer: 'Atualmente oferecemos três níveis principais: plano Gratuito (com limite diário de mensagens no chatbot e verificações de plágio), plano Pro para professores individuais, com mais recursos e limites ampliados, e plano Enterprise para escolas e redes de ensino com necessidades avançadas. Os valores e benefícios atualizados podem ser consultados na página de preços em tamanduai.com/pricing.',
+      keywords: ['planos e preços', 'planos', 'preços', 'quanto custa', 'assinatura']
     }
   ];
 
@@ -191,13 +219,14 @@ const FAQPage = () => {
                   TamanduAI
                 </span>
               </Link>
-              <Link
-                to="/"
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Voltar para Home
-              </Link>
+                Voltar página
+              </button>
             </div>
           </div>
         </header>
@@ -375,10 +404,16 @@ const FAQPage = () => {
                   Entrar em Contato
                 </Link>
                 <Link
-                  to="/documentation"
+                  to="/docs"
                   className="px-6 py-3 bg-indigo-700 text-white rounded-lg font-semibold hover:bg-indigo-800 transition-colors"
                 >
                   Ver Documentação
+                </Link>
+                <Link
+                  to="/"
+                  className="px-6 py-3 border border-indigo-300/80 bg-indigo-600/10 text-white rounded-lg font-semibold hover:bg-indigo-500/20 hover:border-indigo-200 transition-colors"
+                >
+                  Ir para Home
                 </Link>
               </div>
             </div>

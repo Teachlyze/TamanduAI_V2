@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Cookie, CheckCircle, Info, Settings, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import Footer from '@/shared/components/Footer';
 import { useIsMobile, usePrefersReducedMotion } from '@/shared/hooks/useMediaQuery';
 
 export default function CookiePolicyPage() {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const prefersReducedMotion = usePrefersReducedMotion();
   const isMotionLight = isMobile || prefersReducedMotion;
@@ -31,13 +32,14 @@ export default function CookiePolicyPage() {
                   TamanduAI
                 </span>
               </Link>
-              <Link
-                to="/"
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
                 className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                Voltar para Home
-              </Link>
+                Voltar página
+              </button>
             </div>
           </div>
         </header>
@@ -295,6 +297,20 @@ export default function CookiePolicyPage() {
 
             </div>
           </motion.div>
+        </section>
+
+        <section className="pb-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-amber-200 bg-white text-sm font-medium text-amber-700 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Ir para Home
+              </Link>
+            </div>
+          </div>
         </section>
 
         <Footer />
